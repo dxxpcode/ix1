@@ -1,0 +1,11 @@
+# bootc-image-builder manifest for the ix1 dev qcow2 disk image.
+# Uses the builder's default Fedora bootc partition layout
+# (ESP + /boot + /) — keep customizations minimal for now.
+# Used by scripts/build-disk-image.sh — do not hand-edit outputs.
+
+[customizations]
+hostname = "ix1"
+
+[[customizations.user]]
+name = "ix1"
+groups = ["wheel"]
