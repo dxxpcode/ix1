@@ -1,0 +1,9 @@
+label: "ix1-Installer"
+kernel_args:
+  - console=ttyS0
+grub2:
+  timeout: 5
+  entries:
+    - name: "Install ix1 (bootc)"
+      linux: ${kernelpath} ${root} inst.graphical
+      initrd: ${initrdpath}

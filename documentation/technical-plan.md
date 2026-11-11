@@ -10,7 +10,7 @@
 
 ## M1 — OS foundation
 
-- `distribution/bootc/Containerfile` on `quay.io/fedora/fedora-bootc:43`.
+- `distribution/bootc/Containerfile` on `quay.io/fedora/fedora-bootc:44`.
 - Packages: NetworkManager, PipeWire/WirePlumber, Mesa + video drivers,
   Flatpak + xdg-desktop-portal, SELinux, openssh, fonts.
 - `scripts/build-image.sh` builds `localhost/ix1-os:dev` with podman.

@@ -20,11 +20,18 @@ Results are recorded in the PR/commit that claims completion.
 - [ ] SELinux status `enforcing` (or documented deviation).
 - [ ] Serial log captured as evidence in `tests/boot/`.
 
-## M3 — Installation (planned)
-- [ ] Bootable installer ISO produced.
-- [ ] Install to empty virtual disk completes unattended.
-- [ ] Reboot into installed system; user account works.
-- [ ] LUKS2 encryption path verified.
+## M3 — Installation
+- [x] Bootable installer ISO produced (`generic-iso` via osbuild image-builder).
+- [x] Install to empty virtual disk completes unattended (Anaconda bootc payload).
+- [x] Reboot into installed system; user account works (user `ix1`, wheel).
+- [x] LUKS2 encryption path verified (autopart `--encrypted --luks-version=luks2`,
+      passphrase unlock at boot, SELinux `Enforcing`).
+- [x] Graphical installer UI verified (Anaconda language-selection screen in QEMU/GTK).
+- Evidence: `tests/installer/evidence/` (serial logs).
+
+Notes: the Anaconda `bootc` kickstart payload requires Fedora 44+; Fedora 43's
+Anaconda falls back to a DNF package install (see `documentation/risks.md`).
+Image refs need an explicit transport prefix (`registry:host:port/...`).
 
 ## M4 — Desktop environment (planned)
 - [ ] Wayland session starts under KWin.

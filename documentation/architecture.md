@@ -4,7 +4,7 @@
 
 | Layer | Choice |
 |-------|--------|
-| Base OS | Fedora 43 (`quay.io/fedora/fedora-bootc:43`) |
+| Base OS | Fedora 44 (`quay.io/fedora/fedora-bootc:44`) |
 | Delivery | bootc OCI container image, atomic image updates |
 | Init | systemd |
 | Boot | UEFI (GRUB2 via bootc) |

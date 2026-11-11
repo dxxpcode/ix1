@@ -16,3 +16,6 @@
 
 # Logs
 *.log
+
+# Local build/test artifacts
+output/
