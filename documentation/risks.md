@@ -29,6 +29,8 @@
 
 ## Verified assumptions (2026-11)
 
-- `quay.io/fedora/fedora-bootc` publishes tags for Fedora 41–46; using 43
-  (current stable) for MVP stability.
+- `quay.io/fedora/fedora-bootc` publishes tags for Fedora 41–46; using 44.
+  Fedora 43's Anaconda has no bootc install payload (verified in the M3 ISO:
+  it silently falls back to a DNF package install), so the installer requires
+  Fedora 44+, whose Anaconda implements the `bootc` kickstart command.
 - KVM is available on build VMs (`/dev/kvm` present).

@@ -16,3 +16,9 @@
 
 # Logs
 *.log
+
+# Local build/test artifacts
+output/
+
+# Test evidence logs are intentional
+!tests/**/evidence/*.log

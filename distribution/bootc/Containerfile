@@ -4,7 +4,7 @@
 # Build:  ./scripts/build-image.sh
 # Boot:   see tests/boot/ and scripts/boot-qemu.sh
 
-FROM quay.io/fedora/fedora-bootc:43
+FROM quay.io/fedora/fedora-bootc:44
 
 ARG IX1_RELEASE=dev
 

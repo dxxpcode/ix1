@@ -1,0 +1,85 @@
+# ix1 installer image — Anaconda-based bootable ISO (M3).
+#
+# Build the base OS image first:
+#   ./scripts/build-image.sh          # -> localhost/ix1-os:dev
+# Then:
+#   ./scripts/build-installer-image.sh
+#   ./scripts/build-installer-iso.sh
+#
+# Recipe follows osbuild image-builder docs (bootc generic-iso contract).
+
+ARG IX1_OS_IMAGE=localhost/ix1-os:dev
+FROM ${IX1_OS_IMAGE}
+
+# Config files shipped in this directory (see files/).
+COPY distribution/installer/files/containers/registries.conf.d/ix1-local.conf \
+     /etc/containers/registries.conf.d/ix1-local.conf
+COPY distribution/installer/files/image-builder/bootc/iso.yaml \
+     /usr/lib/image-builder/bootc/iso.yaml
+COPY distribution/installer/files/systemd/logind.conf.d/anaconda-shell.conf \
+     /usr/lib/systemd/logind.conf.d/anaconda-shell.conf
+COPY distribution/installer/files/systemd/user/pipewire.service.d/allowroot.conf \
+     /etc/systemd/user/pipewire.service.d/allowroot.conf
+COPY distribution/installer/files/systemd/user/pipewire.socket.d/allowroot.conf \
+     /etc/systemd/user/pipewire.socket.d/allowroot.conf
+COPY distribution/installer/files/dracut/dracut.conf.d/40-iso.conf \
+     /usr/lib/dracut/dracut.conf.d/40-iso.conf
+
+# ---- Anaconda installer payload -------------------------------------------
+RUN dnf -y install \
+        anaconda \
+        anaconda-install-img-deps \
+        anaconda-dracut \
+        dracut-config-generic \
+        dracut-network \
+        dracut-live \
+        net-tools \
+        grub2-efi-x64-cdboot \
+        plymouth \
+        default-fonts-core-sans \
+        default-fonts-other-sans \
+        xorrisofs \
+        squashfs-tools \
+        podman mksquashfs xorriso implantisomd5 grub2-mkimage python3 \
+        && dnf clean all
+
+# UEFI shim/grub under /boot/efi for the ISO contract.
+# Fedora 44+ layout: shim in /usr/lib/efi/shim/*/EFI/fedora,
+# grub (incl. cdboot gcdx64.efi) in /usr/lib/efi/grub2/*/EFI/fedora.
+RUN mkdir -p /boot/efi/EFI/fedora && \
+    for f in /usr/lib/efi/shim/*/EFI/fedora/*.efi /usr/lib/efi/grub2/*/EFI/fedora/*.efi; do \
+      cp -a "$f" /boot/efi/EFI/fedora/; \
+    done && \
+    ls /boot/efi/EFI/fedora/
+
+# Where Anaconda's bootc module gets the image to install.
+# Defaults to the dev image on a local registry reachable at 10.0.2.2:5000
+# from the QEMU guest; override at ISO build time for real releases.
+ARG IX1_INSTALL_IMAGE=registry:10.0.2.2:5000/ix1-os:dev
+RUN mkdir -p /usr/share/anaconda && \
+    printf 'bootc --source-imgref %s --target-imgref %s\n' \
+      "${IX1_INSTALL_IMAGE}" "${IX1_INSTALL_IMAGE}" \
+      > /usr/share/anaconda/interactive-defaults.ks
+
+# ---- Anaconda-in-initramfs wiring (normally done by lorax) ------------------
+RUN echo "install:x:0:0:root:/root:/usr/libexec/anaconda/run-anaconda" >> /etc/passwd && \
+    echo "install::14438:0:99999:7:::" >> /etc/shadow && \
+    passwd -d root && \
+    mv /usr/share/anaconda/list-harddrives-stub /usr/bin/list-harddrives && \
+    mv /etc/yum.repos.d /etc/anaconda.repos.d && \
+    ln -s /lib/systemd/system/anaconda.target /etc/systemd/system/default.target && \
+    rm -v /usr/lib/systemd/system-generators/systemd-gpt-auto-generator && \
+    ln -sf /usr/lib/systemd/system/anaconda-shell@.service /usr/lib/systemd/system/autovt@.service
+
+# Rebuild the initramfs with the anaconda dracut module (zstd, reproducible).
+RUN kernel="$(ls /usr/lib/modules)" && \
+    DRACUT_NO_XATTR=1 dracut --force -v --zstd --reproducible --no-hostonly \
+      --add "anaconda" \
+      "/usr/lib/modules/${kernel}/initramfs.img" "${kernel}"
+
+# ISO boots must not try to update the bootloader on the read-only media.
+RUN systemctl mask bootloader-update.service || true
+
+LABEL org.opencontainers.image.title="ix1-installer" \
+      org.opencontainers.image.description="ix1 Anaconda installer image (bootc ISO)" \
+      org.opencontainers.image.vendor="ix1"
