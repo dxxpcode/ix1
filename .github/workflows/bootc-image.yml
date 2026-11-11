@@ -1,0 +1,25 @@
+name: bootc-image
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'distribution/**'
+      - 'scripts/**'
+      - '.github/workflows/bootc-image.yml'
+  pull_request:
+    paths:
+      - 'distribution/**'
+      - 'scripts/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install podman
+        run: sudo apt-get update && sudo apt-get install -y podman
+
+      - name: Build ix1 bootc image
+        run: ./scripts/build-image.sh

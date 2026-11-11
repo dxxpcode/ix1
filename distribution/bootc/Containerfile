@@ -1,0 +1,51 @@
+# ix1 — Fedora-based desktop operating system (bootc image)
+# Milestone: M1 OS foundation, targeting M2 bootable system.
+#
+# Build:  ./scripts/build-image.sh
+# Boot:   see tests/boot/ and scripts/boot-qemu.sh
+
+FROM quay.io/fedora/fedora-bootc:43
+
+ARG IX1_RELEASE=dev
+
+# ---- Product identity -------------------------------------------------------
+RUN echo "ix1" > /etc/hostname && \
+    sed -i 's/^#?\s*SELINUX=.*/SELINUX=enforcing/' /etc/selinux/config && \
+    sed -i 's/^#?\s*SELINUXTYPE=.*/SELINUXTYPE=targeted/' /etc/selinux/config
+
+# ---- Core system packages ---------------------------------------------------
+# Kernel, firmware, and boot plumbing come from the base image.
+# Install the userland required for a functional desktop foundation.
+RUN dnf -y install \
+        NetworkManager \
+        network-manager-applet \
+        pipewire pipewire-pulse wireplumber \
+        mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers \
+        xorg-x11-drv-amdgpu xorg-x11-drv-ati xorg-x11-drv-intel xorg-x11-drv-nouveau \
+        xorg-x11-drv-qxl \
+        flatpak xdg-desktop-portal xdg-desktop-portal-gtk xdg-desktop-portal-kde \
+        selinux-policy selinux-policy-targeted \
+        openssh-clients openssh-server \
+        htop btop lsof tree vim-enhanced tmux psmisc \
+        fontconfig google-noto-sans-fonts google-noto-serif-fonts \
+        xdg-utils dbus-x11 polkit \
+        gnome-keyring libsecret \
+        qrencode \
+        && dnf clean all
+
+# Keep kernel packages under kernel-install control (matches Fedora bootc guidance).
+RUN dnf -y install kernel && dnf clean all
+
+# SELinux: relabel filesystem content added by this Containerfile.
+RUN restorecon -R /etc /usr/share 2>/dev/null || true
+
+# sshd is useful for automated boot validation on the dev image only.
+RUN systemctl enable sshd.service || true
+
+LABEL org.opencontainers.image.title="ix1" \
+      org.opencontainers.image.description="ix1 desktop operating system (Fedora bootc base)" \
+      org.opencontainers.image.vendor="ix1" \
+      org.opencontainers.image.licenses="MIT" \
+      ix1.release="${IX1_RELEASE}"
+
+RUN bootc container lint
