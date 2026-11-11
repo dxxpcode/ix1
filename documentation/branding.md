@@ -11,8 +11,9 @@ Source assets (JPEG exports of the official marks):
 - `brand/logo-light.jpeg` — black mark on white background (light use)
 - `brand/logo-dark.jpeg` — white mark on black background (dark use)
 
-PNG/SVG derivatives should be produced for UI use (icon theme, installer,
-website, ISO boot splash). Until then, JPEGs are the source of truth.
+PNG derivatives for UI use live in `brand/png/` (`ix1-logo-{light,dark}-<px>.png`,
+transparent background, 16–1024 px). An SVG trace is still outstanding and
+not required for M4. Until then, JPEGs are the source of truth.
 
 ## Usage
 
