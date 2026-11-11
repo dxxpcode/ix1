@@ -1,9 +1,26 @@
 # ix1 — Fedora-based desktop operating system (bootc image)
-# Milestone: M1 OS foundation, targeting M2 bootable system.
+# Milestones: M1 OS foundation, M2 boot, M4 desktop shell.
 #
 # Build:  ./scripts/build-image.sh
 # Boot:   see tests/boot/ and scripts/boot-qemu.sh
 
+# ---- ix1-shell build stage --------------------------------------------------
+FROM quay.io/fedora/fedora-bootc:44 AS shell-build
+
+RUN dnf -y install \
+        gcc-c++ cmake make \
+        qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland-devel \
+        layer-shell-qt pam-devel \
+    && dnf clean all
+
+COPY desktop/ix1-shell /src/ix1-shell
+RUN cmake -S /src/ix1-shell -B /build \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+    && cmake --build /build -j"$(nproc)" \
+    && cmake --install /build
+
+# ---- Final image ------------------------------------------------------------
 FROM quay.io/fedora/fedora-bootc:44
 
 ARG IX1_RELEASE=dev
@@ -28,19 +45,47 @@ RUN dnf -y install \
         openssh-clients openssh-server \
         htop btop lsof tree vim-enhanced tmux psmisc \
         fontconfig google-noto-sans-fonts google-noto-serif-fonts \
+        rsms-inter-fonts adwaita-icon-theme \
+        xterm \
         xdg-utils dbus-x11 polkit \
         gnome-keyring libsecret \
         qrencode \
         && dnf clean all
 
+# ---- Desktop environment (M4) ------------------------------------------------
+# KWin Wayland compositor, Qt6/QML stack, shell placement, display manager.
+RUN dnf -y install \
+        kwin layer-shell-qt \
+        qt6-qtdeclarative qt6-qtwayland \
+        sddm \
+        && dnf clean all
+
 # Keep kernel packages under kernel-install control (matches Fedora bootc guidance).
 RUN dnf -y install kernel && dnf clean all
 
+# ---- ix1 session ------------------------------------------------------------
+COPY distribution/bootc/files/usr/share/wayland-sessions/ix1.desktop \
+     /usr/share/wayland-sessions/ix1.desktop
+COPY distribution/bootc/files/usr/bin/ix1-session /usr/bin/ix1-session
+RUN chmod 755 /usr/bin/ix1-session
+
+# Display manager defaults to the ix1 session.
+RUN mkdir -p /etc/sddm.conf.d && \
+    printf '[General]\nDefaultSession=ix1\n' > /etc/sddm.conf.d/00-ix1.conf
+
+# Desktop OS default target (Anaconda may override at install time).
+RUN systemctl set-default graphical.target || true
+
+# The shell binary built in the shell-build stage.
+COPY --from=shell-build /usr/bin/ix1-shell /usr/bin/ix1-shell
+RUN chmod 755 /usr/bin/ix1-shell
+
 # SELinux: relabel filesystem content added by this Containerfile.
-RUN restorecon -R /etc /usr/share 2>/dev/null || true
+RUN restorecon -R /etc /usr/share /usr/bin 2>/dev/null || true
 
 # sshd is useful for automated boot validation on the dev image only.
 RUN systemctl enable sshd.service || true
+RUN systemctl enable sddm.service || true
 
 LABEL org.opencontainers.image.title="ix1" \
       org.opencontainers.image.description="ix1 desktop operating system (Fedora bootc base)" \

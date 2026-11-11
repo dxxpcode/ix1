@@ -1,0 +1,28 @@
+#!/bin/sh
+# ix1 Wayland session: KWin compositor + ix1-shell.
+set -u
+
+export QT_QPA_PLATFORM=wayland
+export XDG_CURRENT_DESKTOP=ix1
+export XDG_SESSION_DESKTOP=ix1
+export DESKTOP_SESSION=ix1
+
+RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+# Start the KWin Wayland compositor.
+kwin_wayland --xwayland &
+KWIN_PID=$!
+
+# Wait for the Wayland socket before starting clients.
+i=0
+while [ ! -S "$RT/wayland-0" ] && [ "$i" -lt 100 ]; do
+    sleep 0.1
+    i=$((i + 1))
+done
+
+# Start the shell; when it exits, stop the compositor.
+/usr/bin/ix1-shell &
+SHELL_PID=$!
+wait "$SHELL_PID"
+kill "$KWIN_PID" 2>/dev/null || true
+exit 0
