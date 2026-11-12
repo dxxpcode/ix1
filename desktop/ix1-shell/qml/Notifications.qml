@@ -16,6 +16,10 @@ Window {
     height: col.implicitHeight + 52
 
     Component.onCompleted: Theme.mode = backend.theme
+    Connections {
+        target: backend
+        function onThemeChanged() { Theme.mode = backend.theme }
+    }
 
     property var items: []
 

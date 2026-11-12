@@ -14,11 +14,17 @@ RUN dnf -y install \
     && dnf clean all
 
 COPY desktop/ix1-shell /src/ix1-shell
-RUN cmake -S /src/ix1-shell -B /build \
+COPY desktop/ix1-settings /src/ix1-settings
+RUN cmake -S /src/ix1-shell -B /build-shell \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
-    && cmake --build /build -j"$(nproc)" \
-    && cmake --install /build
+    && cmake --build /build-shell -j"$(nproc)" \
+    && cmake --install /build-shell \
+    && cmake -S /src/ix1-settings -B /build-settings \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+    && cmake --build /build-settings -j"$(nproc)" \
+    && cmake --install /build-settings
 
 # ---- Final image ------------------------------------------------------------
 FROM quay.io/fedora/fedora-bootc:44
@@ -60,6 +66,11 @@ RUN dnf -y install \
         sddm \
         && dnf clean all
 
+# ---- M5 essential applications ------------------------------------------------
+RUN dnf -y install \
+        konsole dolphin kate plasma-systemmonitor firefox \
+        && dnf clean all
+
 # Keep kernel packages under kernel-install control (matches Fedora bootc guidance).
 RUN dnf -y install kernel && dnf clean all
 
@@ -69,6 +80,11 @@ COPY distribution/bootc/files/usr/share/wayland-sessions/ix1.desktop \
 COPY distribution/bootc/files/usr/bin/ix1-session /usr/bin/ix1-session
 RUN chmod 755 /usr/bin/ix1-session
 
+# Create the ix1 user's home directory on first boot (Anaconda's bootc
+# kickstart payload does not create it).
+COPY distribution/bootc/files/usr/lib/tmpfiles.d/ix1-home.conf \
+     /usr/lib/tmpfiles.d/ix1-home.conf
+
 # Display manager defaults to the ix1 session.
 RUN mkdir -p /etc/sddm.conf.d && \
     printf '[General]\nDefaultSession=ix1\n' > /etc/sddm.conf.d/00-ix1.conf
@@ -76,12 +92,16 @@ RUN mkdir -p /etc/sddm.conf.d && \
 # Desktop OS default target (Anaconda may override at install time).
 RUN systemctl set-default graphical.target || true
 
-# The shell binary built in the shell-build stage.
+# Shell and settings binaries built in the build stage.
 COPY --from=shell-build /usr/bin/ix1-shell /usr/bin/ix1-shell
-RUN chmod 755 /usr/bin/ix1-shell
+COPY --from=shell-build /usr/bin/ix1-settings /usr/bin/ix1-settings
+RUN chmod 755 /usr/bin/ix1-shell /usr/bin/ix1-settings
+
+COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
+     /usr/share/applications/ix1-settings.desktop
 
 # SELinux: relabel filesystem content added by this Containerfile.
-RUN restorecon -R /etc /usr/share /usr/bin 2>/dev/null || true
+RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d 2>/dev/null || true
 
 # sshd is useful for automated boot validation on the dev image only.
 RUN systemctl enable sshd.service || true

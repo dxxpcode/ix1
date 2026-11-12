@@ -15,6 +15,10 @@ Window {
         | LayerShellQt.Window.AnchorRight
 
     Component.onCompleted: Theme.mode = backend.theme
+    Connections {
+        target: backend
+        function onThemeChanged() { Theme.mode = backend.theme }
+    }
 
     Rectangle {
         anchors.fill: parent
