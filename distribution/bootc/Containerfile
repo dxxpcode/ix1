@@ -80,6 +80,11 @@ COPY distribution/bootc/files/usr/share/wayland-sessions/ix1.desktop \
 COPY distribution/bootc/files/usr/bin/ix1-session /usr/bin/ix1-session
 RUN chmod 755 /usr/bin/ix1-session
 
+# Create the ix1 user's home directory on first boot (Anaconda's bootc
+# kickstart payload does not create it).
+COPY distribution/bootc/files/usr/lib/tmpfiles.d/ix1-home.conf \
+     /usr/lib/tmpfiles.d/ix1-home.conf
+
 # Display manager defaults to the ix1 session.
 RUN mkdir -p /etc/sddm.conf.d && \
     printf '[General]\nDefaultSession=ix1\n' > /etc/sddm.conf.d/00-ix1.conf
@@ -96,7 +101,7 @@ COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
      /usr/share/applications/ix1-settings.desktop
 
 # SELinux: relabel filesystem content added by this Containerfile.
-RUN restorecon -R /etc /usr/share /usr/bin 2>/dev/null || true
+RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d 2>/dev/null || true
 
 # sshd is useful for automated boot validation on the dev image only.
 RUN systemctl enable sshd.service || true
