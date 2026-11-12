@@ -68,7 +68,7 @@ RUN dnf -y install \
 
 # ---- M5 essential applications ------------------------------------------------
 RUN dnf -y install \
-        konsole dolphin kate ksystemmonitor firefox \
+        konsole dolphin kate plasma-systemmonitor firefox \
         && dnf clean all
 
 # Keep kernel packages under kernel-install control (matches Fedora bootc guidance).
