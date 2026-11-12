@@ -23,13 +23,13 @@ public:
     explicit SettingsBackend(QObject *parent = nullptr);
 
     QString theme() const { return m_theme; }
-    void setTheme(const QString &theme);
+    Q_INVOKABLE void setTheme(const QString &theme);
 
     int volume() const { return m_volume; }
-    void setVolume(int percent);
+    Q_INVOKABLE void setVolume(int percent);
 
     bool wifiEnabled() const { return m_wifiEnabled; }
-    void setWifiEnabled(bool enabled);
+    Q_INVOKABLE void setWifiEnabled(bool enabled);
 
     QStringList wifiNetworks() const { return m_wifiNetworks; }
     QString wifiSsid() const { return m_wifiSsid; }

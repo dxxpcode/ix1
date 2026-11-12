@@ -174,13 +174,25 @@ ShellBackend::ShellBackend(QObject *parent)
     });
 
     // Live theme switching: ix1-settings writes ~/.config/ix1/settings.conf.
-    const QString configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
-                               + QStringLiteral("/ix1/settings.conf");
-    m_configWatcher.addPath(configPath);
-    connect(&m_configWatcher, &QFileSystemWatcher::fileChanged, this, [this, configPath](const QString &) {
+    // The file may not exist at startup (QFileSystemWatcher cannot watch a
+    // nonexistent file), so watch the config directory as well and re-arm the
+    // file watch whenever it appears or is recreated.
+    const QString configDir = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                              + QStringLiteral("/ix1");
+    QDir().mkpath(configDir);
+    const QString configPath = configDir + QStringLiteral("/settings.conf");
+    m_configWatcher.addPath(configDir);
+    if (QFileInfo::exists(configPath)) {
         m_configWatcher.addPath(configPath);
+    }
+    const auto onConfigChanged = [this, configPath]() {
+        if (!m_configWatcher.files().contains(configPath) && QFileInfo::exists(configPath)) {
+            m_configWatcher.addPath(configPath);
+        }
         QTimer::singleShot(100, this, &ShellBackend::loadTheme);
-    });
+    };
+    connect(&m_configWatcher, &QFileSystemWatcher::fileChanged, this, onConfigChanged);
+    connect(&m_configWatcher, &QFileSystemWatcher::directoryChanged, this, onConfigChanged);
 }
 
 void ShellBackend::loadTheme()
