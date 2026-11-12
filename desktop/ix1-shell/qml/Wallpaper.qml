@@ -1,5 +1,5 @@
 import QtQuick
-import LayerShellQt.Window 1.0
+import org.kde.layershell 1.0
 
 Window {
     id: root

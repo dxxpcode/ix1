@@ -1,5 +1,5 @@
 import QtQuick
-import LayerShellQt.Window 1.0
+import org.kde.layershell 1.0
 
 Window {
     id: root
@@ -28,8 +28,9 @@ Window {
         }
     }
 
-    // Left: brand
+    // Left: brand (click opens the launcher)
     Row {
+        id: brandRow
         anchors.left: parent.left
         anchors.leftMargin: 12
         anchors.verticalCenter: parent.verticalCenter
@@ -50,6 +51,13 @@ Window {
             font.weight: Font.DemiBold
             anchors.verticalCenter: parent.verticalCenter
         }
+    }
+
+    MouseArea {
+        anchors.fill: brandRow
+        hoverEnabled: true
+        cursorShape: Qt.PointingHandCursor
+        onClicked: backend.toggleLauncher()
     }
 
     // Center: clock
