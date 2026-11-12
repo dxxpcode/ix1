@@ -8,6 +8,7 @@
 class NotificationServer : public QObject
 {
     Q_OBJECT
+    Q_CLASSINFO("D-Bus Interface", "org.freedesktop.Notifications")
 
 public:
     explicit NotificationServer(QObject *parent = nullptr);
