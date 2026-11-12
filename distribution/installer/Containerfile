@@ -67,7 +67,7 @@ RUN echo "install:x:0:0:root:/root:/usr/libexec/anaconda/run-anaconda" >> /etc/p
     passwd -d root && \
     mv /usr/share/anaconda/list-harddrives-stub /usr/bin/list-harddrives && \
     mv /etc/yum.repos.d /etc/anaconda.repos.d && \
-    ln -s /lib/systemd/system/anaconda.target /etc/systemd/system/default.target && \
+    ln -sf /lib/systemd/system/anaconda.target /etc/systemd/system/default.target && \
     rm -v /usr/lib/systemd/system-generators/systemd-gpt-auto-generator && \
     ln -sf /usr/lib/systemd/system/anaconda-shell@.service /usr/lib/systemd/system/autovt@.service
 
