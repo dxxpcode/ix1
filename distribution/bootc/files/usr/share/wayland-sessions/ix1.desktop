@@ -1,0 +1,6 @@
+[Desktop Entry]
+Name=ix1
+Comment=ix1 Desktop Environment
+Exec=/usr/bin/ix1-session
+Type=Application
+DesktopNames=ix1

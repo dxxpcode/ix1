@@ -33,10 +33,17 @@ Notes: the Anaconda `bootc` kickstart payload requires Fedora 44+; Fedora 43's
 Anaconda falls back to a DNF package install (see `documentation/risks.md`).
 Image refs need an explicit transport prefix (`registry:host:port/...`).
 
-## M4 — Desktop environment (planned)
-- [ ] Wayland session starts under KWin.
-- [ ] Shell shows desktop, dock, launcher, panel, quick settings, notifications, lock screen.
+## M4 — Desktop environment (in progress)
+- [x] Wayland session starts under KWin (`kwin_wayland` + `ix1-shell`, SDDM login).
+- [x] Desktop renders: wallpaper, top panel (brand, clock, tray), bottom dock (QEMU, 640x480).
+- [x] Quick Settings opens from the tray and shows Wi-Fi/volume/brightness/power controls.
+- [x] Power actions work (Power Off shuts the guest down cleanly).
+- [ ] Launcher opens and lists apps (brand click not yet triggering — under investigation).
+- [ ] Notifications display (D-Bus service fixed to `org.freedesktop.Notifications`; UI not yet captured).
+- [ ] Lock screen renders and unlocks via PAM.
 - [ ] All shell components respond to input on QEMU and one physical machine.
+- Note: fixes verified via bind-mounted binary over the installed image; a full image
+  rebuild + clean install verification is still pending.
 
 ## M5–M9
 See product spec §10 acceptance statements; tests live under `tests/`.
