@@ -15,6 +15,10 @@ Window {
     height: contentCol.implicitHeight + 52
 
     Component.onCompleted: Theme.mode = backend.theme
+    Connections {
+        target: backend
+        function onThemeChanged() { Theme.mode = backend.theme }
+    }
 
     Item {
         anchors.fill: parent

@@ -15,6 +15,10 @@ Window {
     height: 88
 
     Component.onCompleted: Theme.mode = backend.theme
+    Connections {
+        target: backend
+        function onThemeChanged() { Theme.mode = backend.theme }
+    }
 
     Rectangle {
         id: dock

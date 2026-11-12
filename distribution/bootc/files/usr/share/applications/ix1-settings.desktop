@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Settings
+GenericName=System Settings
+Comment=ix1 system settings
+Exec=ix1-settings
+Icon=preferences-system
+Categories=Settings;System;

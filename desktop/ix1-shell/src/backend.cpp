@@ -154,6 +154,7 @@ ShellBackend::ShellBackend(QObject *parent)
     : QObject(parent)
     , m_notifications(new NotificationServer(this))
 {
+    loadTheme();
     m_userName = QStandardPaths::displayName(QStandardPaths::HomeLocation).isEmpty()
         ? QStringLiteral("ix1")
         : QStringLiteral("ix1");
@@ -171,6 +172,37 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshVolume();
         refreshWifi();
     });
+
+    // Live theme switching: ix1-settings writes ~/.config/ix1/settings.conf.
+    const QString configPath = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                               + QStringLiteral("/ix1/settings.conf");
+    m_configWatcher.addPath(configPath);
+    connect(&m_configWatcher, &QFileSystemWatcher::fileChanged, this, [this, configPath](const QString &) {
+        m_configWatcher.addPath(configPath);
+        QTimer::singleShot(100, this, &ShellBackend::loadTheme);
+    });
+}
+
+void ShellBackend::loadTheme()
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                         + QStringLiteral("/ix1/settings.conf");
+    QFile file(path);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return;
+    }
+    QTextStream in(&file);
+    while (!in.atEnd()) {
+        const QString line = in.readLine().trimmed();
+        if (!line.startsWith(QLatin1String("theme="))) {
+            continue;
+        }
+        const QString value = line.mid(6).trimmed();
+        if ((value == QLatin1String("graphite") || value == QLatin1String("porcelain")) && value != m_theme) {
+            m_theme = value;
+            emit themeChanged();
+        }
+    }
 }
 
 QStringList ShellBackend::parseDesktopExec(const QString &exec, const QString &name) const

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <QAbstractListModel>
+#include <QFileSystemWatcher>
 #include <QObject>
 #include <QStringList>
 
@@ -46,7 +47,7 @@ class ShellBackend : public QObject
     Q_OBJECT
     Q_PROPERTY(AppModel *apps READ apps CONSTANT)
     Q_PROPERTY(QString userName READ userName CONSTANT)
-    Q_PROPERTY(QString theme READ theme CONSTANT)
+    Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
@@ -58,7 +59,7 @@ public:
 
     AppModel *apps() { return &m_apps; }
     QString userName() const { return m_userName; }
-    QString theme() const { return QStringLiteral("graphite"); }
+    QString theme() const { return m_theme; }
     int volume() const { return m_volume; }
     bool wifiEnabled() const { return m_wifiEnabled; }
     bool launcherOpen() const { return m_launcherOpen; }
@@ -81,6 +82,7 @@ public:
     Q_INVOKABLE void unlock(const QString &password);
 
 signals:
+    void themeChanged();
     void volumeChanged();
     void wifiEnabledChanged();
     void launcherOpenChanged();
@@ -97,10 +99,13 @@ private:
     void refreshVolume();
     void refreshWifi();
     QStringList parseDesktopExec(const QString &exec, const QString &name) const;
+    void loadTheme();
 
     AppModel m_apps;
     NotificationServer *m_notifications = nullptr;
     QString m_userName;
+    QString m_theme = QStringLiteral("graphite");
+    QFileSystemWatcher m_configWatcher;
     int m_volume = -1;
     bool m_wifiEnabled = true;
     bool m_launcherOpen = false;
