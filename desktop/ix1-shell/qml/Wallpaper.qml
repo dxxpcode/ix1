@@ -1,5 +1,7 @@
 import QtQuick
-import org.kde.layershell 1.0
+import QtQuick.Window
+import org.kde.layershell as LayerShellQt
+import Ix1Shell 1.0
 
 Window {
     id: root

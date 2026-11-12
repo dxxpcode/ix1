@@ -22,6 +22,8 @@ target_link_libraries(ix1-shell PRIVATE
     pam
 )
 
+set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+
 qt_add_qml_module(ix1-shell
     URI Ix1Shell
     VERSION 1.0
