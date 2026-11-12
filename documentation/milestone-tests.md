@@ -59,5 +59,43 @@ Image refs need an explicit transport prefix (`registry:host:port/...`).
   binary; the clean-install re-verification above used the rebuilt image
   containing those fixes.
 
-## M5–M9
+## M5 — Essential applications
+
+Custom Settings app (`ix1-settings`, Qt6/QML) + integrated KDE apps and
+Firefox, verified on a clean QEMU install of the rebuilt bootc image
+(serial logs: `/tmp/ix1-m5-install3.log`, screenshots via QMP/GTK).
+
+- [x] Clean install from ISO with M5 image (`registry:10.0.2.2:5000/ix1-os:dev`,
+      digest `sha256:a4c63f52…`): `graphical.target`, SDDM greeter login,
+      desktop renders.
+- [x] `/home/ix1` exists on first boot (tmpfiles.d rule
+      `usr/lib/tmpfiles.d/ix1-home.conf`; Anaconda's bootc kickstart payload
+      does not create the user home directory).
+- [x] Launcher lists Settings, Konsole, Dolphin, Kate, Plasma System Monitor,
+      Firefox (`.desktop` entries discovered automatically).
+- [x] Settings app opens from launcher; Appearance/Sound/Network pages render.
+      Fixed during verification: missing `QtQuick.Controls` imports
+      (`Slider is not a type`), missing `Q_INVOKABLE` on setters.
+- [x] Theme switching is live and end-to-end: clicking "Porcelain" writes
+      `~/.config/ix1/settings.conf`, the Settings window restyles itself and
+      the shell (panel, dock, wallpaper) switches immediately via
+      `QFileSystemWatcher`. Fixed during verification: the shell's watch was
+      attached to `settings.conf` before the file existed (silently never
+      fired); it now watches the config directory and re-arms the file watch.
+- [x] Sound page binds to WirePlumber (`wpctl get/set-volume
+      @DEFAULT_AUDIO_SINK@`); shows 0% on QEMU (no audio device).
+- [x] Network page binds to NetworkManager (`nmcli` radio/Wi-Fi list/connect);
+      shows toggle on + "No networks found" on QEMU (no Wi-Fi hardware).
+- [x] Konsole: typed `echo M5KONSOLE_OK` in the guest, output returned —
+      proves keyboard input reaches regular xdg-toplevel windows.
+- [x] Firefox, Kate, Plasma System Monitor windows render (screenshots).
+      Dolphin process runs with active KIO workers; its window was stacked
+      behind Kate during capture.
+- [ ] Theme persistence across logout/login (config read at shell startup) —
+      not explicitly re-tested this round.
+- [ ] Sound volume change with real audio hardware; Wi-Fi connect with real
+      hardware — QEMU has neither.
+- [ ] Physical-machine test (none available in this environment).
+
+## M6–M9
 See product spec §10 acceptance statements; tests live under `tests/`.
