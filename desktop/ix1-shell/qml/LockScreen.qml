@@ -27,6 +27,14 @@ Window {
 
     property bool failed: false
 
+    function doUnlock() {
+        backend.unlock(passwordInput.text)
+        failed = backend.locked
+        if (!failed) {
+            passwordInput.text = ""
+        }
+    }
+
     Rectangle {
         anchors.fill: parent
         color: Theme.bgBase
@@ -95,7 +103,7 @@ Window {
                     font.pixelSize: 14
                     echoMode: TextInput.Password
                     clip: true
-                    onAccepted: unlockButton.clicked()
+                    onAccepted: root.doUnlock()
                 }
             }
 
@@ -128,10 +136,7 @@ Window {
                     id: unlockArea
                     anchors.fill: parent
                     hoverEnabled: true
-                    onClicked: {
-                        backend.unlock(passwordInput.text)
-                        root.failed = backend.locked
-                    }
+                    onClicked: root.doUnlock()
                 }
             }
         }
