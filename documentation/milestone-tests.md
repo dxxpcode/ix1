@@ -34,16 +34,30 @@ Anaconda falls back to a DNF package install (see `documentation/risks.md`).
 Image refs need an explicit transport prefix (`registry:host:port/...`).
 
 ## M4 — Desktop environment (in progress)
+- [x] Bootc image rebuilt with the fixed shell; pushed to the local registry.
+- [x] Clean install via the Anaconda ISO to a fresh 32G disk (unattended kickstart):
+      boots to `graphical.target`, SDDM active, SELinux `Enforcing`, user `ix1`.
+- [x] Greeter login from the clean install reaches the ix1 desktop
+      (wallpaper, panel, dock) — verified by QMP screendump.
+- [x] Finding: Anaconda's bootc kickstart path does not create the user's home
+      directory; the session then fails with exit code 3. Fixed in
+      `tests/installer/ks-qemu.cfg` / `ks-qemu-luks.cfg` (`%post` creates
+      `/home/ix1`). Interactive installs use Anaconda's standard user creation.
 - [x] Wayland session starts under KWin (`kwin_wayland` + `ix1-shell`, SDDM login).
 - [x] Desktop renders: wallpaper, top panel (brand, clock, tray), bottom dock (QEMU, 640x480).
 - [x] Quick Settings opens from the tray and shows Wi-Fi/volume/brightness/power controls.
 - [x] Power actions work (Power Off shuts the guest down cleanly).
-- [ ] Launcher opens and lists apps (brand click not yet triggering — under investigation).
-- [ ] Notifications display (D-Bus service fixed to `org.freedesktop.Notifications`; UI not yet captured).
-- [ ] Lock screen renders and unlocks via PAM.
-- [ ] All shell components respond to input on QEMU and one physical machine.
-- Note: fixes verified via bind-mounted binary over the installed image; a full image
-  rebuild + clean install verification is still pending.
+- [x] Launcher opens from the panel brand click and lists desktop apps (QEMU).
+- [x] Notifications display: `gdbus ... Notify` accepted by the shell's
+      `org.freedesktop.Notifications` service and the card renders top-right (QEMU).
+- [x] Lock screen renders (logo, clock, user, password field) and unlocks via PAM
+      (`login` service) — Enter and Unlock button both work (QEMU).
+- [ ] All shell components respond to input on one physical machine (QEMU done;
+      no physical hardware available in this environment).
+- Note: component interaction tests (launcher, notifications, lock, quick
+  settings) were verified on an installed image with a bind-mounted shell
+  binary; the clean-install re-verification above used the rebuilt image
+  containing those fixes.
 
 ## M5–M9
 See product spec §10 acceptance statements; tests live under `tests/`.

@@ -56,7 +56,10 @@ Window {
     }
 
     MouseArea {
-        anchors.fill: brandRow
+        x: brandRow.x
+        y: 0
+        width: brandRow.width
+        height: parent.height
         hoverEnabled: true
         cursorShape: Qt.PointingHandCursor
         onClicked: backend.toggleLauncher()
