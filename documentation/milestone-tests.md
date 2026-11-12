@@ -38,12 +38,14 @@ Image refs need an explicit transport prefix (`registry:host:port/...`).
 - [x] Desktop renders: wallpaper, top panel (brand, clock, tray), bottom dock (QEMU, 640x480).
 - [x] Quick Settings opens from the tray and shows Wi-Fi/volume/brightness/power controls.
 - [x] Power actions work (Power Off shuts the guest down cleanly).
-- [ ] Launcher opens and lists apps (brand click not yet triggering — under investigation).
-- [ ] Notifications display (D-Bus service fixed to `org.freedesktop.Notifications`; UI not yet captured).
-- [ ] Lock screen renders and unlocks via PAM.
+- [x] Launcher opens from the panel brand click and lists desktop apps (QEMU).
+- [x] Notifications display: `gdbus ... Notify` accepted by the shell's
+      `org.freedesktop.Notifications` service and the card renders top-right (QEMU).
+- [x] Lock screen renders (logo, clock, user, password field) and unlocks via PAM
+      (`login` service) — Enter and Unlock button both work (QEMU).
 - [ ] All shell components respond to input on QEMU and one physical machine.
-- Note: fixes verified via bind-mounted binary over the installed image; a full image
-  rebuild + clean install verification is still pending.
+- Note: fixes verified via bind-mounted binary over the installed image; full image
+  rebuild + clean install verification in progress.
 
 ## M5–M9
 See product spec §10 acceptance statements; tests live under `tests/`.
