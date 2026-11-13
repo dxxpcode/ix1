@@ -51,6 +51,7 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/tile-pulse.svg
         qml/assets/icons/tile-bars.svg
         qml/assets/icons/tile-grid.svg
+        qml/assets/icons/tile-store.svg
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)

@@ -1,0 +1,5 @@
+[Unit]
+Description=IX1 Graphical Session
+Documentation=https://github.com/dxxpcode/ix1
+BindsTo=graphical-session.target
+After=graphical-session.target

@@ -1,0 +1,8 @@
+[Desktop Entry]
+Type=Application
+Name=Software Center
+GenericName=App Store
+Comment=Discover, install, and manage applications
+Exec=ix1-software-center
+Icon=applications-internet
+Categories=System;Settings;
