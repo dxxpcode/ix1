@@ -124,5 +124,21 @@ icons, redesigned launcher/dock).
       exposes no backdrop-blur property); true background blur not implemented.
 - [ ] No physical-machine test (none available in this environment).
 
+### Icon redesign (squircle tiles)
+
+- [x] Custom IX1 squircle-tile icon set: 9 app icons, each a rounded-squircle
+      tile with a per-app gradient and a white duotone line glyph (64x64 SVG).
+      Replaces the earlier monochrome line-icon set.
+- [x] Wired into `AppIcon.qml` (launcher + dock); icon sizes increased
+      (dock 44px, launcher 52px) for the tile style.
+- [x] Verified on a clean QEMU install in both themes: dock and launcher show
+      the colorful tiles; launcher grid labels intact.
+- [x] 4K verification: QEMU `virtio-gpu-pci` with EDID 3840x2160, KWin mode
+      3840x2160@50 scale 2, QMP screendumps at native 3840x2160 — desktop,
+      launcher and quick settings captured in Graphite and Porcelain.
+      Note: `-device virtio-vga` plus the EDID device produced TWO GPUs and a
+      split desktop; `-vga none -device virtio-gpu-pci,edid=on,xres=3840,yres=2160`
+      gives a single 4K output.
+
 ## M6–M9
 See product spec §10 acceptance statements; tests live under `tests/`.

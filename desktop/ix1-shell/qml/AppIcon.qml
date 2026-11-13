@@ -1,7 +1,7 @@
 import QtQuick
 import Ix1Shell 1.0
 
-// Custom IX1 line-icon set, mapped from the app's desktop file name.
+// Custom IX1 squircle-tile icon set, mapped from the app's desktop file name.
 Image {
     id: root
 
@@ -21,7 +21,7 @@ Image {
         return "grid";
     }
 
-    source: Qt.resolvedUrl("assets/icons/" + iconName() + (Theme.dark ? "-dark.svg" : "-light.svg"))
+    source: Qt.resolvedUrl("assets/icons/tile-" + iconName() + ".svg")
     fillMode: Image.PreserveAspectFit
     smooth: true
     asynchronous: true

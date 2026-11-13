@@ -45,15 +45,15 @@ Window {
                     required property string desktopFile
                     required property int index
 
-                    width: 52
-                    height: 52
-                    radius: 14
+                    width: 56
+                    height: 56
+                    radius: 16
                     color: dockButtonArea.containsMouse ? Theme.glassHover : "transparent"
 
                     AppIcon {
                         anchors.centerIn: parent
-                        width: 30
-                        height: 30
+                        width: 44
+                        height: 44
                         desktopFileName: desktopFile
                         appTitle: name
                     }

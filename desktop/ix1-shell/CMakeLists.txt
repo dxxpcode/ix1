@@ -42,24 +42,15 @@ qt_add_qml_module(ix1-shell
         qml/assets/wallpaper-porcelain.png
         qml/assets/logo-dark.png
         qml/assets/logo-light.png
-        qml/assets/icons/bars-dark.svg
-        qml/assets/icons/bars-light.svg
-        qml/assets/icons/browser-dark.svg
-        qml/assets/icons/browser-light.svg
-        qml/assets/icons/editor-dark.svg
-        qml/assets/icons/editor-light.svg
-        qml/assets/icons/files-dark.svg
-        qml/assets/icons/files-light.svg
-        qml/assets/icons/grid-dark.svg
-        qml/assets/icons/grid-light.svg
-        qml/assets/icons/monitor-dark.svg
-        qml/assets/icons/monitor-light.svg
-        qml/assets/icons/pulse-dark.svg
-        qml/assets/icons/pulse-light.svg
-        qml/assets/icons/settings-dark.svg
-        qml/assets/icons/settings-light.svg
-        qml/assets/icons/terminal-dark.svg
-        qml/assets/icons/terminal-light.svg
+        qml/assets/icons/tile-settings.svg
+        qml/assets/icons/tile-terminal.svg
+        qml/assets/icons/tile-files.svg
+        qml/assets/icons/tile-editor.svg
+        qml/assets/icons/tile-monitor.svg
+        qml/assets/icons/tile-browser.svg
+        qml/assets/icons/tile-pulse.svg
+        qml/assets/icons/tile-bars.svg
+        qml/assets/icons/tile-grid.svg
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)

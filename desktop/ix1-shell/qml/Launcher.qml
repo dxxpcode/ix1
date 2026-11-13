@@ -118,15 +118,15 @@ Window {
 
                         Rectangle {
                             anchors.horizontalCenter: parent.horizontalCenter
-                            width: 56
-                            height: 56
-                            radius: 14
+                            width: 64
+                            height: 64
+                            radius: 16
                             color: appArea.containsMouse ? Theme.glassHover : "transparent"
 
                             AppIcon {
                                 anchors.centerIn: parent
-                                width: 34
-                                height: 34
+                                width: 52
+                                height: 52
                                 desktopFileName: desktopFile
                                 appTitle: name
                             }
