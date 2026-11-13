@@ -140,5 +140,45 @@ icons, redesigned launcher/dock).
       split desktop; `-vga none -device virtio-gpu-pci,edid=on,xres=3840,yres=2160`
       gives a single 4K output.
 
+## M6: App Ecosystem (Flatpak + Software Center)
+
+Goal (spec §10): users can discover, install, launch, update, and remove
+applications.
+
+- [x] Flatpak plumbing in the bootc image: `flatpak` + `xdg-desktop-portal-gtk`,
+      Flathub user remote added on first session (`ix1-session`), Flatpak export
+      dirs prepended to `XDG_DATA_DIRS` so installed Flatpak apps appear in the
+      shell launcher automatically.
+- [x] Portal session fix: `graphical-session.target` has `RefuseManualStart=yes`
+      and portals only start when it is active. `ix1-session` now starts
+      `ix1-session.target` (`BindsTo=graphical-session.target`), so
+      `xdg-desktop-portal` + GTK backend run and Flatpak permission prompts work.
+- [x] Session display fix: `ix1-session` exports `WAYLAND_DISPLAY`/`DISPLAY`
+      and refreshes `dbus-update-activation-environment` /
+      `systemctl --user import-environment`. Without this, Flatpak apps launched
+      from the shell/Software Center could not reach the compositor and exited
+      immediately.
+- [x] `ix1-software-center`: custom Qt6/QML app on the design tokens
+      (Graphite/Porcelain) with Discover (Flathub search/browse), Installed
+      pages, app details with permissions (`flatpak info --show-permissions` /
+      `flatpak remote-info --show-permissions`), Install / Open / Remove with
+      progress, `.desktop` entry so it appears in the launcher.
+- [x] Shell launcher picks up Flatpak apps: `desktopEntryPaths()` includes the
+      per-user and system Flatpak export `applications` dirs; store icon added
+      for the Software Center entry.
+- [x] Verified on a clean QEMU install (ISO -> SDDM login -> desktop):
+      portal stack active (`graphical-session.target`, `xdg-desktop-portal`,
+      `xdg-desktop-portal-gtk`), Software Center launches from the launcher,
+      Discover/search/details/permissions render, Cantara 2.7.1 installed
+      through the Software Center UI, detail overlay refreshes to Open/Remove,
+      Open launches the Flatpak app (Cantara window appears), Remove uninstalls
+      it (`flatpak list` empty afterwards).
+- [x] Dev-binary verification (earlier session): browse/search/details/
+      install/remove/update-all/launch on the Software Center UI.
+- [ ] Updates listing against a newer upstream release not exercised (no
+      deterministic upstream update available during testing); the Update All
+      path was verified against the dev binary.
+- [ ] No physical-machine test (none available in this environment).
+
 ## M6–M9
 See product spec §10 acceptance statements; tests live under `tests/`.

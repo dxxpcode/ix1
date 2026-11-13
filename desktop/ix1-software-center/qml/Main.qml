@@ -6,8 +6,8 @@ import Ix1SoftwareCenter 1.0
 
 Window {
     id: root
-    width: 900
-    height: 560
+    width: Math.min(900, Math.max(320, Screen.desktopAvailableWidth - 24))
+    height: Math.min(560, Math.max(240, Screen.desktopAvailableHeight - 24))
     visible: true
     title: "ix1 Software Center"
     color: Theme.bgBase
@@ -151,8 +151,8 @@ Window {
 
         Rectangle {
             anchors.centerIn: parent
-            width: 480
-            height: Math.min(520, detailColumn.implicitHeight + 48)
+            width: Math.min(480, parent.width - 32)
+            height: Math.min(520, parent.height - 48, detailColumn.implicitHeight + 48)
             radius: Theme.radius + 4
             color: Theme.surface1
             border.color: Theme.hairline
