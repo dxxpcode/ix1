@@ -10,6 +10,7 @@ Image {
 
     function iconName() {
         const hay = (root.desktopFileName + " " + root.appTitle).toLowerCase();
+        if (hay.indexOf("software") >= 0 || hay.indexOf("store") >= 0) { return "store"; }
         if (hay.indexOf("settings") >= 0) { return "settings"; }
         if (hay.indexOf("konsole") >= 0 || hay.indexOf("terminal") >= 0) { return "terminal"; }
         if (hay.indexOf("dolphin") >= 0 || hay.indexOf("file") >= 0) { return "files"; }

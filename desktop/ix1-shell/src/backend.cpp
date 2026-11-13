@@ -26,6 +26,9 @@ QStringList desktopEntryPaths()
         QStringLiteral("/usr/local/share/applications"),
         QStringLiteral("/usr/share/applications"),
         QDir::homePath() + QStringLiteral("/.local/share/applications"),
+        // Flatpak application exports (user + system).
+        QDir::homePath() + QStringLiteral("/.local/share/flatpak/exports/share/applications"),
+        QStringLiteral("/var/lib/flatpak/exports/share/applications"),
     };
     QStringList files;
     for (const QString &dir : dirs) {

@@ -15,6 +15,7 @@ RUN dnf -y install \
 
 COPY desktop/ix1-shell /src/ix1-shell
 COPY desktop/ix1-settings /src/ix1-settings
+COPY desktop/ix1-software-center /src/ix1-software-center
 RUN cmake -S /src/ix1-shell -B /build-shell \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -24,7 +25,12 @@ RUN cmake -S /src/ix1-shell -B /build-shell \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
     && cmake --build /build-settings -j"$(nproc)" \
-    && cmake --install /build-settings
+    && cmake --install /build-settings \
+    && cmake -S /src/ix1-software-center -B /build-software-center \
+        -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_INSTALL_PREFIX=/usr \
+    && cmake --build /build-software-center -j"$(nproc)" \
+    && cmake --install /build-software-center
 
 # ---- Final image ------------------------------------------------------------
 FROM quay.io/fedora/fedora-bootc:44
@@ -95,10 +101,13 @@ RUN systemctl set-default graphical.target || true
 # Shell and settings binaries built in the build stage.
 COPY --from=shell-build /usr/bin/ix1-shell /usr/bin/ix1-shell
 COPY --from=shell-build /usr/bin/ix1-settings /usr/bin/ix1-settings
-RUN chmod 755 /usr/bin/ix1-shell /usr/bin/ix1-settings
+COPY --from=shell-build /usr/bin/ix1-software-center /usr/bin/ix1-software-center
+RUN chmod 755 /usr/bin/ix1-shell /usr/bin/ix1-settings /usr/bin/ix1-software-center
 
 COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
      /usr/share/applications/ix1-settings.desktop
+COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop \
+     /usr/share/applications/ix1-software-center.desktop
 
 # SELinux: relabel filesystem content added by this Containerfile.
 RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d 2>/dev/null || true

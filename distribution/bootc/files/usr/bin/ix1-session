@@ -7,7 +7,29 @@ export XDG_CURRENT_DESKTOP=ix1
 export XDG_SESSION_DESKTOP=ix1
 export DESKTOP_SESSION=ix1
 
+# Flatpak apps export their .desktop files and icons here; make them visible
+# to the session and the shell.
+export XDG_DATA_DIRS="$HOME/.local/share/flatpak/exports/share:/var/lib/flatpak/exports/share:${XDG_DATA_DIRS:-/usr/local/share:/usr/share}"
+
+# Ensure the Flathub remote exists for this user (idempotent).
+flatpak remote-add --user --if-not-exists flathub \
+    https://flathub.org/repo/flathub.flatpakrepo >/dev/null 2>&1 || true
+
 RT="${XDG_RUNTIME_DIR:-/run/user/$(id -u)}"
+
+# Register the session with systemd --user and activate the graphical
+# session target. Portals (xdg-desktop-portal, used by Flatpak permission
+# prompts and file choosers) only start when graphical-session.target is
+# active, and nothing else in a custom session pulls it in.
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user import-environment \
+        XDG_SESSION_TYPE XDG_SESSION_ID XDG_CURRENT_DESKTOP \
+        XDG_SESSION_DESKTOP WAYLAND_DISPLAY XDG_DATA_DIRS 2>/dev/null || true
+    systemctl --user start ix1-session.target 2>/dev/null || true
+    dbus-update-activation-environment \
+        WAYLAND_DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_DATA_DIRS \
+        2>/dev/null || true
+fi
 
 # Start the KWin Wayland compositor.
 kwin_wayland --xwayland &
