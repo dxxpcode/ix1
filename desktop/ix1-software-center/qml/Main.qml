@@ -7,7 +7,7 @@ import Ix1SoftwareCenter 1.0
 Window {
     id: root
     width: Math.min(900, Math.max(320, Screen.desktopAvailableWidth - 24))
-    height: Math.min(560, Math.max(240, Screen.desktopAvailableHeight - 24))
+    height: Math.min(560, Math.max(240, Screen.desktopAvailableHeight - 100))
     visible: true
     title: "ix1 Software Center"
     color: Theme.bgBase
@@ -152,7 +152,7 @@ Window {
         Rectangle {
             anchors.centerIn: parent
             width: Math.min(480, parent.width - 32)
-            height: Math.min(520, parent.height - 48, detailColumn.implicitHeight + 48)
+            height: Math.min(520, parent.height - 72, detailColumn.implicitHeight + 104)
             radius: Theme.radius + 4
             color: Theme.surface1
             border.color: Theme.hairline
@@ -161,12 +161,26 @@ Window {
             MouseArea { anchors.fill: parent; onClicked: function(mouse) { mouse.accepted = true } }
 
             ColumnLayout {
-                id: detailColumn
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
                 anchors.margins: 24
                 spacing: 12
+
+                Flickable {
+                    id: detailFlick
+                    Layout.fillWidth: true
+                    Layout.fillHeight: true
+                    contentWidth: width
+                    contentHeight: detailColumn.implicitHeight
+                    clip: true
+                    boundsBehavior: Flickable.StopAtBoundary
+                    flickableDirection: Flickable.VerticalFlick
+
+                    ColumnLayout {
+                        id: detailColumn
+                        width: detailFlick.width
+                        spacing: 12
 
                 Text {
                     Layout.fillWidth: true
@@ -237,7 +251,8 @@ Window {
                     wrapMode: Text.WordWrap
                 }
 
-                Item { Layout.fillHeight: true }
+                    }
+                }
 
                 RowLayout {
                     Layout.fillWidth: true
