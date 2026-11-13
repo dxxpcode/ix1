@@ -166,13 +166,23 @@ applications.
 - [x] Shell launcher picks up Flatpak apps: `desktopEntryPaths()` includes the
       per-user and system Flatpak export `applications` dirs; store icon added
       for the Software Center entry.
-- [x] Verified on a clean QEMU install (ISO -> SDDM login -> desktop):
-      portal stack active (`graphical-session.target`, `xdg-desktop-portal`,
-      `xdg-desktop-portal-gtk`), Software Center launches from the launcher,
-      Discover/search/details/permissions render, Cantara 2.7.1 installed
-      through the Software Center UI, detail overlay refreshes to Open/Remove,
-      Open launches the Flatpak app (Cantara window appears), Remove uninstalls
-      it (`flatpak list` empty afterwards).
+- [x] Verified on a clean QEMU install (ISO -> SDDM login -> desktop), image
+      built from the M6 branch:
+      - Portal stack active from the real session: `graphical-session.target`,
+        `xdg-desktop-portal`, `xdg-desktop-portal-gtk` all active; Flathub user
+        remote added on first login; `WAYLAND_DISPLAY` present in the session
+        environment.
+      - Software Center launched from the launcher icon; Discover/search/
+        details/permissions render (Cantara 2.7.1).
+      - Install via Software Center UI: Cantara 2.7.1 installed from Flathub
+        (`flatpak --user list` shows it).
+      - Open via Software Center UI: Cantara window ("Cantara Setup") appears.
+      - Remove via Software Center UI: `flatpak --user list` empty afterwards.
+- [x] Small-screen layout fix: at 640x480 the detail card overflowed and its
+      action buttons rendered under the dock (layer-shell, always on top), so
+      Remove was unclickable. The detail content is now scrollable
+      (`Flickable`), the action row is pinned inside the card, the card height
+      is capped to the window, and the window height leaves room for the dock.
 - [x] Dev-binary verification (earlier session): browse/search/details/
       install/remove/update-all/launch on the Software Center UI.
 - [ ] Updates listing against a newer upstream release not exercised (no
