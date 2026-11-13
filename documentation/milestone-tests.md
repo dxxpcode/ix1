@@ -97,5 +97,32 @@ Firefox, verified on a clean QEMU install of the rebuilt bootc image
       hardware — QEMU has neither.
 - [ ] Physical-machine test (none available in this environment).
 
+## UI polish pass (post-M5, pre-M6)
+
+Goal: close the fidelity gap between the approved Graphite/Porcelain concept
+images and the M4/M5 shell (frosted glass, real wallpaper art, custom IX1 app
+icons, redesigned launcher/dock).
+
+- [x] Aurora wallpaper artwork regenerated for both themes (dark charcoal with
+      blue/teal waves; light off-white with pale blue/lavender waves).
+- [x] Custom IX1 line-icon set (9 glyphs x dark/light variants) mapped from
+      desktop-file/app names; replaces letter placeholders in launcher and dock.
+- [x] Frosted-glass chrome: panel, dock, launcher card, quick-settings card and
+      notification cards use translucent `Theme.glass` over the wallpaper.
+- [x] Launcher redesigned: centered glass card, search field, 4-column icon
+      grid with labels; backdrop dim + click/Escape to close.
+- [x] Dock redesigned: floating pill with glass material, custom icons.
+- [x] Quick Settings close bug found and fixed: the overlay window was only
+      336px wide at the top-right, so clicks outside it never reached the shell
+      and the tray toggle was covered; it is now a full-screen transparent
+      overlay whose backdrop click closes the panel (Escape also works).
+- [x] Verified on a clean QEMU install (ISO -> SDDM login -> desktop):
+      aurora wallpaper both themes, glass panel/dock, launcher icon grid,
+      quick-settings open/close via backdrop click (pixel-diff checked),
+      Porcelain live theme switch via `settings.conf`.
+- [ ] Frosted-glass blur is approximated with translucency (layer-shell-qt
+      exposes no backdrop-blur property); true background blur not implemented.
+- [ ] No physical-machine test (none available in this environment).
+
 ## M6–M9
 See product spec §10 acceptance statements; tests live under `tests/`.

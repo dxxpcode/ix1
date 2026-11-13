@@ -70,7 +70,7 @@ Window {
                     width: col.width
                     height: cardCol.implicitHeight + 20
                     radius: Theme.radius
-                    color: Theme.surface1
+                    color: Theme.glass
                     border.color: Theme.hairline
                     border.width: 1
 

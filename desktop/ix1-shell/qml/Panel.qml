@@ -22,8 +22,7 @@ Window {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.surface1
-        opacity: 0.92
+        color: Theme.glass
 
         Rectangle {
             anchors.left: parent.left
