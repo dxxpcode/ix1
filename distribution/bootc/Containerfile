@@ -86,6 +86,11 @@ COPY distribution/bootc/files/usr/share/wayland-sessions/ix1.desktop \
 COPY distribution/bootc/files/usr/bin/ix1-session /usr/bin/ix1-session
 RUN chmod 755 /usr/bin/ix1-session
 
+# systemd user unit: ix1-session.target (BindsTo=graphical-session.target)
+# so xdg-desktop-portal and backends start for Flatpak permission prompts.
+COPY distribution/bootc/files/usr/lib/systemd/user/ix1-session.target \
+     /usr/lib/systemd/user/ix1-session.target
+
 # Create the ix1 user's home directory on first boot (Anaconda's bootc
 # kickstart payload does not create it).
 COPY distribution/bootc/files/usr/lib/tmpfiles.d/ix1-home.conf \
@@ -110,7 +115,7 @@ COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop
      /usr/share/applications/ix1-software-center.desktop
 
 # SELinux: relabel filesystem content added by this Containerfile.
-RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d 2>/dev/null || true
+RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d /usr/lib/systemd 2>/dev/null || true
 
 # sshd is useful for automated boot validation on the dev image only.
 RUN systemctl enable sshd.service || true
