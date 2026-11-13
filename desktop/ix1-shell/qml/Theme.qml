@@ -14,6 +14,13 @@ QtObject {
     readonly property color textSecondary: dark ? "#9BA1AB" : "#5B6472"
     readonly property color accent: dark ? "#8AB4FF" : "#3563E9"
 
+    // Translucent chrome for panel/dock/launcher/quick settings.
+    readonly property color glass: dark ? Qt.rgba(0.09, 0.094, 0.11, 0.66)
+                                         : Qt.rgba(1, 1, 1, 0.66)
+    readonly property color glassHover: dark ? Qt.rgba(0.14, 0.15, 0.18, 0.72)
+                                             : Qt.rgba(0.92, 0.94, 0.97, 0.72)
+
     readonly property string fontFamily: "Inter"
     readonly property int radius: 12
+    readonly property int radiusLarge: 16
 }

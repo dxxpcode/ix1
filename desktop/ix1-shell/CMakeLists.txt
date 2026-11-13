@@ -29,6 +29,7 @@ qt_add_qml_module(ix1-shell
     VERSION 1.0
     QML_FILES
         qml/Theme.qml
+        qml/AppIcon.qml
         qml/Wallpaper.qml
         qml/Panel.qml
         qml/Dock.qml
@@ -41,6 +42,15 @@ qt_add_qml_module(ix1-shell
         qml/assets/wallpaper-porcelain.png
         qml/assets/logo-dark.png
         qml/assets/logo-light.png
+        qml/assets/icons/tile-settings.svg
+        qml/assets/icons/tile-terminal.svg
+        qml/assets/icons/tile-files.svg
+        qml/assets/icons/tile-editor.svg
+        qml/assets/icons/tile-monitor.svg
+        qml/assets/icons/tile-browser.svg
+        qml/assets/icons/tile-pulse.svg
+        qml/assets/icons/tile-bars.svg
+        qml/assets/icons/tile-grid.svg
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)

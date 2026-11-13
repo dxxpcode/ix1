@@ -44,10 +44,10 @@ Window {
         id: card
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        width: 620
-        height: 440
-        radius: Theme.radius
-        color: Theme.surface1
+        width: 580
+        height: 380
+        radius: Theme.radiusLarge
+        color: Theme.glass
         border.color: Theme.hairline
         border.width: 1
 
@@ -55,20 +55,22 @@ Window {
 
         Column {
             anchors.fill: parent
-            anchors.margins: 16
+            anchors.margins: 18
             spacing: 12
 
             Rectangle {
                 width: parent.width
                 height: 40
-                radius: 10
-                color: Theme.surface2
+                radius: Theme.radius
+                color: Theme.glassHover
+                border.color: Theme.hairline
+                border.width: 1
 
                 TextInput {
                     id: searchInput
                     anchors.fill: parent
-                    anchors.leftMargin: 12
-                    anchors.rightMargin: 12
+                    anchors.leftMargin: 14
+                    anchors.rightMargin: 14
                     verticalAlignment: TextInput.AlignVCenter
                     color: Theme.textPrimary
                     font.family: Theme.fontFamily
@@ -87,75 +89,68 @@ Window {
                 }
             }
 
-            ListView {
+            GridView {
                 width: parent.width
                 height: parent.height - 52
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
                 model: backend.apps
+                cellWidth: width / 4
+                cellHeight: 96
 
                 delegate: Item {
                     required property string name
                     required property string desktopFile
                     required property string categories
-                    required property int index
 
                     readonly property bool matches: searchText.length === 0
                         || name.toLowerCase().indexOf(searchText.toLowerCase()) >= 0
                         || categories.toLowerCase().indexOf(searchText.toLowerCase()) >= 0
 
-                    width: ListView.view.width
-                    height: matches ? 44 : 0
+                    width: GridView.view.cellWidth
+                    height: matches ? GridView.view.cellHeight : 0
                     visible: matches
 
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: 2
-                        radius: 8
-                        color: appArea.containsMouse ? Theme.surface2 : "transparent"
+                    Column {
+                        anchors.centerIn: parent
+                        spacing: 4
+                        width: parent.width
 
-                        Row {
-                            anchors.fill: parent
-                            anchors.leftMargin: 10
-                            anchors.rightMargin: 10
-                            spacing: 12
+                        Rectangle {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: 64
+                            height: 64
+                            radius: 16
+                            color: appArea.containsMouse ? Theme.glassHover : "transparent"
 
-                            Rectangle {
-                                width: 28
-                                height: 28
-                                radius: 7
-                                color: Theme.surface3
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: name.length > 0 ? name.charAt(0).toUpperCase() : "?"
-                                    color: Theme.textPrimary
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 14
-                                    font.weight: Font.DemiBold
-                                }
-                            }
-
-                            Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: name
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                                elide: Text.ElideRight
-                                width: parent.width - 120
+                            AppIcon {
+                                anchors.centerIn: parent
+                                width: 52
+                                height: 52
+                                desktopFileName: desktopFile
+                                appTitle: name
                             }
                         }
 
-                        MouseArea {
-                            id: appArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: {
-                                backend.launchApp(desktopFile)
-                                backend.closeLauncher()
-                            }
+                        Text {
+                            anchors.horizontalCenter: parent.horizontalCenter
+                            width: parent.width - 8
+                            horizontalAlignment: Text.AlignHCenter
+                            elide: Text.ElideRight
+                            text: name
+                            color: Theme.textPrimary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                        }
+                    }
+
+                    MouseArea {
+                        id: appArea
+                        anchors.fill: parent
+                        hoverEnabled: true
+                        onClicked: {
+                            backend.launchApp(desktopFile)
+                            backend.closeLauncher()
                         }
                     }
                 }

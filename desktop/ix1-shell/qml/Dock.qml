@@ -12,7 +12,7 @@ Window {
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    height: 88
+    height: 92
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
@@ -24,25 +24,18 @@ Window {
         id: dock
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 10
-        width: dockRow.implicitWidth + 16
-        height: dockRow.implicitHeight + 16
-        radius: Theme.radius
-        color: Theme.surface1
-        opacity: 0.94
-
-        Rectangle {
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: 1
-            color: Theme.hairline
-        }
+        anchors.bottomMargin: 12
+        width: dockRow.implicitWidth + 20
+        height: dockRow.implicitHeight + 20
+        radius: 18
+        color: Theme.glass
+        border.color: Theme.hairline
+        border.width: 1
 
         Row {
             id: dockRow
             anchors.centerIn: parent
-            spacing: 8
+            spacing: 6
 
             Repeater {
                 model: backend.apps
@@ -52,18 +45,17 @@ Window {
                     required property string desktopFile
                     required property int index
 
-                    width: 48
-                    height: 48
-                    radius: 10
-                    color: dockButtonArea.containsMouse ? Theme.surface3 : Theme.surface2
+                    width: 56
+                    height: 56
+                    radius: 16
+                    color: dockButtonArea.containsMouse ? Theme.glassHover : "transparent"
 
-                    Text {
+                    AppIcon {
                         anchors.centerIn: parent
-                        text: name.length > 0 ? name.charAt(0).toUpperCase() : "?"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 18
-                        font.weight: Font.DemiBold
+                        width: 44
+                        height: 44
+                        desktopFileName: desktopFile
+                        appTitle: name
                     }
 
                     MouseArea {
@@ -72,7 +64,6 @@ Window {
                         hoverEnabled: true
                         onClicked: backend.launchApp(desktopFile)
                     }
-
                 }
             }
         }

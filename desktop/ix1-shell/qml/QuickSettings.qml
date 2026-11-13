@@ -10,9 +10,9 @@ Window {
 
     LayerShellQt.Window.layer: LayerShellQt.Window.LayerOverlay
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorTop
+        | LayerShellQt.Window.AnchorBottom
+        | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    width: 336
-    height: contentCol.implicitHeight + 52
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
@@ -20,8 +20,20 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
+    Shortcut {
+        sequence: "Escape"
+        onActivated: backend.closeQuickSettings()
+    }
+
     Item {
         anchors.fill: parent
+
+        // Clicking anywhere outside the card dismisses the panel. The tray
+        // toggle is covered by this overlay while open, so this is the way out.
+        MouseArea {
+            anchors.fill: parent
+            onClicked: backend.closeQuickSettings()
+        }
 
         Rectangle {
             id: card
@@ -32,9 +44,11 @@ Window {
             width: 312
             height: contentCol.implicitHeight + 24
             radius: Theme.radius
-            color: Theme.surface1
+            color: Theme.glass
             border.color: Theme.hairline
             border.width: 1
+
+            MouseArea { anchors.fill: parent; onClicked: {} }
 
             Column {
                 id: contentCol
