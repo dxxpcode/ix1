@@ -42,6 +42,20 @@ while [ ! -S "$RT/wayland-0" ] && [ "$i" -lt 100 ]; do
     i=$((i + 1))
 done
 
+# Expose the display to session apps. Without WAYLAND_DISPLAY/DISPLAY,
+# Flatpak apps launched from the shell or Software Center cannot connect
+# to the compositor and exit immediately.
+export WAYLAND_DISPLAY=wayland-0
+export DISPLAY="${DISPLAY:-:0}"
+if command -v systemctl >/dev/null 2>&1; then
+    systemctl --user import-environment \
+        WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_DATA_DIRS \
+        2>/dev/null || true
+fi
+dbus-update-activation-environment \
+    WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_DATA_DIRS \
+    2>/dev/null || true
+
 # Start the shell; when it exits, stop the compositor.
 /usr/bin/ix1-shell &
 SHELL_PID=$!
