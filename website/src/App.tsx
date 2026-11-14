@@ -1,5 +1,7 @@
 import { ArrowDown, ArrowUpRight } from "lucide-react"
 
+import logoUrl from "../assets/logo.png"
+import { ThemeToggle } from "@/components/theme-toggle"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
@@ -52,11 +54,12 @@ export default function App() {
       {/* nav */}
       <nav className="fixed inset-x-0 top-0 z-20 border-b border-border bg-background/80 backdrop-blur-md">
         <div className="mx-auto flex h-14 max-w-5xl items-center justify-between px-6">
-          <a href="#top" className="flex items-center gap-2 font-bold tracking-tight">
-            <svg width="15" height="15" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-              <path d="M7.5 1.5 14 13.5H1Z" />
-            </svg>
-            ix1
+          <a href="#top" aria-label="ix1">
+            <img
+              src={logoUrl}
+              alt="ix1"
+              className="h-5 w-auto dark:invert"
+            />
           </a>
           <div className="hidden items-center gap-7 text-sm text-muted-foreground sm:flex">
             <a className="transition-colors hover:text-foreground" href="#download">
@@ -75,12 +78,15 @@ export default function App() {
               GitHub
             </a>
           </div>
-          <a
-            href="#download"
-            className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
-          >
-            Download
-          </a>
+          <div className="flex items-center gap-1">
+            <ThemeToggle />
+            <a
+              href="#download"
+              className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
+            >
+              Download
+            </a>
+          </div>
         </div>
       </nav>
 
@@ -94,7 +100,7 @@ export default function App() {
           className="pointer-events-none absolute inset-0"
           style={{
             backgroundImage:
-              "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.12) 1px, transparent 0)",
+              "radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0)",
             backgroundSize: "32px 32px",
             maskImage:
               "radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%)",
@@ -106,7 +112,7 @@ export default function App() {
           <p className="mb-6 text-sm font-medium tracking-wide text-muted-foreground">
             ix1 — a minimal atomic Linux desktop
           </p>
-          <h1 className="mx-auto max-w-3xl bg-gradient-to-b from-white via-white to-zinc-500 bg-clip-text text-[64px] font-bold leading-[1.02] tracking-[-0.04em] text-transparent sm:text-[88px]">
+          <h1 className="mx-auto max-w-3xl bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-400 bg-clip-text text-[64px] font-bold leading-[1.02] tracking-[-0.04em] text-transparent sm:text-[88px] dark:from-white dark:via-white dark:to-zinc-500">
             A desktop that just works.
           </h1>
           <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
@@ -280,12 +286,11 @@ export default function App() {
       {/* footer */}
       <footer className="border-t border-border">
         <div className="mx-auto flex max-w-5xl flex-col items-center gap-4 px-6 py-8 text-sm text-muted-foreground sm:flex-row sm:justify-between">
-          <span className="flex items-center gap-2 font-bold tracking-tight text-foreground">
-            <svg width="12" height="12" viewBox="0 0 15 15" fill="currentColor" aria-hidden>
-              <path d="M7.5 1.5 14 13.5H1Z" />
-            </svg>
-            ix1
-          </span>
+          <img
+            src={logoUrl}
+            alt="ix1"
+            className="h-4 w-auto dark:invert"
+          />
           <div className="flex gap-6">
             <a
               className="transition-colors hover:text-foreground"
