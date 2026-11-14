@@ -1,6 +1,5 @@
 import {
   ArrowDown,
-  ArrowUpRight,
   FileArchive,
   Layers,
   LayoutGrid,
@@ -9,6 +8,7 @@ import {
 
 import logoUrl from "../assets/logo.png"
 import { CopyButton } from "@/components/copy-button"
+import { GithubButton } from "@/components/github-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -93,7 +93,10 @@ export default function App() {
             <ThemeToggle />
             <a
               href="#download"
-              className={cn(buttonVariants({ size: "sm" }), "rounded-full")}
+              className={cn(
+                buttonVariants({ size: "sm" }),
+                "rounded-full transition-transform duration-200 active:scale-[0.97]"
+              )}
             >
               Download
             </a>
@@ -130,22 +133,16 @@ export default function App() {
               href="#download"
               className={cn(
                 buttonVariants({ size: "lg" }),
-                "rounded-full px-7"
+                "group rounded-full px-7 transition-all duration-200",
+                "hover:-translate-y-px hover:shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
+                "dark:hover:shadow-[0_6px_24px_-6px_rgba(255,255,255,0.18)]",
+                "active:translate-y-0 active:scale-[0.98] active:shadow-none"
               )}
             >
-              <ArrowDown />
+              <ArrowDown className="transition-transform duration-200 group-hover:translate-y-0.5" />
               Download ix1 {RELEASE}
             </a>
-            <a
-              href="https://github.com/dxxpcode/ix1"
-              className={cn(
-                buttonVariants({ variant: "outline", size: "lg" }),
-                "group rounded-full border-border px-7"
-              )}
-            >
-              GitHub
-              <ArrowUpRight className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
-            </a>
+            <GithubButton />
           </div>
         </div>
       </header>
