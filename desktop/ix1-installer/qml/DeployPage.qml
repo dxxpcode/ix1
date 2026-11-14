@@ -53,7 +53,6 @@ Item {
         GradientText {
             text: backend.done ? "Done." : (backend.error ? "Failed." : backend.progress + "%")
             pixelSize: 92
-            letterSpacing: -4
             gradient: !backend.error
             flatColor: Theme.danger
             Layout.topMargin: 14

@@ -1,16 +1,16 @@
 import QtQuick
 import Ix1Installer
 
-// Landing-page headline: white→zinc gradient. A translucent black overlay
-// dims the glyphs toward zinc; the canvas is already black, so the overlay
-// is invisible everywhere the text isn't — same visual as a masked gradient,
-// and it renders under the software rasterizer.
+// Landing-page display type: Geist Medium, -0.02em tracking, with the
+// site's white→zinc-500 vertical fade mapped over the line box — pure
+// white through the midpoint, ~55% black at the bottom edge so the
+// baseline lands near luminance ~155, matching the live site's rendered
+// curve. flatColor switches to a solid tint (deploy error state).
 Item {
     id: root
     property alias text: glyph.text
     property int pixelSize: 54
-    property real letterSpacing: -2.5
-    // Flat-color fallback (e.g. danger on the deploy error state).
+    property real letterSpacing: -0.02 * pixelSize
     property bool gradient: true
     property color flatColor: Theme.textPrimary
 
@@ -22,20 +22,19 @@ Item {
         color: root.gradient ? "#fafafa" : root.flatColor
         font.family: Theme.fontSans
         font.pixelSize: root.pixelSize
-        font.weight: Font.Bold
+        font.weight: Font.Medium
         font.letterSpacing: root.letterSpacing
+        renderType: Text.NativeRendering
     }
     Rectangle {
         visible: root.gradient
         anchors.fill: parent
-        // The site's headline reads mostly white — its two-line h1 keeps the
-        // whole first line pure white and only the last ~third fades toward
-        // zinc-500. Same visual on one line: white until ~60%, gentle dim to
-        // the baseline.
+        // bg-gradient-to-b from-white via-white to-zinc-500 over the line
+        // box (which extends below the glyph baseline, like the site's).
         gradient: Gradient {
             GradientStop { position: 0.0;  color: "transparent" }
-            GradientStop { position: 0.62; color: "transparent" }
-            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.48) }
+            GradientStop { position: 0.5;  color: "transparent" }
+            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.548) }
         }
     }
 }
