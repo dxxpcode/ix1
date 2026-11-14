@@ -1,0 +1,30 @@
+apiVersion: org.containers.bootc/v1
+kind: BootcHost
+metadata:
+  name: host
+spec:
+  image:
+    image: 10.0.2.2:5000/ix1-os:dev
+    transport: registry
+  bootOrder: default
+status:
+  staged:
+    image:
+      image:
+        image: 10.0.2.2:5000/ix1-os:dev
+        transport: registry
+      version: 44.20261113.0
+      timestamp: 2026-11-13T23:48:35.414496613Z
+      imageDigest: sha256:0582febc3978b698c5e645f4cc099f4142f97c56410871b86df416ebe5a23545
+      architecture: amd64
+    cachedUpdate: null
+    incompatible: false
+    pinned: false
+    softRebootCapable: true
+    downloadOnly: false
+    store: ostreeContainer
+    ostree:
+      stateroot: default
+      checksum: 704c62438c065ee33f95bb0731deae1a9ec0379dd54bf5418ea9f8b0e27cbddf
+      deploySerial: 0
+    composefs: null

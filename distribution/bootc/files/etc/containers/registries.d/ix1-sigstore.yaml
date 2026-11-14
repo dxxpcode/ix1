@@ -1,0 +1,7 @@
+# Read cosign signatures from each registry's own <digest>.sig tags
+# (sigstore attachments) instead of an external lookaside store.
+docker:
+  10.0.2.2:5000:
+    use-sigstore-attachments: true
+  localhost:5000:
+    use-sigstore-attachments: true

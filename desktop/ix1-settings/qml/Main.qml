@@ -43,7 +43,7 @@ Window {
                 }
 
                 Repeater {
-                    model: ["Appearance", "Sound", "Network", "About"]
+                    model: ["Appearance", "Sound", "Network", "Updates", "About"]
                     delegate: Rectangle {
                         Layout.fillWidth: true
                         height: 36
@@ -91,6 +91,7 @@ Window {
                 AppearancePage {}
                 SoundPage {}
                 NetworkPage {}
+                UpdatesPage {}
                 AboutPage {}
             }
         }

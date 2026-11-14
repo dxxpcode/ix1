@@ -1,0 +1,6 @@
+Queued for next boot: 10.0.2.2:5000/ix1-os:dev
+  Version: 44.20261113.0
+  Digest: sha256:0582febc3978b698c5e645f4cc099f4142f97c56410871b86df416ebe5a23545
+Total new layers: 92    Size: 2.1 GB
+Removed layers:   27    Size: 989.9 MB
+Added layers:     27    Size: 989.9 MB

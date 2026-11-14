@@ -114,8 +114,31 @@ COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
 COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop \
      /usr/share/applications/ix1-software-center.desktop
 
+# ---- M7: signed updates and recovery ----------------------------------------
+# Containers policy: pulls of the ix1 image from the update registry must
+# carry a valid ix1 sigstore signature (verified against the baked-in public
+# key). Applies to the Anaconda install pull and to `bootc upgrade`.
+COPY distribution/bootc/files/etc/containers/policy.json \
+     /etc/containers/policy.json
+COPY distribution/bootc/files/etc/pki/containers/ix1.pub \
+     /etc/pki/containers/ix1.pub
+# Dev registry (plain HTTP on the QEMU host); a production registry uses TLS.
+COPY distribution/bootc/files/etc/containers/registries.conf.d/ix1-dev-registry.conf \
+     /etc/containers/registries.conf.d/ix1-dev-registry.conf
+# Signatures live as <digest>.sig attachments in the registry itself.
+COPY distribution/bootc/files/etc/containers/registries.d/ix1-sigstore.yaml \
+     /etc/containers/registries.d/ix1-sigstore.yaml
+# Privileged update helper for ix1-settings (pkexec, wheel-only).
+COPY distribution/bootc/files/usr/libexec/ix1-update /usr/libexec/ix1-update
+COPY distribution/bootc/files/etc/polkit-1/rules.d/50-ix1-updates.rules \
+     /etc/polkit-1/rules.d/50-ix1-updates.rules
+RUN chmod 755 /usr/libexec/ix1-update
+
+# Release marker read by ix1-settings and used in update verification.
+RUN echo "${IX1_RELEASE}" > /etc/ix1-release
+
 # SELinux: relabel filesystem content added by this Containerfile.
-RUN restorecon -R /etc /usr/share /usr/bin /usr/lib/tmpfiles.d /usr/lib/systemd 2>/dev/null || true
+RUN restorecon -R /etc /usr/share /usr/bin /usr/libexec /usr/lib/tmpfiles.d /usr/lib/systemd 2>/dev/null || true
 
 # sshd is useful for automated boot validation on the dev image only.
 RUN systemctl enable sshd.service || true

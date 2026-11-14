@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# Privileged ix1 update helper. Launched through pkexec by ix1-settings;
+# authorization is granted to active wheel users by
+# /etc/polkit-1/rules.d/50-ix1-updates.rules.
+set -euo pipefail
+
+case "${1:-}" in
+    status)   exec bootc status --json ;;
+    check)    exec bootc upgrade --check ;;
+    upgrade)  exec bootc upgrade ;;
+    rollback) exec bootc rollback ;;
+    reboot)   exec systemctl reboot ;;
+    *) echo "usage: ix1-update {status|check|upgrade|rollback|reboot}" >&2; exit 2 ;;
+esac
