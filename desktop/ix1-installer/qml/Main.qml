@@ -126,10 +126,13 @@ ApplicationWindow {
             anchors.rightMargin: 32
             Text {
                 text: step === 0 ? "esc — quit installer" : "← back"
-                color: backHover.hovered ? Theme.textMuted : Theme.textDim
+                color: backHover.hovered ? Theme.textSecondary : Theme.textDim
                 font.family: Theme.fontMono
                 font.pixelSize: 11
                 visible: step < 2
+                x: backHover.hovered && step > 0 ? -3 : 0
+                Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                Behavior on color { ColorAnimation { duration: 140 } }
                 HoverHandler { id: backHover }
                 MouseArea {
                     anchors.fill: parent
@@ -144,19 +147,43 @@ ApplicationWindow {
                 id: cta
                 visible: step < 2 || backend.done
                 radius: 10
-                height: 42
-                width: ctaLabel.implicitWidth + 46
-                color: step === 1 ? Theme.danger : Theme.textPrimary
-                opacity: ctaMouse.pressed ? 0.8
-                       : ctaMouse.containsMouse ? 0.92 : 1.0
-                scale: ctaMouse.pressed ? 0.98 : 1.0
-                Behavior on opacity { NumberAnimation { duration: 100 } }
-                Behavior on scale { NumberAnimation { duration: 100 } }
+                height: 44
+                width: ctaLabel.implicitWidth + 56
+                color: "transparent"
+                gradient: Gradient {
+                    orientation: Gradient.Vertical
+                    GradientStop { position: 0.0; color: step === 1 ? "#f15454" : "#ffffff" }
+                    GradientStop { position: 1.0; color: step === 1 ? Theme.danger : "#dcdce0" }
+                }
+                scale: ctaMouse.pressed ? 0.965 : 1.0
+                Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
+                // Hover ring — soft halo outside the button.
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: parent.width + 8
+                    height: parent.height + 8
+                    radius: 13
+                    color: "transparent"
+                    border.width: 1
+                    border.color: step === 1 ? Qt.rgba(220/255, 38/255, 38/255, 0.45)
+                                             : Qt.rgba(1, 1, 1, 0.22)
+                    opacity: ctaMouse.containsMouse ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: 160 } }
+                }
+                // Inner top highlight — lit edge.
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 2
+                    height: 1
+                    radius: 1
+                    color: Qt.rgba(1, 1, 1, step === 1 ? 0.28 : 0.0)
+                }
                 Text {
                     id: ctaLabel
                     anchors.centerIn: parent
                     text: step === 0 ? "Continue →" : (step === 1 ? "Erase & install" : "Reboot")
-                    color: step === 1 ? Theme.textPrimary : "#18181b"
+                    color: step === 1 ? "#fff" : "#18181b"
                     font.family: Theme.fontSans
                     font.pixelSize: 14
                     font.weight: Font.DemiBold

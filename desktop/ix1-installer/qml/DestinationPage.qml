@@ -45,21 +45,42 @@ Item {
                 color: Theme.textMuted
                 font.family: Theme.fontMono
                 font.pixelSize: 12
+                SequentialAnimation on opacity {
+                    running: backend.disks.length === 0
+                    loops: Animation.Infinite
+                    NumberAnimation { to: 0.35; duration: 800; easing.type: Easing.InOutSine }
+                    NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                }
             }
 
             Repeater {
                 model: backend.disks
                 delegate: Rectangle {
                     width: parent.width
-                    height: 66
+                    height: 68
                     radius: 12
                     color: index === backend.selectedDisk
-                           ? Theme.cardHover
+                           ? "#121214"
                            : (diskHover.hovered ? "#0d0d0f" : Theme.card)
                     border.width: 1
                     border.color: index === backend.selectedDisk
-                                  ? Theme.borderSel
+                                  ? "#8b8b93"
                                   : (diskHover.hovered ? "#3a3a3f" : Theme.border)
+                    scale: diskMouse.pressed ? 0.99 : 1.0
+                    Behavior on scale { NumberAnimation { duration: 110; easing.type: Easing.OutCubic } }
+                    Behavior on border.color { ColorAnimation { duration: 140 } }
+                    Behavior on color { ColorAnimation { duration: 140 } }
+
+                    // Inner top hairline — the lit edge of the selected card.
+                    Rectangle {
+                        visible: index === backend.selectedDisk
+                        anchors.top: parent.top
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: parent.width - 2
+                        height: 1
+                        radius: 1
+                        color: Qt.rgba(1, 1, 1, 0.14)
+                    }
 
                     RowLayout {
                         anchors.fill: parent
@@ -68,12 +89,15 @@ Item {
                         spacing: 15
                         Rectangle {
                             width: 40; height: 40; radius: 10
-                            color: "#161618"
-                            border.width: 1; border.color: "#26262a"
+                            color: index === backend.selectedDisk ? "#1b1b1f" : "#161618"
+                            border.width: 1
+                            border.color: index === backend.selectedDisk ? "#333338" : "#26262a"
+                            Behavior on color { ColorAnimation { duration: 140 } }
+                            Behavior on border.color { ColorAnimation { duration: 140 } }
                             Text {
                                 anchors.centerIn: parent
                                 text: "▦"
-                                color: Theme.textSecondary
+                                color: index === backend.selectedDisk ? Theme.textPrimary : Theme.textSecondary
                                 font.pixelSize: 15
                             }
                         }
@@ -105,8 +129,8 @@ Item {
                                 horizontalAlignment: Text.AlignRight
                             }
                             Text {
-                                text: "target"
-                                color: Theme.textMuted
+                                text: index === backend.selectedDisk ? "install here" : "target"
+                                color: index === backend.selectedDisk ? Theme.textSecondary : Theme.textMuted
                                 font.family: Theme.fontMono
                                 font.pixelSize: 10
                                 horizontalAlignment: Text.AlignRight
@@ -123,6 +147,7 @@ Item {
                     }
                     HoverHandler { id: diskHover }
                     MouseArea {
+                        id: diskMouse
                         anchors.fill: parent
                         cursorShape: Qt.PointingHandCursor
                         onClicked: backend.selectedDisk = index
@@ -135,9 +160,12 @@ Item {
                 width: parent.width
                 height: 66
                 radius: 12
-                color: luksHover.hovered ? "#0d0d0f" : Theme.card
+                color: backend.encrypt ? "#121214" : (luksHover.hovered ? "#0d0d0f" : Theme.card)
                 border.width: 1
-                border.color: luksHover.hovered ? "#3a3a3f" : Theme.border
+                border.color: backend.encrypt ? "#52525b"
+                              : (luksHover.hovered ? "#3a3a3f" : Theme.border)
+                Behavior on color { ColorAnimation { duration: 140 } }
+                Behavior on border.color { ColorAnimation { duration: 140 } }
 
                 RowLayout {
                     anchors.fill: parent

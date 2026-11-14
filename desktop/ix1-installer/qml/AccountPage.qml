@@ -55,15 +55,31 @@ Item {
                         font.pixelSize: 11
                         font.letterSpacing: 1.6
                     }
-                    Rectangle {
+                    Item {
                         Layout.fillWidth: true
-                        height: 48
-                        radius: 10
-                        color: Theme.card
-                        border.width: 1
-                        border.color: field.activeFocus ? Theme.textSecondary
-                                      : (fieldHover.hovered ? "#3a3a3f" : "#27272a")
-                        Behavior on border.color { ColorAnimation { duration: 140 } }
+                        height: 50
+                        // Focus ring — a soft halo outside the field border.
+                        Rectangle {
+                            anchors.centerIn: parent
+                            width: parent.width + 6
+                            height: parent.height + 6
+                            radius: 13
+                            color: "transparent"
+                            border.width: 1
+                            border.color: Qt.rgba(1, 1, 1, 0.14)
+                            opacity: field.activeFocus ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: 160 } }
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 10
+                            color: field.activeFocus ? "#0e0e10" : Theme.card
+                            border.width: 1
+                            border.color: field.activeFocus ? Theme.textSecondary
+                                          : (fieldHover.hovered ? "#3a3a3f" : "#27272a")
+                            Behavior on border.color { ColorAnimation { duration: 140 } }
+                            Behavior on color { ColorAnimation { duration: 140 } }
+                        }
                         TextInput {
                             id: field
                             anchors.fill: parent
@@ -97,14 +113,16 @@ Item {
                     // strength meter under the password field
                     Column {
                         visible: modelData.val === "pass"
-                        spacing: 7
+                        spacing: 8
                         Row {
-                            spacing: 5
+                            spacing: 6
                             Repeater {
                                 model: 4
                                 Rectangle {
-                                    width: 139; height: 3; radius: 2
-                                    color: index < strength ? Theme.textPrimary : "#27272a"
+                                    width: 138; height: 3; radius: 2
+                                    color: index < strength
+                                           ? (strength < 3 ? Theme.amber : Theme.textPrimary)
+                                           : "#26262a"
                                     Behavior on color { ColorAnimation { duration: 180 } }
                                 }
                             }
@@ -124,16 +142,27 @@ Item {
 
             Rectangle {
                 Layout.fillWidth: true
-                Layout.topMargin: 4
-                height: warnTxt.implicitHeight + 28
+                Layout.topMargin: 6
+                height: warnTxt.implicitHeight + 30
                 radius: 10
-                color: Qt.rgba(251/255, 191/255, 36/255, 0.05)
+                color: Qt.rgba(251/255, 191/255, 36/255, 0.045)
                 border.width: 1
-                border.color: Qt.rgba(251/255, 191/255, 36/255, 0.18)
+                border.color: Qt.rgba(251/255, 191/255, 36/255, 0.20)
+                // Left accent bar
+                Rectangle {
+                    anchors.left: parent.left
+                    anchors.top: parent.top
+                    anchors.bottom: parent.bottom
+                    anchors.margins: 1
+                    width: 3
+                    radius: 2
+                    color: Theme.amber
+                }
                 Text {
                     id: warnTxt
                     anchors.fill: parent
                     anchors.margins: 14
+                    anchors.leftMargin: 18
                     wrapMode: Text.Wrap
                     font.family: Theme.fontSans
                     font.pixelSize: 13

@@ -15,7 +15,7 @@ class Backend : public QObject
     Q_PROPERTY(QVariantList disks READ disks NOTIFY disksChanged)
     Q_PROPERTY(int selectedDisk READ selectedDisk WRITE setSelectedDisk NOTIFY selectedDiskChanged)
     Q_PROPERTY(bool encrypt READ encrypt WRITE setEncrypt NOTIFY encryptChanged)
-    Q_PROPERTY(QString fullName WRITE setFullName)
+    Q_PROPERTY(QString fullName READ fullName WRITE setFullName)
     Q_PROPERTY(QString userName READ userName WRITE setUserName)
     Q_PROPERTY(QString password READ password WRITE setPassword)
     Q_PROPERTY(QString luksPassphrase READ luksPassphrase WRITE setLuksPassphrase)
@@ -38,6 +38,7 @@ public:
     void setSelectedDisk(int i);
     bool encrypt() const { return m_encrypt; }
     void setEncrypt(bool v);
+    QString fullName() const { return m_fullName; }
     void setFullName(const QString &v) { m_fullName = v; }
     void setUserName(const QString &v) { m_userName = v; }
     QString userName() const { return m_userName; }

@@ -51,23 +51,48 @@ Item {
             Layout.topMargin: 10
         }
 
-        Rectangle {
-            Layout.topMargin: 28
+        Item {
+            Layout.topMargin: 30
             Layout.fillWidth: true
-            height: 4
-            radius: 2
-            color: "#27272a"
+            height: 14
+            // Track
             Rectangle {
-                height: parent.height
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width
+                height: 4
                 radius: 2
+                color: "#1f1f23"
+            }
+            // Glow under the fill
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
                 width: parent.width * backend.progress / 100
+                height: 10
+                radius: 5
+                color: backend.error ? Qt.rgba(220/255, 38/255, 38/255, 0.22)
+                                     : Qt.rgba(1, 1, 1, 0.13)
+                Behavior on width { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
+            }
+            // Fill with a lit leading edge
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width * backend.progress / 100
+                height: 4
+                radius: 2
                 color: backend.error ? Theme.danger : Theme.textPrimary
                 Behavior on width { NumberAnimation { duration: 350; easing.type: Easing.OutCubic } }
+                Rectangle {
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 8; height: 8; radius: 4
+                    visible: backend.progress > 0 && !backend.done && !backend.error
+                    color: "#ffffff"
+                }
             }
         }
 
         Column {
-            Layout.topMargin: 26
+            Layout.topMargin: 24
             spacing: 9
             Repeater {
                 model: backend.logLines
@@ -78,6 +103,8 @@ Item {
                          : Theme.textDim
                     font.family: Theme.fontMono
                     font.pixelSize: 12
+                    opacity: 0
+                    NumberAnimation on opacity { to: 1; duration: 260; running: true }
                 }
             }
         }
