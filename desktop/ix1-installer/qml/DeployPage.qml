@@ -6,12 +6,27 @@ Item {
     opacity: StackLayout.isCurrentItem ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
-    ColumnLayout {
-        anchors.top: parent.top
-        anchors.topMargin: Math.max(24, parent.height * 0.14)
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 620
-        spacing: 0
+    Flickable {
+        id: fl
+        anchors.fill: parent
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        contentWidth: width
+        contentHeight: col.implicitHeight + col.y
+
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: fl.contentY = Math.max(0, Math.min(
+                         fl.contentHeight - fl.height,
+                         fl.contentY - event.angleDelta.y))
+        }
+
+        ColumnLayout {
+            id: col
+            x: Math.max(0, (fl.width - width) / 2)
+            y: Math.max(24, fl.height * 0.14)
+            width: 620
+            spacing: 0
 
         RowLayout {
             spacing: 10
@@ -179,6 +194,7 @@ Item {
                     }
                 }
             }
+        }
         }
     }
 }

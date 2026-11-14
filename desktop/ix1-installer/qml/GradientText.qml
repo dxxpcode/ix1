@@ -28,11 +28,12 @@ Item {
     Rectangle {
         visible: root.gradient
         anchors.fill: parent
+        // Matches the site's `from-white via-white to-zinc-500`: pure white
+        // through the midpoint, easing to #71717a at the baseline.
         gradient: Gradient {
-            GradientStop { position: 0.0;  color: "transparent" }
-            GradientStop { position: 0.42; color: "transparent" }
-            GradientStop { position: 0.74; color: Qt.rgba(0, 0, 0, 0.18) }
-            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.46) }
+            GradientStop { position: 0.0; color: "transparent" }
+            GradientStop { position: 0.5; color: "transparent" }
+            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.55) }
         }
     }
 }

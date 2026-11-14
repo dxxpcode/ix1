@@ -15,12 +15,27 @@ Item {
         }
     }
 
-    ColumnLayout {
-        anchors.top: parent.top
-        anchors.topMargin: Math.max(24, parent.height * 0.14)
-        anchors.horizontalCenter: parent.horizontalCenter
-        width: 620
-        spacing: 0
+    Flickable {
+        id: fl
+        anchors.fill: parent
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        contentWidth: width
+        contentHeight: col.implicitHeight + col.y
+
+        WheelHandler {
+            acceptedDevices: PointerDevice.Mouse | PointerDevice.TouchPad
+            onWheel: fl.contentY = Math.max(0, Math.min(
+                         fl.contentHeight - fl.height,
+                         fl.contentY - event.angleDelta.y))
+        }
+
+        ColumnLayout {
+            id: col
+            x: Math.max(0, (fl.width - width) / 2)
+            y: Math.max(24, fl.height * 0.14)
+            width: 620
+            spacing: 0
 
         Text {
             text: "step 01 — destination"
@@ -255,6 +270,7 @@ Item {
                 cursorShape: Qt.PointingHandCursor
                 onClicked: backend.encrypt = !backend.encrypt
             }
+        }
         }
     }
 }
