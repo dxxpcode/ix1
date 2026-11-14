@@ -22,7 +22,7 @@ Image {
         return "grid";
     }
 
-    source: Qt.resolvedUrl("assets/icons/tile-" + iconName() + ".svg")
+    source: Qt.resolvedUrl("assets/icons/" + iconName() + ".png")
     fillMode: Image.PreserveAspectFit
     smooth: true
     asynchronous: true

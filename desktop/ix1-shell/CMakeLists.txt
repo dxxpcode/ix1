@@ -44,16 +44,16 @@ qt_add_qml_module(ix1-shell
         qml/assets/wallpaper-porcelain.png
         qml/assets/logo-dark.png
         qml/assets/logo-light.png
-        qml/assets/icons/tile-settings.svg
-        qml/assets/icons/tile-terminal.svg
-        qml/assets/icons/tile-files.svg
-        qml/assets/icons/tile-editor.svg
-        qml/assets/icons/tile-monitor.svg
-        qml/assets/icons/tile-browser.svg
-        qml/assets/icons/tile-pulse.svg
-        qml/assets/icons/tile-bars.svg
-        qml/assets/icons/tile-grid.svg
-        qml/assets/icons/tile-store.svg
+        qml/assets/icons/settings.png
+        qml/assets/icons/terminal.png
+        qml/assets/icons/files.png
+        qml/assets/icons/editor.png
+        qml/assets/icons/monitor.png
+        qml/assets/icons/browser.png
+        qml/assets/icons/pulse.png
+        qml/assets/icons/bars.png
+        qml/assets/icons/grid.png
+        qml/assets/icons/store.png
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)
