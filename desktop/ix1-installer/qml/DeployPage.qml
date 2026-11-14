@@ -33,13 +33,12 @@ Item {
                 }
             }
         }
-        Text {
+        GradientText {
             text: backend.done ? "Done." : (backend.error ? "Failed." : backend.progress + "%")
-            color: backend.error ? Theme.danger : Theme.textPrimary
-            font.family: Theme.fontSans
-            font.pixelSize: 92
-            font.weight: Font.Bold
-            font.letterSpacing: -4
+            pixelSize: 92
+            letterSpacing: -4
+            gradient: !backend.error
+            flatColor: Theme.danger
             Layout.topMargin: 14
         }
         Text {

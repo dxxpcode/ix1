@@ -85,10 +85,10 @@ RUN mkdir -p /usr/share/anaconda && \
       "${IX1_INSTALL_IMAGE}" "${IX1_TARGET_IMAGE}" \
       > /etc/ix1-install.conf
 
-# The ix1 installer replaces Anaconda's UI on tty1; anaconda still provides
-# the dracut module and ISO plumbing below.
-COPY distribution/installer/files/systemd/system/anaconda-shell@tty1.service.d/ix1-installer.conf \
-     /usr/lib/systemd/system/anaconda-shell@tty1.service.d/ix1-installer.conf
+# The ix1 installer replaces Anaconda's tmux UI (anaconda.service);
+# anaconda still provides the dracut module and ISO plumbing below.
+COPY distribution/installer/files/systemd/system/anaconda.service.d/ix1-installer.conf \
+     /usr/lib/systemd/system/anaconda.service.d/ix1-installer.conf
 
 # ---- Anaconda-in-initramfs wiring (normally done by lorax) ------------------
 RUN echo "install:x:0:0:root:/root:/usr/libexec/anaconda/run-anaconda" >> /etc/passwd && \

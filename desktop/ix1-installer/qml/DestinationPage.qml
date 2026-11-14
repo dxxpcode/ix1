@@ -18,13 +18,9 @@ Item {
             font.pixelSize: 11
             font.letterSpacing: 2.2
         }
-        Text {
+        GradientText {
             text: "Select a disk."
-            color: Theme.textPrimary
-            font.family: Theme.fontSans
-            font.pixelSize: 54
-            font.weight: Font.Bold
-            font.letterSpacing: -2.5
+            pixelSize: 54
             Layout.topMargin: 16
         }
         Text {

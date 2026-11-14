@@ -37,11 +37,11 @@ Backend::Backend(QObject *parent) : QObject(parent)
     QSettings conf(QStringLiteral("/etc/ix1-install.conf"), QSettings::IniFormat);
     m_sourceImgref = qEnvironmentVariable(
         "IX1_INSTALL_SOURCE",
-        conf.value(QStringLiteral("source"), QStringLiteral("oci:/usr/share/ix1/os"))
+        conf.value(QStringLiteral("install/source"), QStringLiteral("oci:/usr/share/ix1/os"))
             .toString().toUtf8());
     m_targetImgref = qEnvironmentVariable(
         "IX1_INSTALL_TARGET",
-        conf.value(QStringLiteral("target"), QStringLiteral("10.0.2.2:5000/ix1-os:dev"))
+        conf.value(QStringLiteral("install/target"), QStringLiteral("10.0.2.2:5000/ix1-os:dev"))
             .toString().toUtf8());
     enumerateDisks();
 }
@@ -209,10 +209,22 @@ bool Backend::provisionUser(const QString &sysroot)
         return false;
     }
     if (!runStep(QStringLiteral("creating account"), 94, QStringLiteral("useradd"),
-                 {QStringLiteral("-R"), deploy, QStringLiteral("-m"),
+                 {QStringLiteral("-R"), deploy,
                   QStringLiteral("-s"), QStringLiteral("/bin/bash"),
                   QStringLiteral("-G"), QStringLiteral("wheel"), m_userName}))
         return false;
+
+    // The deployment's /home is not the live home dir — at boot /home comes
+    // from the stateroot. Create the home via tmpfiles (same mechanism as
+    // distribution/bootc/files/usr/lib/tmpfiles.d/ix1-home.conf) so it
+    // exists with the right owner and SELinux label on first boot.
+    {
+        QFile f(deploy + QStringLiteral("/usr/lib/tmpfiles.d/ix1-install-user.conf"));
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
+            f.write(QByteArray("d /home/") + m_userName.toUtf8() +
+                    QByteArray(" 0700 ") + m_userName.toUtf8() +
+                    QByteArray(" ") + m_userName.toUtf8() + QByteArray(" -\n"));
+    }
     if (!runStep(QStringLiteral("setting password"), 96, QStringLiteral("chpasswd"),
                  {QStringLiteral("-R"), deploy}, nullptr,
                  m_userName + QLatin1Char(':') + m_password + QLatin1Char('\n')))
@@ -259,13 +271,17 @@ void Backend::startInstall()
             return;
         runStep(QStringLiteral("unmounting"), 98, QStringLiteral("umount"), {sysroot});
     } else {
-        // Manual layout: p1 ESP (512M), p2 root = LUKS -> ext4.
+        // Manual layout: p1 ESP (512M), p2 /boot (1G ext4), p3 LUKS -> ext4.
+        // /boot must stay outside LUKS: GRUB cannot read a kernel/initramfs
+        // from a LUKS2 (argon2) volume, so decryption only starts with the
+        // initramfs via rd.luks.name below.
         const QString esp = part(disk, 1);
-        const QString luksPart = part(disk, 2);
+        const QString bootPart = part(disk, 2);
+        const QString luksPart = part(disk, 3);
 
         if (!runStep(QStringLiteral("wiping disk"), 6, QStringLiteral("sfdisk"),
                      {disk}, nullptr,
-                     QStringLiteral("label: gpt\nsize=512M,type=U\ntype=L\n")))
+                     QStringLiteral("label: gpt\nsize=512M,type=U\nsize=1G,type=L\ntype=L\n")))
             return;
         if (!runStep(QStringLiteral("settling devices"), 8, QStringLiteral("udevadm"),
                      {QStringLiteral("settle")}))
@@ -282,13 +298,22 @@ void Backend::startInstall()
         if (!runStep(QStringLiteral("formatting esp"), 16, QStringLiteral("mkfs.vfat"),
                      {QStringLiteral("-F32"), esp}))
             return;
+        if (!runStep(QStringLiteral("formatting boot"), 17, QStringLiteral("mkfs.ext4"),
+                     {QStringLiteral("-F"), bootPart}))
+            return;
         if (!runStep(QStringLiteral("formatting root"), 18, QStringLiteral("mkfs.ext4"),
                      {QStringLiteral("-F"), QStringLiteral("/dev/mapper/ix1root")}))
             return;
 
-        QDir().mkpath(sysroot + QStringLiteral("/boot/efi"));
+        // Mount the fresh root first — its fs is empty, so the /boot and
+        // /boot/efi mount points must be created inside it before mounting.
+        QDir().mkpath(sysroot);
         if (!runStep(QStringLiteral("mounting target"), 20, QStringLiteral("mount"),
                      {QStringLiteral("/dev/mapper/ix1root"), sysroot}))
+            return;
+        QDir().mkpath(sysroot + QStringLiteral("/boot/efi"));
+        if (!runStep(QStringLiteral("mounting boot"), 21, QStringLiteral("mount"),
+                     {bootPart, sysroot + QStringLiteral("/boot")}))
             return;
         if (!runStep(QStringLiteral("mounting esp"), 22, QStringLiteral("mount"),
                      {esp, sysroot + QStringLiteral("/boot/efi")}))

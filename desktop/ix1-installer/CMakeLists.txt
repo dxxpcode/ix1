@@ -24,6 +24,7 @@ qt_add_qml_module(ix1-installer
     QML_FILES
         qml/Main.qml
         qml/Theme.qml
+        qml/GradientText.qml
         qml/DestinationPage.qml
         qml/AccountPage.qml
         qml/DeployPage.qml
