@@ -186,7 +186,7 @@ ApplicationWindow {
                     color: step === 1 ? "#fff" : "#18181b"
                     font.family: Theme.fontSans
                     font.pixelSize: 14
-                    font.weight: Font.DemiBold
+                    font.weight: Font.Medium
                 }
                 MouseArea {
                     id: ctaMouse
