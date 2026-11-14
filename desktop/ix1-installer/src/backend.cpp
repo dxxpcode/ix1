@@ -107,6 +107,32 @@ void Backend::enumerateDisks()
         m_selectedDisk = 0;
         emit disksChanged();
         emit selectedDiskChanged();
+
+        // Dev-only demo states for renders: IX1_DEMO_PROGRESS=<n> seeds a
+        // mid-install frame; IX1_DEMO_DONE=1 seeds the completed frame.
+        const QByteArray demoPct = qgetenv("IX1_DEMO_PROGRESS");
+        if (!demoPct.isEmpty()) {
+            m_installing = true;
+            emit installingChanged();
+            m_installElapsed = 41;
+            emit installElapsedChanged();
+            m_logLines = {QStringLiteral("→ preparing disk"),
+                          QStringLiteral("→ deploying image"),
+                          QStringLiteral("fetching layer 14 of 51")};
+            emit logLinesChanged();
+            setProgress(demoPct.toInt(), QStringLiteral("deploying image — layer 14 of 51"));
+        } else if (qEnvironmentVariableIsSet("IX1_DEMO_DONE")) {
+            m_installElapsed = 42;
+            emit installElapsedChanged();
+            m_logLines = {QStringLiteral("→ preparing disk"),
+                          QStringLiteral("→ deploying image"),
+                          QStringLiteral("→ provisioning user"),
+                          QStringLiteral("installation complete")};
+            emit logLinesChanged();
+            setProgress(100, QStringLiteral("ix1 installed."));
+            m_done = true;
+            emit doneChanged();
+        }
         return;
     }
 

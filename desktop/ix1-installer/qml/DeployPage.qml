@@ -8,12 +8,8 @@ Item {
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
     // Displayed % eases toward the real value instead of snapping.
-    property real shown: 0
+    property real shown: backend.progress
     Behavior on shown { NumberAnimation { duration: 420; easing.type: Easing.OutCubic } }
-    Connections {
-        target: backend
-        function onProgressChanged() { deployPage.shown = backend.progress }
-    }
 
     // Elapsed seconds come from the backend's wall-clock timer — the
     // install blocks the GUI thread today, so a QML timer can't tick.
