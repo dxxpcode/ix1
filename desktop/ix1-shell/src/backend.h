@@ -92,6 +92,9 @@ signals:
                            const QString &body, uint id);
     void notificationClosed(uint id);
 
+private slots:
+    void onPrepareForSleep(bool goingDown);
+
 private:
     void setLauncherOpen(bool open);
     void setQuickSettingsOpen(bool open);
@@ -111,4 +114,5 @@ private:
     bool m_launcherOpen = false;
     bool m_qsOpen = false;
     bool m_locked = false;
+    int m_idleTimeoutId = -1;
 };

@@ -10,7 +10,7 @@ FROM quay.io/fedora/fedora-bootc:44 AS shell-build
 RUN dnf -y install \
         gcc-c++ cmake make \
         qt6-qtbase-devel qt6-qtdeclarative-devel qt6-qtwayland-devel \
-        layer-shell-qt pam-devel \
+        layer-shell-qt kf6-kidletime-devel pam-devel \
     && dnf clean all
 
 COPY desktop/ix1-shell /src/ix1-shell
@@ -69,6 +69,7 @@ RUN dnf -y install \
 RUN dnf -y install \
         kwin layer-shell-qt \
         qt6-qtdeclarative qt6-qtwayland qt6-qtsvg \
+        kf6-kidletime \
         sddm \
         && dnf clean all
 

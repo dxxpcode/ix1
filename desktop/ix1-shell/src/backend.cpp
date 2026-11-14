@@ -1,6 +1,7 @@
 #include "backend.h"
 
 #include <QCoreApplication>
+#include <QDBusConnection>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -8,6 +9,8 @@
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QTimer>
+
+#include <KIdleTime>
 
 #include <algorithm>
 #include <cstdlib>
@@ -19,6 +22,8 @@
 #include "notifications.h"
 
 namespace {
+
+constexpr int kIdleLockMs = 5 * 60 * 1000;
 
 QStringList desktopEntryPaths()
 {
@@ -175,6 +180,26 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshVolume();
         refreshWifi();
     });
+
+    // Idle + suspend locking. KDE's own locker daemon is disabled
+    // (/etc/xdg/kscreenlockerrc): its greeter aborts in this image, and
+    // ix1's LockScreen is the only lock surface — so idle and suspend
+    // locking are the shell's job. KIdleTime talks to KWin's idle
+    // protocol; logind announces suspend on the system bus.
+    auto *idle = KIdleTime::instance();
+    m_idleTimeoutId = idle->addIdleTimeout(kIdleLockMs);
+    connect(idle, &KIdleTime::timeoutReached, this,
+            [this](int id, int) {
+                if (id == m_idleTimeoutId) {
+                    setLocked(true);
+                }
+            });
+    QDBusConnection::systemBus().connect(
+        QStringLiteral("org.freedesktop.login1"),
+        QStringLiteral("/org/freedesktop/login1"),
+        QStringLiteral("org.freedesktop.login1.Manager"),
+        QStringLiteral("PrepareForSleep"), this,
+        SLOT(onPrepareForSleep(bool)));
 
     // Live theme switching: ix1-settings writes ~/.config/ix1/settings.conf.
     // The file may not exist at startup (QFileSystemWatcher cannot watch a
@@ -381,6 +406,13 @@ void ShellBackend::unlock(const QString &password)
 {
     if (verifyPassword(password)) {
         setLocked(false);
+    }
+}
+
+void ShellBackend::onPrepareForSleep(bool goingDown)
+{
+    if (goingDown) {
+        setLocked(true);
     }
 }
 

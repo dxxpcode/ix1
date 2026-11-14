@@ -255,7 +255,9 @@ evidence under `tests/qa/evidence/`.
       bootc deployment root is an overlay over btrfs and cannot be
       remounted) leaving the system `degraded`. Drop-in
       `etc/systemd/system/systemd-remount-fs.service.d/bootc-root-overlay.conf`
-      tolerates the no-op remount; verified `running` on 0.7.2
+      tolerates the failure only while `/` is an overlay mount —
+      a real remount failure on a conventional root still fails the
+      unit; verified `running` on 0.7.3
       (system-state-before/after.txt).
 - [x] Defect found + fixed: KDE's kscreenlocker daemon (a KWin
       dependency) idle-locked the session after ~5 min and spawned
@@ -263,8 +265,12 @@ evidence under `tests/qa/evidence/`.
       environment — KWin showed "the screen locker is broken".
       `/etc/xdg/kscreenlockerrc` disables the daemon's
       Autolock/LockOnResume so ix1's own lock screen is the only lock
-      surface; verified: >7 min idle, no greet spawn, session unlocked
-      (locker-crash.txt, qa2-lock/unlock.png).
+      surface, and the ix1 shell takes over idle and suspend locking:
+      it registers a 5-minute idle timeout via KIdleTime (KWin's idle
+      protocol) and locks on logind `PrepareForSleep`. Verified on
+      0.7.3: >5 min idle shows the ix1 lock screen, password unlock
+      returns to the desktop (locker-crash.txt, qa3-idlelock.png,
+      qa3-unlock.png).
 - [ ] Supported hardware: QEMU/KVM only — no physical machine in this
       environment (documented limitation since M4).
 - [ ] Audio device output: QEMU has no audio device; WirePlumber runs

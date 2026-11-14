@@ -6,6 +6,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_AUTOMOC ON)
 
 find_package(Qt6 REQUIRED COMPONENTS Quick DBus)
+find_package(KF6IdleTime REQUIRED)
 qt_standard_project_setup()
 
 qt_add_executable(ix1-shell
@@ -19,6 +20,7 @@ qt_add_executable(ix1-shell
 target_link_libraries(ix1-shell PRIVATE
     Qt6::Quick
     Qt6::DBus
+    KF6::IdleTime
     pam
 )
 
