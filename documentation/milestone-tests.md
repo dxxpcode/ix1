@@ -312,11 +312,16 @@ Verified locally (GitHub Actions billing-locked, same as M5-M8):
       `registries.d/ix1-sigstore.yaml` now cover
       `ghcr.io/dxxpcode`, so installed systems verify ix1-signed
       images once the registry is published.
-- [ ] GitHub Release `v0.8.0` + site publish: the assets are staged
-      under `output/release-v0.8.0/`; pushing the tag, the release,
-      and GitHub Pages needs repo-admin action.
-- [ ] Online `bootc upgrade` from a public registry:
-      `ghcr.io/dxxpcode/ix1-os` is not published yet (the GitHub App
-      token cannot create org packages). Installed systems work
-      standalone; they begin tracking updates once the image is
-      pushed — documented on the Releases page.
+- [x] GitHub Release `v0.8.0` published: 3 ISO parts (<2 GB asset
+      limit — `cat ix1-*.part* > ix1-...iso`), `.sha256`, `.sig`,
+      `ix1.pub`. Site live at https://dxxpcode.github.io/ix1/ from the
+      `gh-pages` branch.
+- [x] `ghcr.io/dxxpcode/ix1-os:0.8.0` pushed + cosign-signed
+      (sigstore attachments, Rekor-tlogged) — the update channel the
+      installed system already tracks.
+- [ ] Package visibility: `ghcr.io/dxxpcode/ix1-os` is private —
+      anonymous pulls 403; the REST API does not expose visibility
+      changes for user packages (verified 404 on
+      `PATCH /user/packages/...`). Flip to public in the package's
+      settings page, then verify `podman pull` inside a guest (exercises
+      policy.json sigstore verification end to end).
