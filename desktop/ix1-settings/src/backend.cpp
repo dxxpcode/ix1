@@ -225,7 +225,7 @@ void SettingsBackend::refreshUpdates()
     QProcess p;
     p.start(QStringLiteral("pkexec"), { QStringLiteral("/usr/libexec/ix1-update"),
                                         QStringLiteral("status") });
-    if (p.waitForFinished(8000)) {
+    if (p.waitForFinished(8000) && p.exitCode() == 0) {
         const QJsonDocument doc = QJsonDocument::fromJson(p.readAllStandardOutput());
         const QJsonObject status = doc.object()
                                      .value(QStringLiteral("status")).toObject();
@@ -244,13 +244,20 @@ void SettingsBackend::refreshUpdates()
         m_rollbackAvailable = rollback;
         emit updatesChanged();
     } else {
-        setUpdateStatus(QStringLiteral("Could not read update status"));
+        // Failed/denied probes must not clear deployment state; surface the
+        // helper's stderr (e.g. a pkexec auth rejection) instead.
+        const QString tail = QString::fromLocal8Bit(p.readAllStandardError())
+                                 .trimmed()
+                                 .split(QLatin1Char('\n'))
+                                 .last();
+        setUpdateStatus(tail.isEmpty() ? QStringLiteral("Could not read update status")
+                                       : tail);
     }
 
     QProcess f;
     f.start(QStringLiteral("flatpak"), { QStringLiteral("remote-ls"), QStringLiteral("--user"),
                                          QStringLiteral("--updates") });
-    if (f.waitForFinished(8000)) {
+    if (f.waitForFinished(8000) && f.exitCode() == 0) {
         int count = 0;
         QTextStream in(&f);
         while (!in.atEnd()) {
@@ -259,8 +266,11 @@ void SettingsBackend::refreshUpdates()
             }
         }
         m_flatpakUpdateCount = count;
-        emit flatpakUpdateCountChanged();
+    } else {
+        // -1 means "not probed yet"; -2 means the probe failed.
+        m_flatpakUpdateCount = -2;
     }
+    emit flatpakUpdateCountChanged();
 }
 
 // Long-running privileged ops run through pkexec + the ix1-update helper

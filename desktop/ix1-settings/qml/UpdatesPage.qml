@@ -176,11 +176,13 @@ Item {
 
                     Text {
                         Layout.fillWidth: true
-                        text: backend.flatpakUpdateCount < 0
+                        text: backend.flatpakUpdateCount === -1
                               ? "Checking applications…"
-                              : (backend.flatpakUpdateCount === 0
-                                 ? "All applications are up to date."
-                                 : backend.flatpakUpdateCount + " application update(s) available.")
+                              : (backend.flatpakUpdateCount < 0
+                                 ? "Couldn't check for app updates."
+                                 : (backend.flatpakUpdateCount === 0
+                                    ? "All applications are up to date."
+                                    : backend.flatpakUpdateCount + " application update(s) available."))
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: 13
