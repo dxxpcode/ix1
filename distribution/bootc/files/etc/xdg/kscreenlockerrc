@@ -1,0 +1,9 @@
+# ix1 ships its own lock screen (ix1-shell LockScreen overlay, PAM "login").
+# KDE's kscreenlocker daemon is only on the image as a KWin dependency; its
+# kscreenlocker_greet binary aborts in our minimal Qt environment and KWin
+# then shows the "screen locker is broken" fallback. Disable the daemon's
+# automatic locking so the only lock surface is ix1's — ix1-shell engages
+# that surface on KWin idle timeout and on suspend (logind PrepareForSleep).
+[Daemon]
+Autolock=false
+LockOnResume=false

@@ -1,0 +1,17 @@
+== is-system-running ==
+degraded
+● systemd-remount-fs.service loaded failed failed Remount Root and Kernel File Systems
+
+== remount-fs journal ==
+Nov 14 00:38:17 ix1 systemd-remount-fs[619]: /usr/bin/mount for / exited with exit status 32.
+Nov 14 00:38:17 ix1 systemd-remount-fs[620]: mount: /: fsconfig() failed: overlay: No changes allowed in reconfigure.
+Nov 14 00:38:17 ix1 systemd-remount-fs[620]:        dmesg(1) may have more information after failed mount system call.
+Nov 14 00:38:17 ix1 systemd[1]: systemd-remount-fs.service: Main process exited, code=exited, status=1/FAILURE
+Nov 14 00:38:17 ix1 systemd[1]: systemd-remount-fs.service: Failed with result 'exit-code'.
+Nov 14 00:38:17 ix1 systemd[1]: Failed to start systemd-remount-fs.service - Remount Root and Kernel File Systems.
+
+== fstab ==
+UUID=a2c6cdf3-75f3-4fb6-9c54-0e3d6fbf8e54 / btrfs subvol=root,compress=zstd:1,ro 0 0
+UUID=fbe35e62-6f29-41f9-bc87-aedd9652f50e /boot ext4 defaults 1 2
+UUID=8447-EDB2 /boot/efi vfat umask=0077,shortname=winnt 0 2
+UUID=a2c6cdf3-75f3-4fb6-9c54-0e3d6fbf8e54 /home btrfs subvol=home,compress=zstd:1 0 0
