@@ -43,21 +43,46 @@ Window {
                 }
 
                 Repeater {
-                    model: ["Appearance", "Sound", "Network", "Updates", "About"]
+                    model: [
+                        { name: "Appearance", glyph: "◐", tint: "#3563E9" },
+                        { name: "Sound",      glyph: "♪", tint: "#E9A23B" },
+                        { name: "Network",    glyph: "⌁", tint: "#30A46C" },
+                        { name: "Updates",    glyph: "⟳", tint: "#8B5CF6" },
+                        { name: "About",      glyph: "ⓘ", tint: "#64748B" }
+                    ]
                     delegate: Rectangle {
                         Layout.fillWidth: true
-                        height: 36
-                        radius: Theme.radius
+                        height: 32
+                        radius: 8
                         color: index === root.currentPage ? Theme.surface3 : "transparent"
 
-                        Text {
-                            anchors.verticalCenter: parent.verticalCenter
+                        Row {
                             anchors.left: parent.left
-                            anchors.leftMargin: 12
-                            text: modelData
-                            color: Theme.textPrimary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 13
+                            anchors.leftMargin: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            spacing: 10
+
+                            Rectangle {
+                                width: 20
+                                height: 20
+                                radius: 6
+                                color: modelData.tint
+                                anchors.verticalCenter: parent.verticalCenter
+
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: modelData.glyph
+                                    color: "#FFFFFF"
+                                    font.pixelSize: 12
+                                }
+                            }
+                            Text {
+                                text: modelData.name
+                                color: Theme.textPrimary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 13
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
                         }
                         MouseArea {
                             anchors.fill: parent

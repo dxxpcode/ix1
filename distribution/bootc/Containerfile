@@ -68,7 +68,7 @@ RUN dnf -y install \
 # KWin Wayland compositor, Qt6/QML stack, shell placement, display manager.
 RUN dnf -y install \
         kwin layer-shell-qt \
-        qt6-qtdeclarative qt6-qtwayland qt6-qtsvg \
+        qt6-qtdeclarative qt6-qtwayland qt6-qtsvg qt6-qt5compat \
         kf6-kidletime \
         sddm \
         && dnf clean all

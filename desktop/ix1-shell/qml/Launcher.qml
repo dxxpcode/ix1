@@ -27,10 +27,38 @@ Window {
         if (visible) {
             searchInput.text = ""
             searchInput.forceActiveFocus()
+            enterAnim.restart()
+        }
+    }
+
+    ParallelAnimation {
+        id: enterAnim
+        NumberAnimation {
+            target: dimmer
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: 180
+        }
+        NumberAnimation {
+            target: card
+            property: "opacity"
+            from: 0
+            to: 1
+            duration: 180
+        }
+        NumberAnimation {
+            target: card
+            property: "scale"
+            from: 0.94
+            to: 1
+            duration: 240
+            easing.type: Easing.OutCubic
         }
     }
 
     Rectangle {
+        id: dimmer
         anchors.fill: parent
         color: Theme.dark ? Qt.rgba(0, 0, 0, 0.45) : Qt.rgba(20, 30, 50, 0.25)
 
@@ -42,6 +70,7 @@ Window {
 
     Rectangle {
         id: card
+        transformOrigin: Item.Center
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
         width: 580
@@ -121,7 +150,12 @@ Window {
                             width: 64
                             height: 64
                             radius: 16
+                            scale: appArea.containsMouse ? 1.06 : 1.0
                             color: appArea.containsMouse ? Theme.glassHover : "transparent"
+
+                            Behavior on scale {
+                                NumberAnimation { duration: 120; easing.type: Easing.OutQuad }
+                            }
 
                             AppIcon {
                                 anchors.centerIn: parent

@@ -1,0 +1,9 @@
+# ix1 chrome (panel, dock, launcher, quick settings, notifications) is
+# translucent — KWin's blur effect turns that translucency into real frosted
+# glass behind every layer-shell surface.
+[Plugins]
+blurEnabled=true
+
+[Effect-Blur]
+BlurStrength=6
+NoiseStrength=0
