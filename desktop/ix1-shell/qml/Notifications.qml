@@ -36,6 +36,7 @@ Window {
     Connections {
         target: backend
         function onNotificationAdded(appName, summary, body, id, expireTimeout) {
+            if (backend.dndEnabled) { return }
             items = items.concat([{
                 id: id,
                 appName: appName,

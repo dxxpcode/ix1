@@ -179,6 +179,8 @@ ShellBackend::ShellBackend(QObject *parent)
     QTimer::singleShot(0, this, [this]() {
         refreshVolume();
         refreshWifi();
+        refreshBluetooth();
+        refreshBrightness();
     });
 
     // Idle + suspend locking. KDE's own locker daemon is disabled
@@ -343,8 +345,26 @@ void ShellBackend::refreshWifi()
     if (p.waitForFinished(3000)) {
         const QString out = QString::fromLocal8Bit(p.readAllStandardOutput()).trimmed();
         m_wifiEnabled = (out == QLatin1String("enabled"));
-        emit wifiEnabledChanged();
     }
+
+    QString ssid;
+    if (m_wifiEnabled) {
+        QProcess a;
+        a.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
+                                            QStringLiteral("ACTIVE,SSID"), QStringLiteral("dev"),
+                                            QStringLiteral("wifi"), QStringLiteral("list") });
+        if (a.waitForFinished(3000)) {
+            const QStringList lines = QString::fromLocal8Bit(a.readAllStandardOutput()).split(QLatin1Char('\n'));
+            for (const QString &line : lines) {
+                if (line.startsWith(QLatin1String("yes:"))) {
+                    ssid = line.mid(4).trimmed();
+                    break;
+                }
+            }
+        }
+    }
+    m_wifiName = ssid;
+    emit wifiChanged();
 }
 
 void ShellBackend::toggleWifi()
@@ -353,6 +373,131 @@ void ShellBackend::toggleWifi()
                             { QStringLiteral("radio"), QStringLiteral("wifi"),
                               m_wifiEnabled ? QStringLiteral("off") : QStringLiteral("on") });
     QTimer::singleShot(500, this, &ShellBackend::refreshWifi);
+}
+
+void ShellBackend::refreshBluetooth()
+{
+    QProcess p;
+    p.start(QStringLiteral("bluetoothctl"), { QStringLiteral("list") });
+    if (!p.waitForFinished(3000)) {
+        return;
+    }
+    const bool available = QString::fromLocal8Bit(p.readAllStandardOutput())
+                               .contains(QLatin1String("Controller"));
+
+    bool powered = false;
+    if (available) {
+        QProcess s;
+        s.start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
+        if (s.waitForFinished(3000)) {
+            powered = QString::fromLocal8Bit(s.readAllStandardOutput())
+                          .contains(QLatin1String("Powered: yes"));
+        }
+    }
+    if (available != m_btAvailable || powered != m_btEnabled) {
+        m_btAvailable = available;
+        m_btEnabled = powered;
+        emit bluetoothChanged();
+    }
+}
+
+void ShellBackend::toggleBluetooth()
+{
+    if (!m_btAvailable) {
+        return;
+    }
+    QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                            { QStringLiteral("power"),
+                              m_btEnabled ? QStringLiteral("off") : QStringLiteral("on") });
+    QTimer::singleShot(500, this, &ShellBackend::refreshBluetooth);
+}
+
+void ShellBackend::refreshBrightness()
+{
+    // Real backlight via sysfs; absent on VMs — the module hides then.
+    const QDir bl(QStringLiteral("/sys/class/backlight"));
+    const QStringList devs = bl.entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    if (devs.isEmpty()) {
+        if (m_brightnessAvailable) {
+            m_brightnessAvailable = false;
+            m_brightness = -1;
+            emit brightnessChanged();
+        }
+        return;
+    }
+
+    m_backlightDevice = devs.constFirst();
+    QFile maxF(bl.absoluteFilePath(m_backlightDevice + QStringLiteral("/max_brightness")));
+    QFile curF(bl.absoluteFilePath(m_backlightDevice + QStringLiteral("/brightness")));
+    if (!maxF.open(QIODevice::ReadOnly) || !curF.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    m_backlightMax = QString::fromLocal8Bit(maxF.readAll()).trimmed().toInt();
+    const int cur = QString::fromLocal8Bit(curF.readAll()).trimmed().toInt();
+    m_brightnessAvailable = m_backlightMax > 0;
+    m_brightness = m_backlightMax > 0 ? qBound(0, qRound(cur * 100.0 / m_backlightMax), 100) : -1;
+    emit brightnessChanged();
+}
+
+void ShellBackend::setBrightness(int percent)
+{
+    if (!m_brightnessAvailable) {
+        return;
+    }
+    QFile f(QDir(QStringLiteral("/sys/class/backlight"))
+                .absoluteFilePath(m_backlightDevice + QStringLiteral("/brightness")));
+    if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
+        const int raw = qRound(qBound(0, percent, 100) * m_backlightMax / 100.0);
+        f.write(QByteArray::number(raw));
+        f.close();
+    }
+    QTimer::singleShot(150, this, &ShellBackend::refreshBrightness);
+}
+
+void ShellBackend::setDnd(bool on)
+{
+    if (m_dnd == on) {
+        return;
+    }
+    m_dnd = on;
+    emit dndChanged();
+}
+
+void ShellBackend::toggleTheme()
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                         + QStringLiteral("/ix1/settings.conf");
+    const QString next = m_theme == QLatin1String("graphite")
+        ? QStringLiteral("porcelain") : QStringLiteral("graphite");
+
+    QStringList lines;
+    bool wrote = false;
+    QFile in(path);
+    if (in.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream ts(&in);
+        while (!ts.atEnd()) {
+            const QString line = ts.readLine();
+            if (line.startsWith(QLatin1String("theme="))) {
+                lines.append(QStringLiteral("theme=") + next);
+                wrote = true;
+            } else {
+                lines.append(line);
+            }
+        }
+        in.close();
+    }
+    if (!wrote) {
+        lines.append(QStringLiteral("theme=") + next);
+    }
+
+    QFile out(path);
+    if (out.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        QTextStream ts(&out);
+        for (const QString &line : lines) {
+            ts << line << '\n';
+        }
+    }
+    // loadTheme() picks the file up via m_configWatcher.
 }
 
 void ShellBackend::powerAction(const QString &action)

@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 import org.kde.layershell as LayerShellQt
 import Ix1Shell 1.0
 
@@ -25,6 +26,26 @@ Window {
         onActivated: backend.closeQuickSettings()
     }
 
+    component QsIcon: Item {
+        required property string icon
+        property color tint: Theme.textSecondary
+        implicitWidth: 20
+        implicitHeight: 20
+        Image {
+            id: qsiImg
+            anchors.fill: parent
+            source: "assets/qs/" + icon + ".svg"
+            sourceSize.width: width * 2
+            sourceSize.height: height * 2
+            visible: false
+        }
+        ColorOverlay {
+            anchors.fill: parent
+            source: qsiImg
+            color: parent.tint
+        }
+    }
+
     Item {
         anchors.fill: parent
 
@@ -41,7 +62,7 @@ Window {
             anchors.topMargin: 40
             anchors.right: parent.right
             anchors.rightMargin: 12
-            width: 312
+            width: 320
             height: contentCol.implicitHeight + 24
             radius: Theme.radius
             color: Theme.glass
@@ -88,212 +109,367 @@ Window {
                     font.weight: Font.DemiBold
                 }
 
-                // Wi-Fi
-                Item {
+                // Connectivity tiles (Wi-Fi + Bluetooth when present)
+                Row {
                     width: parent.width
-                    height: 34
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Wi-Fi"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 22
-                        radius: 11
-                        color: backend.wifiEnabled ? Theme.accent : Theme.surface3
-
-                        Behavior on color {
-                            ColorAnimation { duration: 160 }
-                        }
-
-                        Rectangle {
-                            x: backend.wifiEnabled ? 20 : 2
-                            width: 18
-                            height: 18
-                            radius: 9
-                            color: "#FFFFFF"
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Behavior on x {
-                                NumberAnimation { duration: 160; easing.type: Easing.OutQuad }
-                            }
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: backend.toggleWifi()
-                        }
-                    }
-                }
-
-                // Volume
-                Column {
-                    width: parent.width
-                    spacing: 4
-
-                    Text {
-                        text: "Volume"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Item {
-                        width: parent.width
-                        height: 22
-
-                        Rectangle {
-                            id: volTrack
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width
-                            height: 4
-                            radius: 2
-                            color: Theme.surface3
-
-                            Rectangle {
-                                width: volTrack.width * Math.max(0, backend.volume) / 150
-                                height: parent.height
-                                radius: 2
-                                color: Theme.accent
-                            }
-                        }
-                        Rectangle {
-                            x: volTrack.width * Math.max(0, backend.volume) / 150 - 7
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 14
-                            height: 14
-                            radius: 7
-                            color: Theme.surface1
-                            border.color: Theme.hairline
-                            border.width: 1
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onPressed: function(mouse) { updateVol(mouse.x) }
-                            onPositionChanged: function(mouse) { if (pressed) updateVol(mouse.x) }
-                            function updateVol(x) {
-                                const v = Math.round(Math.max(0, Math.min(1, x / volTrack.width)) * 150)
-                                backend.setVolume(v)
-                            }
-                        }
-                    }
-                    Text {
-                        text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-                        color: Theme.textSecondary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                    }
-                }
-
-                // Brightness (unsupported on this hardware path yet)
-                Item {
-                    width: parent.width
-                    height: 34
-                    opacity: 0.45
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Brightness"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "N/A"
-                        color: Theme.textSecondary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.hairline
-                }
-
-                // Test notification (dev/verification aid)
-                Item {
-                    width: parent.width
-                    height: 34
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Send test notification"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 60
-                        height: 26
-                        radius: 8
-                        color: sendArea.containsMouse ? Theme.surface3 : Theme.surface2
-                        border.color: Theme.hairline
-                        border.width: 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Send"
-                            color: Theme.textPrimary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                        }
-                        MouseArea {
-                            id: sendArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: backend.sendTestNotification()
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.hairline
-                }
-
-                // Power
-                Grid {
-                    width: parent.width
-                    columns: 2
-                    columnSpacing: 8
-                    rowSpacing: 8
+                    spacing: 8
 
                     Repeater {
                         model: [
-                            { label: "Lock", action: "lock" },
-                            { label: "Suspend", action: "suspend" },
-                            { label: "Restart", action: "reboot" },
-                            { label: "Power Off", action: "poweroff" }
+                            {
+                                name: "Wi-Fi",
+                                icon: "wifi",
+                                state: backend.wifiEnabled
+                                       ? (backend.wifiName.length > 0 ? backend.wifiName : "On")
+                                       : "Off",
+                                on: backend.wifiEnabled,
+                                action: function() { backend.toggleWifi() },
+                                visible: true
+                            },
+                            {
+                                name: "Bluetooth",
+                                icon: "bluetooth",
+                                state: backend.bluetoothEnabled ? "On" : "Off",
+                                on: backend.bluetoothEnabled,
+                                action: function() { backend.toggleBluetooth() },
+                                visible: backend.bluetoothAvailable
+                            }
                         ]
+
                         delegate: Rectangle {
                             required property var modelData
-                            width: (parent.width - 8) / 2
-                            height: 34
-                            radius: 8
-                            color: powerArea.containsMouse ? Theme.surface3 : Theme.surface2
+                            required property int index
 
-                            Text {
-                                anchors.centerIn: parent
-                                text: modelData.label
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                            visible: modelData.visible
+                            width: (contentCol.width - 8) / 2
+                            height: 58
+                            radius: 10
+                            color: tileArea.containsMouse ? Theme.glassHover : Theme.surface2
+                            border.color: Theme.hairline
+                            border.width: 1
+
+                            Row {
+                                anchors.left: parent.left
+                                anchors.leftMargin: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: 10
+
+                                Rectangle {
+                                    width: 30
+                                    height: 30
+                                    radius: 15
+                                    color: modelData.on ? Theme.accent : Theme.surface3
+                                    anchors.verticalCenter: parent.verticalCenter
+
+                                    Behavior on color { ColorAnimation { duration: 160 } }
+
+                                    QsIcon {
+                                        anchors.centerIn: parent
+                                        width: 18
+                                        height: 18
+                                        icon: modelData.icon
+                                        tint: modelData.on ? (Theme.dark ? "#0E1526" : "#FFFFFF")
+                                                           : Theme.textSecondary
+                                    }
+                                }
+
+                                Column {
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    spacing: 1
+                                    Text {
+                                        text: modelData.name
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 12
+                                        font.weight: Font.DemiBold
+                                    }
+                                    Text {
+                                        text: modelData.state
+                                        color: Theme.textSecondary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 11
+                                        elide: Text.ElideRight
+                                        width: (contentCol.width - 8) / 2 - 64
+                                    }
+                                }
                             }
+
+                            MouseArea {
+                                id: tileArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: modelData.action()
+                            }
+                        }
+                    }
+                }
+
+                // Volume module
+                Rectangle {
+                    width: parent.width
+                    height: 52
+                    radius: 10
+                    color: Theme.surface2
+                    border.color: Theme.hairline
+                    border.width: 1
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 12
+
+                        QsIcon { icon: "volume"; tint: Theme.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+
+                        Item {
+                            width: parent.width - 20 - 34 - 24 - 24
+                            height: 20
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Rectangle {
+                                id: volTrack
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                height: 6
+                                radius: 3
+                                color: Theme.surface3
+
+                                Rectangle {
+                                    width: volTrack.width * Math.max(0, backend.volume) / 150
+                                    height: parent.height
+                                    radius: 3
+                                    color: Theme.accent
+                                }
+                            }
+                            Rectangle {
+                                x: volTrack.width * Math.max(0, backend.volume) / 150 - 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 16
+                                height: 16
+                                radius: 8
+                                color: Theme.surface1
+                                border.color: Theme.hairline
+                                border.width: 1
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onPressed: function(mouse) { updateVol(mouse.x) }
+                                onPositionChanged: function(mouse) { if (pressed) updateVol(mouse.x) }
+                                function updateVol(x) {
+                                    const v = Math.round(Math.max(0, Math.min(1, x / volTrack.width)) * 150)
+                                    backend.setVolume(v)
+                                }
+                            }
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 34
+                            horizontalAlignment: Text.AlignRight
+                            text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
+                            color: Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                        }
+                    }
+                }
+
+                // Brightness module (only on hardware with a backlight)
+                Rectangle {
+                    visible: backend.brightnessAvailable
+                    width: parent.width
+                    height: visible ? 52 : 0
+                    radius: 10
+                    color: Theme.surface2
+                    border.color: Theme.hairline
+                    border.width: 1
+
+                    Row {
+                        anchors.left: parent.left
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.leftMargin: 12
+                        anchors.rightMargin: 12
+                        spacing: 12
+
+                        QsIcon { icon: "sun"; tint: Theme.textSecondary; anchors.verticalCenter: parent.verticalCenter }
+
+                        Item {
+                            width: parent.width - 20 - 34 - 24 - 24
+                            height: 20
+                            anchors.verticalCenter: parent.verticalCenter
+
+                            Rectangle {
+                                id: briTrack
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: parent.width
+                                height: 6
+                                radius: 3
+                                color: Theme.surface3
+
+                                Rectangle {
+                                    width: briTrack.width * Math.max(0, backend.brightness) / 100
+                                    height: parent.height
+                                    radius: 3
+                                    color: Theme.accent
+                                }
+                            }
+                            Rectangle {
+                                x: briTrack.width * Math.max(0, backend.brightness) / 100 - 8
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 16
+                                height: 16
+                                radius: 8
+                                color: Theme.surface1
+                                border.color: Theme.hairline
+                                border.width: 1
+                            }
+                            MouseArea {
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onPressed: function(mouse) { updateBri(mouse.x) }
+                                onPositionChanged: function(mouse) { if (pressed) updateBri(mouse.x) }
+                                function updateBri(x) {
+                                    const v = Math.round(Math.max(0, Math.min(1, x / briTrack.width)) * 100)
+                                    backend.setBrightness(v)
+                                }
+                            }
+                        }
+
+                        Text {
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 34
+                            horizontalAlignment: Text.AlignRight
+                            text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "—"
+                            color: Theme.textSecondary
+                            font.family: Theme.fontFamily
+                            font.pixelSize: 11
+                        }
+                    }
+                }
+
+                // Toggle chips
+                Row {
+                    width: parent.width
+                    spacing: 8
+
+                    Repeater {
+                        model: [
+                            {
+                                name: "Do Not Disturb",
+                                icon: "moon",
+                                on: backend.dndEnabled,
+                                action: function() { backend.toggleDnd() }
+                            },
+                            {
+                                name: Theme.dark ? "Light Mode" : "Dark Mode",
+                                icon: "contrast",
+                                on: Theme.dark,
+                                action: function() { backend.toggleTheme() }
+                            },
+                            {
+                                name: "Test Alert",
+                                icon: "bell",
+                                on: false,
+                                action: function() { backend.sendTestNotification() }
+                            }
+                        ]
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+
+                            width: (contentCol.width - 16) / 3
+                            height: 46
+                            radius: 10
+                            color: chipArea.containsMouse ? Theme.glassHover : Theme.surface2
+                            border.color: modelData.on ? Theme.accent : Theme.hairline
+                            border.width: 1
+
+                            Behavior on border.color { ColorAnimation { duration: 160 } }
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 3
+                                QsIcon {
+                                    width: 16
+                                    height: 16
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    icon: modelData.icon
+                                    tint: modelData.on ? Theme.accent : Theme.textSecondary
+                                    Behavior on tint { ColorAnimation { duration: 160 } }
+                                }
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: modelData.name
+                                    color: modelData.on ? Theme.textPrimary : Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 9
+                                }
+                            }
+
+                            MouseArea {
+                                id: chipArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                onClicked: modelData.action()
+                            }
+                        }
+                    }
+                }
+
+                Rectangle {
+                    width: parent.width
+                    height: 1
+                    color: Theme.hairline
+                }
+
+                // Power actions
+                Row {
+                    width: parent.width
+                    spacing: 8
+
+                    Repeater {
+                        model: [
+                            { name: "Lock", icon: "lock", action: "lock" },
+                            { name: "Suspend", icon: "moon", action: "suspend" },
+                            { name: "Restart", icon: "reboot", action: "reboot" },
+                            { name: "Power Off", icon: "power", action: "poweroff" }
+                        ]
+
+                        delegate: Rectangle {
+                            required property var modelData
+                            required property int index
+
+                            width: (contentCol.width - 24) / 4
+                            height: 50
+                            radius: 10
+                            color: powerArea.containsMouse ? Theme.glassHover : Theme.surface2
+                            border.color: Theme.hairline
+                            border.width: 1
+
+                            Column {
+                                anchors.centerIn: parent
+                                spacing: 4
+                                QsIcon {
+                                    width: 18
+                                    height: 18
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    icon: modelData.icon
+                                    tint: Theme.textPrimary
+                                }
+                                Text {
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    text: modelData.name
+                                    color: Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 9
+                                }
+                            }
+
                             MouseArea {
                                 id: powerArea
                                 anchors.fill: parent

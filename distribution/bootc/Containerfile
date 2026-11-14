@@ -48,6 +48,7 @@ RUN echo "ix1" > /etc/hostname && \
 RUN dnf -y install \
         NetworkManager \
         network-manager-applet \
+        bluez \
         pipewire pipewire-pulse wireplumber \
         mesa-dri-drivers mesa-vulkan-drivers mesa-va-drivers \
         xorg-x11-drv-amdgpu xorg-x11-drv-ati xorg-x11-drv-intel xorg-x11-drv-nouveau \

@@ -54,6 +54,16 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/bars.png
         qml/assets/icons/grid.png
         qml/assets/icons/store.png
+        qml/assets/qs/wifi.svg
+        qml/assets/qs/bluetooth.svg
+        qml/assets/qs/volume.svg
+        qml/assets/qs/sun.svg
+        qml/assets/qs/moon.svg
+        qml/assets/qs/contrast.svg
+        qml/assets/qs/lock.svg
+        qml/assets/qs/power.svg
+        qml/assets/qs/reboot.svg
+        qml/assets/qs/bell.svg
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)
