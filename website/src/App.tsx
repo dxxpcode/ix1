@@ -128,20 +128,31 @@ export default function App() {
             Every update is one signed image. It installs in the background and
             rolls back instantly.
           </p>
-          <div className="ix1-enter ix1-enter-3 mt-10 flex justify-center gap-3">
-            <a
-              href="#download"
-              className={cn(
-                buttonVariants({ size: "lg" }),
-                "group rounded-full px-7 transition-all duration-200",
-                "hover:-translate-y-px hover:shadow-[0_6px_20px_-6px_rgba(0,0,0,0.35)]",
-                "dark:hover:shadow-[0_6px_24px_-6px_rgba(255,255,255,0.18)]",
-                "active:translate-y-0 active:scale-[0.98] active:shadow-none"
-              )}
-            >
-              <ArrowDown className="transition-transform duration-200 group-hover:translate-y-0.5" />
-              Download ix1 {RELEASE}
-            </a>
+          <div className="ix1-enter ix1-enter-3 mt-10 flex items-center justify-center gap-3">
+            <span className="relative inline-flex">
+              <span
+                aria-hidden
+                className="absolute -inset-4 rounded-full bg-[radial-gradient(closest-side,rgba(0,0,0,0.18),transparent)] blur-xl dark:bg-[radial-gradient(closest-side,rgba(255,255,255,0.30),transparent)]"
+              />
+              <span className="relative inline-flex overflow-hidden rounded-full p-px">
+                <span
+                  aria-hidden
+                  className="absolute inset-[-150%] bg-[conic-gradient(from_0deg,transparent_55%,rgba(0,0,0,0.55)_70%,transparent_85%)] motion-safe:animate-[spin_4s_linear_infinite] dark:bg-[conic-gradient(from_0deg,transparent_55%,rgba(255,255,255,0.9)_70%,transparent_85%)]"
+                />
+                <a
+                  href="#download"
+                  className={cn(
+                    buttonVariants({ size: "lg" }),
+                    "group relative rounded-full px-8 text-[15px] transition-all duration-200",
+                    "hover:-translate-y-px active:translate-y-0 active:scale-[0.98]"
+                  )}
+                >
+                  <ArrowDown className="transition-transform duration-200 group-hover:translate-y-0.5" />
+                  Download ix1
+                  <span className="text-primary-foreground/60">{RELEASE} · 4.3 GB</span>
+                </a>
+              </span>
+            </span>
             <GithubButton />
           </div>
         </div>
