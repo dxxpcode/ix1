@@ -136,6 +136,7 @@ private:
     QString m_wifiName;
     bool m_btAvailable = false;
     bool m_btEnabled = false;
+    class QProcess *m_btProbe = nullptr;
     bool m_brightnessAvailable = false;
     int m_brightness = -1;
     QString m_backlightDevice;

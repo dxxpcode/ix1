@@ -384,28 +384,40 @@ void ShellBackend::toggleWifi()
 
 void ShellBackend::refreshBluetooth()
 {
-    QProcess p;
-    p.start(QStringLiteral("bluetoothctl"), { QStringLiteral("list") });
-    if (!p.waitForFinished(3000)) {
-        return;
+    // Controller presence is instant via sysfs — no subprocess on the UI
+    // thread (this runs on a 5s poll timer; a stalled bluez must not freeze
+    // the shell or the lock screen).
+    const bool available = !QDir(QStringLiteral("/sys/class/bluetooth"))
+                                .entryList(QDir::Dirs | QDir::NoDotAndDotDot)
+                                .isEmpty();
+    bool changed = available != m_btAvailable;
+    m_btAvailable = available;
+    if (!available && m_btEnabled) {
+        m_btEnabled = false;
+        changed = true;
     }
-    const bool available = QString::fromLocal8Bit(p.readAllStandardOutput())
-                               .contains(QLatin1String("Controller"));
-
-    bool powered = false;
-    if (available) {
-        QProcess s;
-        s.start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
-        if (s.waitForFinished(3000)) {
-            powered = QString::fromLocal8Bit(s.readAllStandardOutput())
-                          .contains(QLatin1String("Powered: yes"));
-        }
-    }
-    if (available != m_btAvailable || powered != m_btEnabled) {
-        m_btAvailable = available;
-        m_btEnabled = powered;
+    if (changed) {
         emit bluetoothChanged();
     }
+    if (!available || m_btProbe != nullptr) {
+        return;
+    }
+
+    // Powered state needs bluetoothctl — run it async, one probe at a time.
+    auto *p = new QProcess(this);
+    m_btProbe = p;
+    connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, p](int, QProcess::ExitStatus) {
+        m_btProbe = nullptr;
+        const bool powered = QString::fromLocal8Bit(p->readAllStandardOutput())
+                                 .contains(QLatin1String("Powered: yes"));
+        p->deleteLater();
+        if (powered != m_btEnabled) {
+            m_btEnabled = powered;
+            emit bluetoothChanged();
+        }
+    });
+    p->start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
 }
 
 void ShellBackend::toggleBluetooth()
