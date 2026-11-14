@@ -109,7 +109,7 @@ ApplicationWindow {
         currentIndex: win.step
         DestinationPage {}
         AccountPage {}
-        DeployPage {}
+        DeployPage { id: deployPage }
     }
 
     // Footer
@@ -213,7 +213,11 @@ ApplicationWindow {
         }
     }
 
-    Shortcut { sequence: "Escape"; onActivated: if (step === 0) Qt.quit() }
+    Shortcut { sequence: "Escape"; onActivated: {
+        if (step === 0) Qt.quit()
+        else if (step === 2) deployPage.cancelCountdown()
+    } }
+    Shortcut { sequence: "R"; onActivated: if (step === 2 && backend.done) backend.reboot() }
     Shortcut { sequence: "Return"; onActivated: win.advance() }
     Shortcut { sequence: "Enter"; onActivated: win.advance() }
 }
