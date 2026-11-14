@@ -1,6 +1,14 @@
-import { ArrowDown, ArrowUpRight } from "lucide-react"
+import {
+  ArrowDown,
+  ArrowUpRight,
+  FileArchive,
+  Layers,
+  LayoutGrid,
+  ShieldCheck,
+} from "lucide-react"
 
 import logoUrl from "../assets/logo.png"
+import { CopyButton } from "@/components/copy-button"
 import { ThemeToggle } from "@/components/theme-toggle"
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -12,14 +20,17 @@ const BASE = `https://github.com/dxxpcode/ix1/releases/download/v${RELEASE}`
 
 const FEATURES = [
   {
+    icon: Layers,
     title: "Atomic updates, instant rollback",
     body: "The whole OS updates as a single signed image. It downloads in the background and you reboot into it. Something wrong? The previous image is still installed — roll back and keep working.",
   },
   {
+    icon: ShieldCheck,
     title: "Signed & verified",
     body: "Every image is cryptographically signed. The system refuses anything that doesn't verify before it ever boots.",
   },
   {
+    icon: LayoutGrid,
     title: "The apps you need",
     body: "Browser, files, editor, terminal, and a software center backed by the Flatpak catalog. Nothing more, nothing missing.",
   },
@@ -146,13 +157,11 @@ export default function App() {
             <div
               key={f.title}
               className={cn(
-                "p-8 transition-colors hover:bg-accent/40",
+                "p-8 transition-colors duration-200 hover:bg-accent/40",
                 i > 0 && "border-t border-border sm:border-l sm:border-t-0"
               )}
             >
-              <p className="mb-6 text-[13px] font-medium text-zinc-600">
-                0{i + 1}
-              </p>
+              <f.icon className="mb-6 h-5 w-5 text-foreground" strokeWidth={1.75} />
               <h3 className="mb-3 font-semibold tracking-tight">{f.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {f.body}
@@ -177,7 +186,7 @@ export default function App() {
             </div>
             <div className="space-y-4 p-6">
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-600">
                   Download
                 </p>
                 <div className="flex flex-col gap-1.5">
@@ -185,36 +194,51 @@ export default function App() {
                     <a
                       key={p}
                       href={`${BASE}/${p}`}
-                      className="w-fit text-[13px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+                      className="group flex items-center justify-between gap-4 border border-border px-3.5 py-2.5 transition-colors hover:border-zinc-400 hover:bg-accent/40 dark:hover:border-zinc-600"
                     >
-                      <code>{p}</code>
+                      <span className="flex min-w-0 items-center gap-2.5">
+                        <FileArchive className="h-4 w-4 shrink-0 text-muted-foreground" strokeWidth={1.75} />
+                        <code className="truncate text-[13px]">{p}</code>
+                      </span>
+                      <ArrowDown className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:translate-y-0.5" />
                     </a>
                   ))}
                 </div>
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-600">
                   Assemble
                 </p>
-                <code className="text-[13px] text-muted-foreground">
-                  cat {ISO}.part* &gt; {ISO}
-                </code>
+                <div className="flex items-center justify-between gap-4 border border-border bg-card px-3.5 py-2.5">
+                  <code className="truncate text-[13px] text-muted-foreground">
+                    cat {ISO}.part* &gt; {ISO}
+                  </code>
+                  <CopyButton text={`cat ${ISO}.part* > ${ISO}`} />
+                </div>
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-600">
                   Checksum
                 </p>
-                <code className="text-[13px] text-muted-foreground">
-                  sha256sum -c {ISO}.sha256
-                </code>
+                <div className="flex items-center justify-between gap-4 border border-border bg-card px-3.5 py-2.5">
+                  <code className="truncate text-[13px] text-muted-foreground">
+                    sha256sum -c {ISO}.sha256
+                  </code>
+                  <CopyButton text={`sha256sum -c ${ISO}.sha256`} />
+                </div>
               </div>
               <div>
-                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-600">
                   Signature
                 </p>
-                <code className="text-[13px] text-muted-foreground">
-                  cosign verify-blob --key ix1.pub --signature {ISO}.sig {ISO}
-                </code>
+                <div className="flex items-center justify-between gap-4 border border-border bg-card px-3.5 py-2.5">
+                  <code className="truncate text-[13px] text-muted-foreground">
+                    cosign verify-blob --key ix1.pub --signature {ISO}.sig {ISO}
+                  </code>
+                  <CopyButton
+                    text={`cosign verify-blob --key ix1.pub --signature ${ISO}.sig ${ISO}`}
+                  />
+                </div>
               </div>
               <div className="flex gap-6 pt-1 text-sm">
                 {/* artifact links */}
@@ -253,22 +277,28 @@ export default function App() {
                 className="flex items-baseline gap-6 border-t border-border py-5 last:border-b"
               >
                 <span className="w-5 shrink-0 text-sm text-zinc-600">{s.n}</span>
-                <p className="text-[15px] text-muted-foreground">
-                  <strong className="font-semibold text-foreground">
-                    {s.t}
-                  </strong>{" "}
-                  {s.b.startsWith("dd if=") ? (
-                    <>
-                      —{" "}
-                      <code className="text-[13px] text-foreground">
+                <div className="min-w-0">
+                  <p className="text-[15px] text-muted-foreground">
+                    <strong className="font-semibold text-foreground">
+                      {s.t}
+                    </strong>{" "}
+                    {s.b.startsWith("dd if=") ? (
+                      <>— or Fedora Media Writer / balenaEtcher.</>
+                    ) : (
+                      s.b
+                    )}
+                  </p>
+                  {s.b.startsWith("dd if=") && (
+                    <div className="mt-3 flex items-center justify-between gap-4 border border-border bg-card px-3.5 py-2.5">
+                      <code className="truncate text-[13px] text-muted-foreground">
                         dd if={ISO} of=/dev/sdX bs=4M status=progress
                       </code>
-                      , or Fedora Media Writer / balenaEtcher.
-                    </>
-                  ) : (
-                    s.b
+                      <CopyButton
+                        text={`dd if=${ISO} of=/dev/sdX bs=4M status=progress`}
+                      />
+                    </div>
                   )}
-                </p>
+                </div>
               </li>
             ))}
           </ol>
