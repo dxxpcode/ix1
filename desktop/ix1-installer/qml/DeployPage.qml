@@ -7,7 +7,9 @@ Item {
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
     ColumnLayout {
-        anchors.centerIn: parent
+        anchors.top: parent.top
+        anchors.topMargin: Math.max(24, parent.height * 0.14)
+        anchors.horizontalCenter: parent.horizontalCenter
         width: 620
         spacing: 0
 
@@ -41,14 +43,25 @@ Item {
             flatColor: Theme.danger
             Layout.topMargin: 14
         }
-        Text {
-            text: backend.done ? "ix1 is installed. Reboot to start using it."
-                : backend.error ? backend.error
-                : "Deploying ix1. Do not power off."
-            color: Theme.textSecondary
-            font.family: Theme.fontSans
-            font.pixelSize: 15
+        // Live line — the step currently running, plus a quiet hint.
+        Row {
             Layout.topMargin: 10
+            spacing: 0
+            Text {
+                text: backend.done ? "ix1 is installed. Reboot to start using it."
+                    : backend.error ? backend.error
+                    : (backend.progressText !== "" ? backend.progressText : "Preparing…")
+                color: backend.error ? Theme.danger : Theme.textSecondary
+                font.family: Theme.fontSans
+                font.pixelSize: 15
+            }
+            Text {
+                visible: backend.installing && !backend.done && !backend.error
+                text: "  —  do not power off"
+                color: Theme.textDim
+                font.family: Theme.fontSans
+                font.pixelSize: 15
+            }
         }
 
         Item {
@@ -87,6 +100,51 @@ Item {
                     width: 8; height: 8; radius: 4
                     visible: backend.progress > 0 && !backend.done && !backend.error
                     color: "#ffffff"
+                }
+            }
+        }
+
+        // Phase checklist — pending → pulsing → done.
+        RowLayout {
+            Layout.topMargin: 26
+            Layout.fillWidth: true
+            spacing: 10
+            Repeater {
+                model: [
+                    { l: "prepare disk", end: 20 },
+                    { l: "deploy image", end: 90 },
+                    { l: "finalize",     end: 100 }
+                ]
+                delegate: RowLayout {
+                    spacing: 8
+                    property bool phaseDone: backend.done || backend.progress >= modelData.end
+                    property bool phaseActive: !phaseDone && (backend.installing || backend.error !== "")
+                    property bool phaseFailed: phaseActive && backend.error !== ""
+                    Rectangle {
+                        width: 8; height: 8; radius: 4
+                        color: phaseDone ? Theme.textPrimary
+                             : phaseFailed ? Theme.danger
+                             : phaseActive ? Theme.amber : "#333338"
+                        SequentialAnimation on opacity {
+                            running: phaseActive && !phaseFailed
+                            loops: Animation.Infinite
+                            NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                            NumberAnimation { to: 1.0; duration: 700; easing.type: Easing.InOutSine }
+                        }
+                    }
+                    Text {
+                        text: modelData.l
+                        color: phaseDone ? Theme.textSecondary
+                             : phaseActive ? Theme.textPrimary : Theme.textDim
+                        font.family: Theme.fontMono
+                        font.pixelSize: 11
+                    }
+                    Rectangle {
+                        visible: index < 2
+                        Layout.fillWidth: true
+                        height: 1
+                        color: phaseDone ? "#3a3a3f" : "#1c1c1f"
+                    }
                 }
             }
         }

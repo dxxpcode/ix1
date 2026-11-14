@@ -7,7 +7,9 @@ Item {
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
 
     ColumnLayout {
-        anchors.centerIn: parent
+        anchors.top: parent.top
+        anchors.topMargin: Math.max(24, parent.height * 0.14)
+        anchors.horizontalCenter: parent.horizontalCenter
         width: 620
         spacing: 0
 
@@ -32,9 +34,9 @@ Item {
         }
 
         ColumnLayout {
-            Layout.topMargin: 30
+            Layout.topMargin: 26
             Layout.fillWidth: true
-            spacing: 15
+            spacing: 12
 
             Repeater {
                 model: [
@@ -140,41 +142,25 @@ Item {
                 }
             }
 
-            Rectangle {
-                Layout.fillWidth: true
-                Layout.topMargin: 6
-                height: warnTxt.implicitHeight + 30
-                radius: 10
-                color: Qt.rgba(251/255, 191/255, 36/255, 0.045)
-                border.width: 1
-                border.color: Qt.rgba(251/255, 191/255, 36/255, 0.20)
-                // Left accent bar
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.top: parent.top
-                    anchors.bottom: parent.bottom
-                    anchors.margins: 1
-                    width: 3
-                    radius: 2
+            // Warning as a quiet amber line — informs, doesn't compete.
+            Row {
+                Layout.topMargin: 10
+                spacing: 8
+                Text {
+                    text: "⚠"
                     color: Theme.amber
+                    font.pixelSize: 12
                 }
                 Text {
-                    id: warnTxt
-                    anchors.fill: parent
-                    anchors.margins: 14
-                    anchors.leftMargin: 18
-                    wrapMode: Text.Wrap
-                    font.family: Theme.fontSans
-                    font.pixelSize: 13
-                    lineHeight: 1.55
+                    font.family: Theme.fontMono
+                    font.pixelSize: 12
                     color: Theme.textSecondary
                     text: {
                         const d = backend.selectedDisk >= 0 && backend.disks[backend.selectedDisk]
                                   ? backend.disks[backend.selectedDisk].name : "the target disk";
-                        '<b><font color="#fbbf24">warning —</font></b> ' + d +
-                        (backend.encrypt ? " will be erased and encrypted." : " will be erased.")
+                        d + (backend.encrypt ? " will be erased and encrypted."
+                                             : " will be erased.")
                     }
-                    textFormat: Text.RichText
                 }
             }
         }
