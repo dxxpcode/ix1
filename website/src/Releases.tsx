@@ -17,6 +17,7 @@ const RELEASES = [
       "Essential apps included: browser, files, editor, terminal, system monitor, software center (Flatpak).",
     ],
     known: [
+      "The ISO ships in three parts (GitHub's 2 GB asset limit) — join them with `cat ix1-0.8.0-x86_64.iso.part* > ix1-0.8.0-x86_64.iso` before writing.",
       "Secure Boot must be off.",
       "Online updates require the public image registry (ghcr.io/dxxpcode/ix1-os) — publishes with the release pipeline; the ISO itself installs and runs fully offline.",
     ],

@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils"
 
 const RELEASE = "0.8.0"
 const ISO = `ix1-${RELEASE}-x86_64.iso`
+const PARTS = [0, 1, 2].map((i) => `${ISO}.part0${i}`)
 const BASE = `https://github.com/dxxpcode/ix1/releases/download/v${RELEASE}`
 
 const FEATURES = [
@@ -26,7 +27,7 @@ const STEPS = [
   {
     n: "1",
     t: "Download",
-    b: "the ISO and verify its checksum above.",
+    b: "the ISO parts, join them with cat, and verify the checksum above.",
   },
   {
     n: "2",
@@ -169,18 +170,35 @@ export default function App() {
           <div className="border border-border">
             <div className="flex flex-col gap-4 border-b border-border p-6 sm:flex-row sm:items-center sm:justify-between">
               <code className="text-sm">{ISO}</code>
-              <a
-                href={`${BASE}/${ISO}`}
-                className={cn(
-                  buttonVariants({ size: "sm" }),
-                  "shrink-0 rounded-full"
-                )}
-              >
-                <ArrowDown />
-                Download
-              </a>
+              <span className="text-[13px] text-zinc-600">
+                4.3 GB — ships in {PARTS.length} parts
+              </span>
             </div>
             <div className="space-y-4 p-6">
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                  Download
+                </p>
+                <div className="flex flex-col gap-1.5">
+                  {PARTS.map((p) => (
+                    <a
+                      key={p}
+                      href={`${BASE}/${p}`}
+                      className="w-fit text-[13px] text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
+                    >
+                      <code>{p}</code>
+                    </a>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
+                  Assemble
+                </p>
+                <code className="text-[13px] text-muted-foreground">
+                  cat {ISO}.part* &gt; {ISO}
+                </code>
+              </div>
               <div>
                 <p className="mb-1.5 text-xs font-medium uppercase tracking-wider text-zinc-600">
                   Checksum
