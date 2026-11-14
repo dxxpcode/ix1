@@ -1,9 +1,11 @@
 #ifndef IX1_INSTALLER_BACKEND_H
 #define IX1_INSTALLER_BACKEND_H
 
+#include <QMetaObject>
 #include <QObject>
 #include <QProcess>
 #include <QStringList>
+#include <QThread>
 #include <QVariantList>
 
 // Backend for the ix1 installer UI: enumerates disks, runs the bootc
@@ -87,6 +89,19 @@ private:
     bool provisionUser(const QString &rootMount);
     void fail(const QString &msg);
     void runInstall();
+
+    // Property mutations must run on the GUI thread — QML getters read
+    // the same members, and queued signals don't synchronize writes.
+    // runInstall() and everything it calls go through this.
+    template <typename F>
+    void guiDo(F &&fn)
+    {
+        if (QThread::currentThread() == thread())
+            fn();
+        else
+            QMetaObject::invokeMethod(this, std::forward<F>(fn),
+                                      Qt::BlockingQueuedConnection);
+    }
 
     QVariantList m_disks;
     int m_selectedDisk = -1;

@@ -139,7 +139,7 @@ void Backend::refreshDisks() { enumerateDisks(); }
 
 void Backend::setSelectedDisk(int i)
 {
-    if (m_selectedDisk == i)
+    if (m_installing || m_selectedDisk == i)
         return;
     m_selectedDisk = i;
     emit selectedDiskChanged();
@@ -155,32 +155,38 @@ void Backend::setEncrypt(bool v)
 
 void Backend::setProgress(int pct, const QString &text)
 {
-    if (pct != m_progress) {
-        m_progress = pct;
-        emit progressChanged();
-    }
-    if (text != m_progressText) {
-        m_progressText = text;
-        emit progressTextChanged();
-    }
+    guiDo([this, pct, text] {
+        if (pct != m_progress) {
+            m_progress = pct;
+            emit progressChanged();
+        }
+        if (text != m_progressText) {
+            m_progressText = text;
+            emit progressTextChanged();
+        }
+    });
 }
 
 void Backend::appendLog(const QString &line, bool active)
 {
-    if (!m_logLines.isEmpty() && m_logLines.last().startsWith(QLatin1String("→")))
-        m_logLines.last() = QStringLiteral("✓ ") + m_logLines.last().mid(2);
-    m_logLines.append((active ? QStringLiteral("→ ") : QStringLiteral("✓ ")) + line);
-    emit logLinesChanged();
+    guiDo([this, line, active] {
+        if (!m_logLines.isEmpty() && m_logLines.last().startsWith(QLatin1String("→")))
+            m_logLines.last() = QStringLiteral("✓ ") + m_logLines.last().mid(2);
+        m_logLines.append((active ? QStringLiteral("→ ") : QStringLiteral("✓ ")) + line);
+        emit logLinesChanged();
+    });
 }
 
 void Backend::fail(const QString &msg)
 {
     appendLog(QStringLiteral("failed: ") + msg, false);
-    m_logLines.last() = QStringLiteral("✗ ") + m_logLines.last().mid(2);
-    m_error = msg;
-    emit errorChanged();
-    m_installing = false;
-    emit installingChanged();
+    guiDo([this, msg] {
+        m_logLines.last() = QStringLiteral("✗ ") + m_logLines.last().mid(2);
+        m_error = msg;
+        emit errorChanged();
+        m_installing = false;
+        emit installingChanged();
+    });
     setProgress(m_progress, QStringLiteral("Install failed — see log."));
 }
 
@@ -398,10 +404,12 @@ void Backend::runInstall()
 
     setProgress(100, QStringLiteral("ix1 installed."));
     appendLog(QStringLiteral("installation complete"), false);
-    m_installing = false;
-    emit installingChanged();
-    m_done = true;
-    emit doneChanged();
+    guiDo([this] {
+        m_installing = false;
+        emit installingChanged();
+        m_done = true;
+        emit doneChanged();
+    });
 }
 
 void Backend::reboot()
