@@ -1,0 +1,18 @@
+=== /etc/ix1-release ===
+0.7.1
+=== spec ===
+apiVersion: org.containers.bootc/v1
+kind: BootcHost
+metadata:
+  name: host
+spec:
+  image:
+    image: 10.0.2.2:5000/ix1-os:dev
+    transport: registry
+  bootOrder: default
+status:
+=== upgrade --check ===
+No changes in: docker://10.0.2.2:5000/ix1-os:dev
+=== origin ===
+[origin]
+container-image-reference=ostree-unverified-registry:10.0.2.2:5000/ix1-os:dev

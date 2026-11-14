@@ -40,9 +40,29 @@
 - KWin session + custom Qt6/QML shell implementing spec §4.3 components.
 - Design system from `brand/` marks; light/dark themes.
 
-## M5+ — apps, Flatpak ecosystem, updates, distribution, QA.
+## M5 — Essential applications
+
+- `ix1-settings` (Qt6/QML) + KDE apps and Firefox; live Graphite/Porcelain
+  theme switching via `~/.config/ix1/settings.conf`.
+
+## M6 — App ecosystem
+
+- Flatpak + Flathub user remote in the session; `ix1-software-center`
+  (Qt6/QML): discover, details/permissions, install/open/remove/update.
+
+## M7 — Updates and recovery
+
+- Sigstore (cosign) image signing; containers `policy.json` requires the
+  ix1 signature for the update registry on installs and `bootc upgrade`.
+- `bootc upgrade` staging, previous-deployment retention, `bootc rollback`
+  and GRUB fallback documented in `documentation/updates-and-recovery.md`.
+- Settings "Updates" page (OS vs Flatpak updates) via pkexec helper.
+
+## M8+ — QA, distribution.
 
 ## Known limitations (current phase)
 
-- No desktop environment yet: image boots to multi-user target.
-- No installer, no signing infrastructure, no hardware matrix yet.
+- Dev-only update registry (plain HTTP on localhost/QEMU); production
+  needs TLS + release channel refs.
+- No automatic health-based rollback (manual rollback/GRUB only).
+- No Secure Boot signing, no hardware matrix yet.

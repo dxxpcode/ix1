@@ -1,0 +1,62 @@
+apiVersion: org.containers.bootc/v1
+kind: BootcHost
+metadata:
+  name: host
+spec:
+  image:
+    image: 10.0.2.2:5000/ix1-os:dev
+    transport: registry
+  bootOrder: default
+status:
+  staged: null
+  booted:
+    image:
+      image:
+        image: 10.0.2.2:5000/ix1-os:dev
+        transport: registry
+      version: 44.20261113.0
+      timestamp: 2026-11-13T23:48:35.414496613Z
+      imageDigest: sha256:0582febc3978b698c5e645f4cc099f4142f97c56410871b86df416ebe5a23545
+      architecture: amd64
+    cachedUpdate: null
+    incompatible: false
+    pinned: false
+    softRebootCapable: true
+    downloadOnly: false
+    store: ostreeContainer
+    ostree:
+      stateroot: default
+      checksum: 704c62438c065ee33f95bb0731deae1a9ec0379dd54bf5418ea9f8b0e27cbddf
+      deploySerial: 0
+    composefs: null
+  rollback:
+    image:
+      image:
+        image: registry:10.0.2.2:5000/ix1-os:dev
+        transport: registry
+      version: 44.20261113.0
+      timestamp: 2026-11-13T23:06:15.848931357Z
+      imageDigest: sha256:3bea0f3defc3359c53fa796d7f32a3669aac5cd30baa36c1abaef3fb85999059
+      architecture: amd64
+    cachedUpdate:
+      image:
+        image: registry:10.0.2.2:5000/ix1-os:dev
+        transport: registry
+      version: 44.20261113.0
+      timestamp: 2026-11-13T23:48:35.414496613Z
+      imageDigest: sha256:0582febc3978b698c5e645f4cc099f4142f97c56410871b86df416ebe5a23545
+      architecture: amd64
+    incompatible: false
+    pinned: false
+    softRebootCapable: false
+    downloadOnly: false
+    store: ostreeContainer
+    ostree:
+      stateroot: default
+      checksum: c232e9c8af179a6c70a7dd01b265c8d9e867862c391a6b9e65602eecdd2c0a7c
+      deploySerial: 0
+    composefs: null
+  rollbackQueued: false
+  type: bootcHost
+  usrOverlay: null
+  readOnly: false

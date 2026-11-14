@@ -190,5 +190,39 @@ applications.
       path was verified against the dev binary.
 - [ ] No physical-machine test (none available in this environment).
 
-## M6–M9
+## M7 — Updates and Recovery
+
+Goal (spec §4.6/§10): users can update the operating system and recover a
+previous deployment through a tested procedure.
+
+- [x] Signed image required: `/etc/containers/policy.json` in the image
+      requires an ix1 sigstore signature for the update registry; the
+      public key is baked in at `/etc/pki/containers/ix1.pub`.
+      (registries.d/ix1-sigstore.yaml enables `use-sigstore-attachments`
+      for both registry aliases; pulls verified in-guest.)
+- [x] Install-time verification: the Anaconda install pull is verified
+      (install succeeds only with a signed image). Unsigned first attempt
+      failed with "A signature was required, but no signature exists".
+- [x] Update rejection: an unsigned image push -> `bootc upgrade` in the
+      installed system refuses it (tests/updates/evidence/unsigned-upgrade.txt).
+- [x] Update apply: signed image -> `bootc upgrade` stages it -> reboot ->
+      `bootc status` shows the new image booted and the old one retained
+      (tests/updates/evidence/signed-upgrade.txt, bootc-status-staged.txt,
+      bootc-status-upgraded.txt: booted 0.7.1 / rollback 0.7.0).
+- [x] Rollback: `bootc rollback` -> reboot -> `bootc status` shows the
+      previous deployment booted again (tests/updates/evidence/rollback.txt,
+      bootc-status-rolledback.txt: booted 0.7.0 / rollback 0.7.1).
+- [x] Settings "Updates" page: shows release/image, check/stage/restart/
+      rollback actions via pkexec `ix1-update`, and a separate Flatpak
+      (apps) section (tests/updates/evidence/settings-updates-v1.png).
+- [x] Recovery documented: `documentation/updates-and-recovery.md`
+      (in-system rollback + GRUB fallback; no auto health-rollback claim).
+- [x] Installed target imgref: `--target-imgref` is a plain
+      `host:port/repo:tag` reference; a `registry:` prefix on the target
+      was stored verbatim and broke `bootc upgrade` on bootc 1.17.1
+      (fixed in ks-qemu.cfg and installer interactive-defaults;
+      clean re-install verified: canonical spec + `upgrade --check` works,
+      tests/updates/evidence/clean-install-spec.txt).
+
+## M8–M9
 See product spec §10 acceptance statements; tests live under `tests/`.

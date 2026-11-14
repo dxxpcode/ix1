@@ -1,0 +1,23 @@
+{
+    "default": [
+        { "type": "insecureAcceptAnything" }
+    ],
+    "transports": {
+        "docker": {
+            "10.0.2.2:5000": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "/etc/pki/containers/ix1.pub",
+                    "signedIdentity": { "type": "matchRepository" }
+                }
+            ],
+            "localhost:5000": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "/etc/pki/containers/ix1.pub",
+                    "signedIdentity": { "type": "matchRepository" }
+                }
+            ]
+        }
+    }
+}

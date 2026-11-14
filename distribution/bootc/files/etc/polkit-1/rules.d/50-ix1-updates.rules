@@ -1,0 +1,12 @@
+// ix1 system updates: allow active local administrators (wheel) to run the
+// update helper via pkexec without an interactive authentication agent.
+// Other users still get the default admin authentication requirement.
+polkit.addRule(function(action, subject) {
+    if (action.id === "org.freedesktop.policykit.exec" &&
+        action.lookup("program") === "/usr/libexec/ix1-update" &&
+        subject.isInGroup("wheel") &&
+        subject.active === true &&
+        subject.local === true) {
+        return polkit.Result.YES;
+    }
+});

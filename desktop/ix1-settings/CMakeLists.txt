@@ -27,6 +27,7 @@ qt_add_qml_module(ix1-settings
         qml/AppearancePage.qml
         qml/SoundPage.qml
         qml/NetworkPage.qml
+        qml/UpdatesPage.qml
         qml/AboutPage.qml
 )
 
