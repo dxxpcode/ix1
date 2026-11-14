@@ -24,6 +24,7 @@ Item {
         font.pixelSize: root.pixelSize
         font.weight: Font.Bold
         font.letterSpacing: root.letterSpacing
+        renderType: Text.NativeRendering
     }
     Rectangle {
         visible: root.gradient
