@@ -1,7 +1,16 @@
 <!DOCTYPE html>
-<html lang="en" class="dark">
+<html lang="en">
 <head>
 <meta charset="utf-8">
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem("ix1-theme"); } catch (e) {}
+  t = t ||
+    (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  if (t === "dark") document.documentElement.classList.add("dark");
+})();
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>ix1 — releases</title>
 <meta name="description" content="ix1 release notes.">
