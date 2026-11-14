@@ -21,12 +21,9 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
-    Shortcut {
-        sequence: "Escape"
-        onActivated: backend.closeQuickSettings()
-    }
-
+    // Tinted monochrome icon: name maps to assets/qs/<name>.svg.
     component QsIcon: Item {
+        id: qsIconRoot
         required property string icon
         property color tint: Theme.textSecondary
         implicitWidth: 20
@@ -34,20 +31,36 @@ Window {
         Image {
             id: qsiImg
             anchors.fill: parent
-            source: "assets/qs/" + icon + ".svg"
+            source: "assets/qs/" + qsIconRoot.icon + ".svg"
             sourceSize.width: width * 2
             sourceSize.height: height * 2
             visible: false
         }
         ColorOverlay {
-            anchors.fill: parent
+            anchors.fill: qsiImg
             source: qsiImg
-            color: parent.tint
+            color: qsIconRoot.tint
         }
     }
 
-    // Connectivity tile: icon circle + name + state line.
-    component QsTile: Rectangle {
+    // Hairline separator, inset past the icon column.
+    component QsSep: Item {
+        property int inset: 56
+        width: parent ? parent.width : 0
+        implicitHeight: 1
+        height: 1
+        Rectangle {
+            anchors.left: parent.left
+            anchors.leftMargin: parent.inset
+            anchors.right: parent.right
+            height: 1
+            color: Theme.hairline
+        }
+    }
+
+    // A single list entry: icon circle, name on the left, detail on the right.
+    component QsRow: Item {
+        id: rowRoot
         required property string name
         required property string icon
         required property string detail
@@ -56,170 +69,221 @@ Window {
         property var action: function() {}
 
         implicitWidth: 0
-        implicitHeight: 92
-        radius: 14
-        color: on ? Theme.accentSoft
-                  : (enabled && tileArea.containsMouse ? Theme.glassHover : Theme.surface2)
-        border.color: on ? Theme.accent : Theme.hairline
-        border.width: 1
+        implicitHeight: 50
         opacity: enabled ? 1 : 0.55
-
-        Behavior on color { ColorAnimation { duration: 160 } }
-        Behavior on border.color { ColorAnimation { duration: 160 } }
-
-        Column {
-            anchors.left: parent.left
-            anchors.top: parent.top
-            anchors.margins: 12
-            spacing: 8
-
-            Rectangle {
-                width: 30
-                height: 30
-                radius: 15
-                color: on ? Theme.accent : Theme.surface3
-
-                Behavior on color { ColorAnimation { duration: 160 } }
-
-                QsIcon {
-                    anchors.centerIn: parent
-                    width: 16
-                    height: 16
-                    icon: parent.parent.parent.icon
-                    tint: on ? (Theme.dark ? "#0E1526" : "#FFFFFF")
-                             : Theme.textSecondary
-                }
-            }
-
-            Column {
-                spacing: 2
-                Text {
-                    text: name
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 13
-                    font.weight: Font.DemiBold
-                }
-                Text {
-                    text: detail
-                    color: on ? Theme.accent : Theme.textSecondary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 10
-                }
-            }
-        }
-
-        MouseArea {
-            id: tileArea
-            anchors.fill: parent
-            hoverEnabled: true
-            enabled: parent.enabled
-            onClicked: parent.action()
-        }
-    }
-
-    // Vertical slider card (iOS-style: fills from the bottom, icon at foot).
-    component QsVSlider: Rectangle {
-        required property string icon
-        required property real fraction   // 0..1
-        required property real maximum    // percent max
-        property var onDrag: function(v) {}
-
-        implicitWidth: 72
-        implicitHeight: 168
-        radius: 14
-        color: Theme.surface2
-        border.color: Theme.hairline
-        border.width: 1
-        clip: true
 
         Rectangle {
             anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.bottom: parent.bottom
-            height: parent.height * Math.max(0.02, Math.min(1, fraction))
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
             radius: 14
-            color: Theme.dark ? "#E8EAF0" : "#1B1D24"
+            color: rowRoot.on ? Theme.accent : Theme.surface3
 
-            Behavior on height { NumberAnimation { duration: 80 } }
+            Behavior on color { ColorAnimation { duration: 160 } }
+
+            QsIcon {
+                anchors.centerIn: parent
+                width: 15
+                height: 15
+                icon: rowRoot.icon
+                tint: rowRoot.on ? (Theme.dark ? "#0E1526" : "#FFFFFF")
+                                 : Theme.textSecondary
+            }
         }
 
-        QsIcon {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: 10
-            width: 17
-            height: 17
-            icon: parent.icon
-            tint: fraction > 0.12 ? (Theme.dark ? "#1B1D24" : "#F2F3F5")
-                                  : Theme.textSecondary
-            Behavior on tint { ColorAnimation { duration: 80 } }
+        Text {
+            anchors.left: parent.left
+            anchors.leftMargin: 56
+            anchors.verticalCenter: parent.verticalCenter
+            text: rowRoot.name
+            color: Theme.textPrimary
+            font.family: Theme.fontFamily
+            font.pixelSize: 13
+            font.weight: Font.Medium
+        }
+
+        Text {
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            text: rowRoot.detail
+            color: rowRoot.on ? Theme.accent : Theme.textSecondary
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8
+            color: Theme.glassHover
+            visible: rowRoot.enabled && rowArea.containsMouse
         }
 
         MouseArea {
+            id: rowArea
             anchors.fill: parent
-            onPressed: function(mouse) { apply(mouse) }
-            onPositionChanged: function(mouse) { if (pressed) apply(mouse) }
-            function apply(mouse) {
-                const f = Math.max(0, Math.min(1, 1 - mouse.y / height))
-                parent.onDrag(Math.round(f * parent.maximum))
-            }
+            hoverEnabled: true
+            enabled: rowRoot.enabled
+            onClicked: rowRoot.action()
         }
     }
 
-    // Mini stacked card in the sliders row (icon circle + label).
-    component QsMini: Rectangle {
+    // A row with a toggle switch instead of a state label.
+    component QsSwitchRow: Item {
+        id: switchRoot
         required property string name
         required property string icon
         property bool on: false
         property var action: function() {}
 
         implicitWidth: 0
-        implicitHeight: 79
-        radius: 14
-        color: on ? Theme.accentSoft
-                  : (miniArea.containsMouse ? Theme.glassHover : Theme.surface2)
-        border.color: on ? Theme.accent : Theme.hairline
-        border.width: 1
+        implicitHeight: 50
 
-        Behavior on color { ColorAnimation { duration: 160 } }
-        Behavior on border.color { ColorAnimation { duration: 160 } }
+        Rectangle {
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            width: 28
+            height: 28
+            radius: 14
+            color: switchRoot.on ? Theme.accent : Theme.surface3
 
-        Column {
-            anchors.centerIn: parent
-            spacing: 5
-            Rectangle {
-                width: 30
-                height: 30
-                radius: 15
-                anchors.horizontalCenter: parent.horizontalCenter
-                color: on ? Theme.accent : Theme.surface3
+            Behavior on color { ColorAnimation { duration: 160 } }
 
-                Behavior on color { ColorAnimation { duration: 160 } }
-
-                QsIcon {
-                    anchors.centerIn: parent
-                    width: 15
-                    height: 15
-                    icon: parent.parent.parent.icon
-                    tint: on ? (Theme.dark ? "#0E1526" : "#FFFFFF")
-                             : Theme.textSecondary
-                }
-            }
-            Text {
-                anchors.horizontalCenter: parent.horizontalCenter
-                text: name
-                color: Theme.textSecondary
-                font.family: Theme.fontFamily
-                font.pixelSize: 10
+            QsIcon {
+                anchors.centerIn: parent
+                width: 15
+                height: 15
+                icon: switchRoot.icon
+                tint: switchRoot.on ? (Theme.dark ? "#0E1526" : "#FFFFFF")
+                                    : Theme.textSecondary
             }
         }
 
+        Text {
+            anchors.left: parent.left
+            anchors.leftMargin: 56
+            anchors.verticalCenter: parent.verticalCenter
+            text: switchRoot.name
+            color: Theme.textPrimary
+            font.family: Theme.fontFamily
+            font.pixelSize: 13
+            font.weight: Font.Medium
+        }
+
+        Rectangle {
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            width: 34
+            height: 20
+            radius: 10
+            color: switchRoot.on ? Theme.accent : Theme.surface3
+
+            Behavior on color { ColorAnimation { duration: 160 } }
+
+            Rectangle {
+                anchors.verticalCenter: parent.verticalCenter
+                x: switchRoot.on ? 16 : 2
+                width: 16
+                height: 16
+                radius: 8
+                color: "#FFFFFF"
+
+                Behavior on x { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            }
+        }
+
+        Rectangle {
+            anchors.fill: parent
+            radius: 8
+            color: Theme.glassHover
+            visible: switchArea.containsMouse
+        }
+
         MouseArea {
-            id: miniArea
+            id: switchArea
             anchors.fill: parent
             hoverEnabled: true
-            onClicked: parent.action()
+            onClicked: switchRoot.action()
+        }
+    }
+
+    // A row holding a horizontal slider: icon + track + knob.
+    component QsSliderRow: Item {
+        id: sliderRowRoot
+        required property string icon
+        property real fraction: 0
+        property real maximum: 100
+        property var onDrag: function(v) {}
+
+        implicitWidth: 0
+        implicitHeight: 50
+
+        QsIcon {
+            id: sliderIcon
+            anchors.left: parent.left
+            anchors.leftMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            width: 16
+            height: 16
+            icon: parent.icon
+            tint: Theme.textSecondary
+        }
+
+        Item {
+            id: sliderTrack
+            anchors.left: sliderIcon.right
+            anchors.leftMargin: 12
+            anchors.right: parent.right
+            anchors.rightMargin: 16
+            anchors.verticalCenter: parent.verticalCenter
+            height: 14
+
+            Rectangle {
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.verticalCenter: parent.verticalCenter
+                height: 4
+                radius: 2
+                color: Theme.surface3
+            }
+            Rectangle {
+                anchors.left: parent.left
+                anchors.verticalCenter: parent.verticalCenter
+                width: parent.width * Math.min(1, Math.max(0, sliderRowRoot.fraction))
+                height: 4
+                radius: 2
+                color: Theme.dark ? "#E8EAF0" : "#1B1D24"
+            }
+            Rectangle {
+                x: parent.width * Math.min(1, Math.max(0, sliderRowRoot.fraction)) - width / 2
+                anchors.verticalCenter: parent.verticalCenter
+                width: 12
+                height: 12
+                radius: 6
+                color: Theme.dark ? "#FFFFFF" : "#1B1D24"
+            }
+
+            MouseArea {
+                anchors.fill: parent
+                anchors.topMargin: -8
+                anchors.bottomMargin: -8
+                onPositionChanged: function(mouse) {
+                    if (pressed) {
+                        sliderRowRoot.onDrag(Math.round(
+                            Math.min(1, Math.max(0, mouse.x / sliderTrack.width))
+                            * sliderRowRoot.maximum))
+                    }
+                }
+                onPressed: function(mouse) {
+                    sliderRowRoot.onDrag(Math.round(
+                        Math.min(1, Math.max(0, mouse.x / sliderTrack.width))
+                        * sliderRowRoot.maximum))
+                }
+            }
         }
     }
 
@@ -239,9 +303,9 @@ Window {
             anchors.topMargin: 40
             anchors.right: parent.right
             anchors.rightMargin: 12
-            width: 360
-            height: contentCol.implicitHeight + 28
-            radius: 20
+            width: 336
+            height: contentCol.implicitHeight + 6
+            radius: 18
             color: Theme.glass
             border.color: Theme.hairline
             border.width: 1
@@ -275,15 +339,16 @@ Window {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.top: parent.top
-                anchors.margins: 14
-                spacing: 10
+                anchors.topMargin: 6
+                spacing: 0
 
                 // Header
                 Item {
                     width: parent.width
-                    height: 22
+                    height: 40
                     Text {
                         anchors.left: parent.left
+                        anchors.leftMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Quick Settings"
                         color: Theme.textPrimary
@@ -293,6 +358,7 @@ Window {
                     }
                     Rectangle {
                         anchors.right: parent.right
+                        anchors.rightMargin: 16
                         anchors.verticalCenter: parent.verticalCenter
                         width: 22
                         height: 22
@@ -314,107 +380,98 @@ Window {
                     }
                 }
 
-                // Connectivity grid (2×2)
-                Grid {
-                    columns: 2
-                    width: parent.width
-                    columnSpacing: 8
-                    rowSpacing: 8
+                QsSep { inset: 16 }
 
-                    QsTile {
-                        width: (parent.width - 8) / 2
-                        name: "Wi-Fi"
-                        icon: "wifi"
-                        detail: backend.airplaneEnabled ? "Airplane Mode"
-                               : backend.wifiEnabled
-                                   ? (backend.wifiName.length > 0 ? backend.wifiName : "On")
-                                   : "Off"
-                        on: backend.wifiEnabled && !backend.airplaneEnabled
-                        action: function() { backend.toggleWifi() }
-                    }
-                    QsTile {
-                        width: (parent.width - 8) / 2
-                        name: "Bluetooth"
-                        icon: "bluetooth"
-                        detail: backend.bluetoothAvailable
-                               ? (backend.bluetoothEnabled ? "On" : "Off")
-                               : "No Adapter"
-                        on: backend.bluetoothAvailable && backend.bluetoothEnabled
-                        enabled: backend.bluetoothAvailable
-                        action: function() { backend.toggleBluetooth() }
-                    }
-                    QsTile {
-                        width: (parent.width - 8) / 2
-                        name: "Airplane"
-                        icon: "plane"
-                        detail: backend.airplaneEnabled ? "On" : "Off"
-                        on: backend.airplaneEnabled
-                        action: function() { backend.toggleAirplane() }
-                    }
-                    QsTile {
-                        width: (parent.width - 8) / 2
-                        name: "Focus"
-                        icon: "moon"
-                        detail: backend.dndEnabled ? "Do Not Disturb" : "Off"
-                        on: backend.dndEnabled
-                        action: function() { backend.toggleDnd() }
-                    }
+                QsRow {
+                    width: parent.width
+                    name: "Wi-Fi"
+                    icon: "wifi"
+                    detail: backend.airplaneEnabled ? "Airplane Mode"
+                           : backend.wifiEnabled
+                               ? (backend.wifiName.length > 0 ? backend.wifiName : "On")
+                               : "Off"
+                    on: backend.wifiEnabled && !backend.airplaneEnabled
+                    action: function() { backend.toggleWifi() }
+                }
+                QsSep {}
+                QsRow {
+                    width: parent.width
+                    name: "Bluetooth"
+                    icon: "bluetooth"
+                    detail: backend.bluetoothAvailable
+                           ? (backend.bluetoothEnabled ? "On" : "Off")
+                           : "No Adapter"
+                    on: backend.bluetoothAvailable && backend.bluetoothEnabled
+                    enabled: backend.bluetoothAvailable
+                    action: function() { backend.toggleBluetooth() }
+                }
+                QsSep {}
+                QsRow {
+                    width: parent.width
+                    name: "Airplane"
+                    icon: "plane"
+                    detail: backend.airplaneEnabled ? "On" : "Off"
+                    on: backend.airplaneEnabled
+                    action: function() { backend.toggleAirplane() }
+                }
+                QsSep {}
+                QsRow {
+                    width: parent.width
+                    name: "Focus"
+                    icon: "moon"
+                    detail: backend.dndEnabled ? "Do Not Disturb" : "Off"
+                    on: backend.dndEnabled
+                    action: function() { backend.toggleDnd() }
                 }
 
-                // Sliders + mini cards row
-                Item {
+                QsSep {}
+                QsSliderRow {
                     width: parent.width
-                    height: 168
-
-                    QsVSlider {
-                        id: briSlider
-                        anchors.left: parent.left
-                        visible: backend.brightnessAvailable
-                        icon: "sun"
-                        fraction: backend.brightness / 100
-                        maximum: 100
-                        onDrag: function(v) { backend.setBrightness(v) }
-                    }
-                    QsVSlider {
-                        anchors.left: briSlider.visible ? briSlider.right : parent.left
-                        anchors.leftMargin: briSlider.visible ? 10 : 0
-                        icon: "volume"
-                        fraction: backend.volume / 150
-                        maximum: 150
-                        onDrag: function(v) { backend.setVolume(v) }
-                    }
-                    Column {
-                        anchors.right: parent.right
-                        width: parent.width - (briSlider.visible ? 154 : 82)
-                        spacing: 10
-
-                        QsMini {
-                            width: parent.width
-                            name: Theme.dark ? "Dark Mode" : "Light Mode"
-                            icon: "contrast"
-                            on: Theme.dark
-                            action: function() { backend.toggleTheme() }
-                        }
-                        QsMini {
-                            width: parent.width
-                            name: "Test Alert"
-                            icon: "bell"
-                            on: false
-                            action: function() { backend.sendTestNotification() }
-                        }
-                    }
+                    visible: backend.brightnessAvailable
+                    height: backend.brightnessAvailable ? implicitHeight : 0
+                    icon: "sun"
+                    fraction: backend.brightness / 100
+                    maximum: 100
+                    onDrag: function(v) { backend.setBrightness(v) }
+                }
+                QsSep { visible: backend.brightnessAvailable; height: backend.brightnessAvailable ? 1 : 0 }
+                QsSliderRow {
+                    width: parent.width
+                    icon: "volume"
+                    fraction: backend.volume / 150
+                    maximum: 150
+                    onDrag: function(v) { backend.setVolume(v) }
                 }
 
-                Rectangle {
+                QsSep {}
+                QsSwitchRow {
                     width: parent.width
-                    height: 1
-                    color: Theme.hairline
+                    name: Theme.dark ? "Dark Mode" : "Light Mode"
+                    icon: "contrast"
+                    on: Theme.dark
+                    action: function() { backend.toggleTheme() }
                 }
+                QsSep {}
+                QsRow {
+                    width: parent.width
+                    name: "Test Alert"
+                    icon: "bell"
+                    detail: "Send"
+                    on: false
+                    action: function() { backend.sendTestNotification() }
+                }
+
+                QsSep { inset: 16 }
 
                 // Power actions
                 Row {
                     width: parent.width
+                    height: 54
                     spacing: 8
+                    leftPadding: 16
+                    rightPadding: 16
+                    topPadding: 9
+                    bottomPadding: 9
 
                     Repeater {
                         model: [
@@ -428,19 +485,19 @@ Window {
                             required property var modelData
                             required property int index
 
-                            width: (contentCol.width - 24) / 4
-                            height: 38
-                            radius: 12
+                            width: (contentCol.width - 32 - 24) / 4
+                            height: 36
+                            radius: 10
                             color: powerArea.containsMouse ? Theme.glassHover : Theme.surface2
                             border.color: Theme.hairline
                             border.width: 1
 
                             QsIcon {
                                 anchors.centerIn: parent
-                                width: 16
-                                height: 16
+                                width: 15
+                                height: 15
                                 icon: modelData.icon
-                                tint: Theme.textPrimary
+                                tint: Theme.textSecondary
                             }
 
                             MouseArea {
