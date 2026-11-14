@@ -2,6 +2,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QFileInfo>
 #include <QJsonDocument>
 #include <QJsonObject>
 #include <QProcess>
@@ -46,6 +47,25 @@ SettingsBackend::SettingsBackend(QObject *parent)
         }
     }
     refresh();
+
+    // Quick Settings in the shell writes the same settings.conf (theme chip);
+    // watch it so this app's cached theme and UI stay in sync. The file may
+    // not exist yet, so watch the directory too and re-arm on changes.
+    const QString confDir = configDir();
+    QDir().mkpath(confDir);
+    const QString confPath = confDir + QStringLiteral("/settings.conf");
+    m_configWatcher.addPath(confDir);
+    if (QFileInfo::exists(confPath)) {
+        m_configWatcher.addPath(confPath);
+    }
+    const auto onConfigChanged = [this, confPath]() {
+        if (!m_configWatcher.files().contains(confPath) && QFileInfo::exists(confPath)) {
+            m_configWatcher.addPath(confPath);
+        }
+        QTimer::singleShot(100, this, &SettingsBackend::reloadTheme);
+    };
+    connect(&m_configWatcher, &QFileSystemWatcher::fileChanged, this, onConfigChanged);
+    connect(&m_configWatcher, &QFileSystemWatcher::directoryChanged, this, onConfigChanged);
 }
 
 QString SettingsBackend::configDir()
@@ -80,11 +100,23 @@ void SettingsBackend::saveConfig() const
               QStringLiteral("theme=%1\n").arg(m_theme));
 }
 
+void SettingsBackend::reloadTheme()
+{
+    const QString prev = m_theme;
+    loadConfig();
+    if (m_theme != prev) {
+        emit themeChanged();
+    }
+}
+
 void SettingsBackend::setTheme(const QString &theme)
 {
     if (theme != QLatin1String("graphite") && theme != QLatin1String("porcelain")) {
         return;
     }
+    // The cached theme may be stale if the file changed externally (e.g. the
+    // shell's theme chip) — reload before deciding whether to write.
+    reloadTheme();
     if (m_theme == theme) {
         return;
     }

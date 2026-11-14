@@ -1,5 +1,6 @@
 #pragma once
 
+#include <QFileSystemWatcher>
 #include <QObject>
 #include <QString>
 #include <QStringList>
@@ -78,6 +79,7 @@ signals:
 private:
     static QString configDir();
     void loadConfig();
+    void reloadTheme();
     void saveConfig() const;
     void refreshVolume();
     void refreshWifi();
@@ -101,4 +103,5 @@ private:
     int m_flatpakUpdateCount = -1;
     class QProcess *m_updateProc = nullptr;
     int m_updateOpKind = 0;
+    QFileSystemWatcher m_configWatcher;
 };
