@@ -21,6 +21,11 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
+    Shortcut {
+        sequence: "Escape"
+        onActivated: backend.closeQuickSettings()
+    }
+
     // Tinted monochrome icon: name maps to assets/qs/<name>.svg.
     component QsIcon: Item {
         id: qsIconRoot
