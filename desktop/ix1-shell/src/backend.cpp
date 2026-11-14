@@ -2,6 +2,7 @@
 
 #include <QCoreApplication>
 #include <QDBusConnection>
+#include <QDBusMessage>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
@@ -444,12 +445,22 @@ void ShellBackend::setBrightness(int percent)
     if (!m_brightnessAvailable) {
         return;
     }
+    const int raw = qRound(qBound(0, percent, 100) * m_backlightMax / 100.0);
     QFile f(QDir(QStringLiteral("/sys/class/backlight"))
                 .absoluteFilePath(m_backlightDevice + QStringLiteral("/brightness")));
     if (f.open(QIODevice::WriteOnly | QIODevice::Truncate)) {
-        const int raw = qRound(qBound(0, percent, 100) * m_backlightMax / 100.0);
         f.write(QByteArray::number(raw));
         f.close();
+    } else {
+        // sysfs brightness files are root-owned on most hardware; logind's
+        // SetBrightness is polkit-authorized for the active local session.
+        QDBusMessage msg = QDBusMessage::createMethodCall(
+            QStringLiteral("org.freedesktop.login1"),
+            QStringLiteral("/org/freedesktop/login1/session/self"),
+            QStringLiteral("org.freedesktop.login1.Session"),
+            QStringLiteral("SetBrightness"));
+        msg << QStringLiteral("backlight") << m_backlightDevice << static_cast<uint>(raw);
+        QDBusConnection::systemBus().call(msg);
     }
     QTimer::singleShot(150, this, &ShellBackend::refreshBrightness);
 }
