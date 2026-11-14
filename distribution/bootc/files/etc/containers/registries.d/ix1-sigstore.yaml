@@ -5,3 +5,5 @@ docker:
     use-sigstore-attachments: true
   localhost:5000:
     use-sigstore-attachments: true
+  ghcr.io:
+    use-sigstore-attachments: true

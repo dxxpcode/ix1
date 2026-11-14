@@ -282,4 +282,46 @@ path and shows the broken-locker fallback; the ix1 shell does not
 call `loginctl lock-session`, so its Lock action is unaffected.
 
 ## M9
-See product spec §10 acceptance statements; tests live under `tests/`.
+
+Verified locally (GitHub Actions billing-locked, same as M5-M8):
+
+- [x] Release ISO: self-contained `ix1-0.8.0-x86_64.iso` (~4.4 GB)
+      built via image-builder-cli. The OS image is embedded in the
+      installer as an unpacked OCI layout (`oci:/usr/share/ix1/os`) —
+      `oci-archive:` was tried first and fails at install time:
+      containers/image untars the archive into the live
+      environment's RAM overlay -> "no space left on device". The
+      `oci:` layout reads blobs in place (`tests/installer/
+      ks-release.cfg`, `distribution/installer/Containerfile`).
+- [x] Install from ISO in QEMU: unattended anaconda install
+      (zerombr/clearpart/autopart) deploys all 97 layers, reboots
+      into the installed system: `/etc/ix1-release` = 0.8.0,
+      `systemctl is-system-running` = running, sddm greeter up on
+      weston kiosk, `ix1.desktop` session present, deployment tracks
+      `ghcr.io/dxxpcode/ix1-os:0.8.0`.
+- [x] Checksum + signature: `ix1-0.8.0-x86_64.iso.sha256` and a
+      cosign sign-blob signature (uploaded to the public Rekor
+      transparency log, so plain `cosign verify-blob --key ix1.pub`
+      verifies) in `output/release-v0.8.0/`; `ix1.pub` ships as a
+      release asset.
+- [x] Website: `website/` — Vite + React + Tailwind v4 + shadcn/ui,
+      monochrome, builds to static files for GitHub Pages.
+      Download/checksum/signature/pubkey links, install steps, and a
+      Releases page with 0.8.0 notes and known limitations.
+- [x] Update-channel plumbing: `policy.json` +
+      `registries.d/ix1-sigstore.yaml` now cover
+      `ghcr.io/dxxpcode`, so installed systems verify ix1-signed
+      images once the registry is published.
+- [x] GitHub Release `v0.8.0` published: 3 ISO parts (<2 GB asset
+      limit — `cat ix1-*.part* > ix1-...iso`), `.sha256`, `.sig`,
+      `ix1.pub`. Site live at https://dxxpcode.github.io/ix1/ from the
+      `gh-pages` branch.
+- [x] `ghcr.io/dxxpcode/ix1-os:0.8.0` pushed + cosign-signed
+      (sigstore attachments, Rekor-tlogged) — the update channel the
+      installed system already tracks.
+- [ ] Package visibility: `ghcr.io/dxxpcode/ix1-os` is private —
+      anonymous pulls 403; the REST API does not expose visibility
+      changes for user packages (verified 404 on
+      `PATCH /user/packages/...`). Flip to public in the package's
+      settings page, then verify `podman pull` inside a guest (exercises
+      policy.json sigstore verification end to end).

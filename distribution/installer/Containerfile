@@ -52,10 +52,15 @@ RUN mkdir -p /boot/efi/EFI/fedora && \
     done && \
     ls /boot/efi/EFI/fedora/
 
+# The OS image as an unpacked OCI layout, embedded in the installer so
+# installs work with no registry at all (release ISOs). Produced by
+# scripts/build-installer-image.sh into output/ before the build.
+COPY output/ix1-os-oci /usr/share/ix1/os
+
 # Where Anaconda's bootc module gets the image to install.
 # Defaults to the dev image on a local registry reachable at 10.0.2.2:5000
-# from the QEMU guest; override at ISO build time for real releases.
-# --source-imgref takes a transport prefix (registry:); --target-imgref is the
+# from the QEMU guest; pass IX1_INSTALL_IMAGE=oci:/usr/share/ix1/os
+# for a self-contained release ISO. --target-imgref is the
 # plain image reference the installed system tracks — a registry: prefix on it
 # is stored verbatim in the deployment spec and breaks `bootc upgrade`.
 ARG IX1_INSTALL_IMAGE=registry:10.0.2.2:5000/ix1-os:dev

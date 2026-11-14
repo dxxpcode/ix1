@@ -17,6 +17,13 @@
                     "keyPath": "/etc/pki/containers/ix1.pub",
                     "signedIdentity": { "type": "matchRepository" }
                 }
+            ],
+            "ghcr.io/dxxpcode": [
+                {
+                    "type": "sigstoreSigned",
+                    "keyPath": "/etc/pki/containers/ix1.pub",
+                    "signedIdentity": { "type": "matchRepository" }
+                }
             ]
         }
     }
