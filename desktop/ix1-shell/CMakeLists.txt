@@ -56,6 +56,7 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/store.png
         qml/assets/qs/wifi.svg
         qml/assets/qs/bluetooth.svg
+        qml/assets/qs/plane.svg
         qml/assets/qs/volume.svg
         qml/assets/qs/sun.svg
         qml/assets/qs/moon.svg

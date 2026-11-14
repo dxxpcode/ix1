@@ -372,6 +372,32 @@ void ShellBackend::refreshWifi()
     }
     m_wifiName = ssid;
     emit wifiChanged();
+
+    // Airplane = WIFI and WWAN radios both disabled. `-t -f WIFI,WWAN radio`
+    // prints a single colon-separated line, e.g. "disabled:disabled".
+    QProcess r;
+    r.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
+                                       QStringLiteral("WIFI,WWAN"),
+                                       QStringLiteral("radio") });
+    if (r.waitForFinished(3000)) {
+        const QStringList radios = QString::fromLocal8Bit(r.readAllStandardOutput())
+                                       .trimmed().split(QLatin1Char(':'), Qt::SkipEmptyParts);
+        const bool airplane = !radios.isEmpty() && std::all_of(
+            radios.cbegin(), radios.cend(),
+            [](const QString &s) { return s == QLatin1String("disabled"); });
+        if (airplane != m_airplane) {
+            m_airplane = airplane;
+            emit airplaneChanged();
+        }
+    }
+}
+
+void ShellBackend::toggleAirplane()
+{
+    QProcess::startDetached(QStringLiteral("nmcli"),
+                            { QStringLiteral("radio"), QStringLiteral("all"),
+                              m_airplane ? QStringLiteral("on") : QStringLiteral("off") });
+    QTimer::singleShot(500, this, &ShellBackend::refreshWifi);
 }
 
 void ShellBackend::toggleWifi()

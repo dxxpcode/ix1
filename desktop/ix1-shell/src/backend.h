@@ -51,6 +51,7 @@ class ShellBackend : public QObject
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY wifiChanged)
     Q_PROPERTY(QString wifiName READ wifiName NOTIFY wifiChanged)
+    Q_PROPERTY(bool airplaneEnabled READ airplaneEnabled NOTIFY airplaneChanged)
     Q_PROPERTY(bool bluetoothAvailable READ bluetoothAvailable NOTIFY bluetoothChanged)
     Q_PROPERTY(bool bluetoothEnabled READ bluetoothEnabled NOTIFY bluetoothChanged)
     Q_PROPERTY(bool brightnessAvailable READ brightnessAvailable NOTIFY brightnessChanged)
@@ -69,6 +70,7 @@ public:
     int volume() const { return m_volume; }
     bool wifiEnabled() const { return m_wifiEnabled; }
     QString wifiName() const { return m_wifiName; }
+    bool airplaneEnabled() const { return m_airplane; }
     bool bluetoothAvailable() const { return m_btAvailable; }
     bool bluetoothEnabled() const { return m_btEnabled; }
     bool brightnessAvailable() const { return m_brightnessAvailable; }
@@ -84,6 +86,7 @@ public:
     Q_INVOKABLE void setBrightness(int percent);
     Q_INVOKABLE void toggleWifi();
     Q_INVOKABLE void toggleBluetooth();
+    Q_INVOKABLE void toggleAirplane();
     Q_INVOKABLE void toggleDnd() { setDnd(!m_dnd); }
     Q_INVOKABLE void toggleTheme();
     Q_INVOKABLE void powerAction(const QString &action);
@@ -101,6 +104,7 @@ signals:
     void themeChanged();
     void volumeChanged();
     void wifiChanged();
+    void airplaneChanged();
     void bluetoothChanged();
     void brightnessChanged();
     void dndChanged();
@@ -134,6 +138,7 @@ private:
     int m_volume = -1;
     bool m_wifiEnabled = true;
     QString m_wifiName;
+    bool m_airplane = false;
     bool m_btAvailable = false;
     bool m_btEnabled = false;
     class QProcess *m_btProbe = nullptr;

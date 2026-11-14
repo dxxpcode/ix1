@@ -13,6 +13,8 @@ QtObject {
     readonly property color textPrimary: dark ? "#F2F3F5" : "#16181D"
     readonly property color textSecondary: dark ? "#9BA1AB" : "#5B6472"
     readonly property color accent: dark ? "#8AB4FF" : "#3563E9"
+    readonly property color accentSoft: dark ? Qt.rgba(0.54, 0.71, 1.0, 0.14)
+                                             : Qt.rgba(0.21, 0.39, 0.91, 0.10)
 
     // Translucent chrome for panel/dock/launcher/quick settings.
     readonly property color glass: dark ? Qt.rgba(0.09, 0.094, 0.11, 0.66)
