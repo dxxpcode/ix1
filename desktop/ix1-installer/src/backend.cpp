@@ -281,7 +281,8 @@ void Backend::startInstall()
             return;
         if (!provisionUser(sysroot))
             return;
-        runStep(QStringLiteral("unmounting"), 98, QStringLiteral("umount"), {sysroot});
+        if (!runStep(QStringLiteral("unmounting"), 98, QStringLiteral("umount"), {sysroot}))
+            return;
     } else {
         // Manual layout: p1 ESP (512M), p2 /boot (1G ext4), p3 LUKS -> ext4.
         // /boot must stay outside LUKS: GRUB cannot read a kernel/initramfs
@@ -362,10 +363,12 @@ void Backend::startInstall()
 
         if (!provisionUser(sysroot))
             return;
-        runStep(QStringLiteral("unmounting"), 98, QStringLiteral("umount"),
-                {QStringLiteral("-R"), sysroot});
-        runStep(QStringLiteral("closing luks"), 98, QStringLiteral("cryptsetup"),
-                {QStringLiteral("close"), QStringLiteral("ix1root")});
+        if (!runStep(QStringLiteral("unmounting"), 98, QStringLiteral("umount"),
+                {QStringLiteral("-R"), sysroot}))
+            return;
+        if (!runStep(QStringLiteral("closing luks"), 98, QStringLiteral("cryptsetup"),
+                {QStringLiteral("close"), QStringLiteral("ix1root")}))
+            return;
     }
 
     setProgress(100, QStringLiteral("ix1 installed."));
