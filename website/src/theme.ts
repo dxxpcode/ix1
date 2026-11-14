@@ -4,7 +4,11 @@ const KEY = "ix1-theme"
 
 export function applyTheme(theme: Theme) {
   document.documentElement.classList.toggle("dark", theme === "dark")
-  localStorage.setItem(KEY, theme)
+  try {
+    localStorage.setItem(KEY, theme)
+  } catch {
+    // storage blocked — theme still applies for this page view
+  }
 }
 
 export function currentTheme(): Theme {

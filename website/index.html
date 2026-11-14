@@ -4,7 +4,9 @@
 <meta charset="utf-8">
 <script>
 (function () {
-  var t = localStorage.getItem("ix1-theme") ||
+  var t;
+  try { t = localStorage.getItem("ix1-theme"); } catch (e) {}
+  t = t ||
     (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
   if (t === "dark") document.documentElement.classList.add("dark");
 })();
