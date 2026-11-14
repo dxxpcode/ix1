@@ -184,11 +184,13 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshBrightness();
     });
 
-    // Bluetooth controllers can appear after login (e.g. USB dongles) — poll
-    // so the Quick Settings tile shows up without a shell restart.
-    auto *btPoll = new QTimer(this);
-    connect(btPoll, &QTimer::timeout, this, &ShellBackend::refreshBluetooth);
-    btPoll->start(5000);
+    // Radios and Bluetooth controllers can change outside the shell
+    // (Settings, nmcli, USB dongles) — poll so the Quick Settings tiles
+    // track them without a shell restart.
+    auto *radioPoll = new QTimer(this);
+    connect(radioPoll, &QTimer::timeout, this, &ShellBackend::refreshWifi);
+    connect(radioPoll, &QTimer::timeout, this, &ShellBackend::refreshBluetooth);
+    radioPoll->start(5000);
 
     // Idle + suspend locking. KDE's own locker daemon is disabled
     // (/etc/xdg/kscreenlockerrc): its greeter aborts in this image, and
