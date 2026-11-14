@@ -290,14 +290,18 @@ void SettingsBackend::startUpdateOp(const QStringList &program, int kind)
                                  .split(QLatin1Char('\n'))
                                  .last();
         switch (m_updateOpKind) {
-        case 1: // check
-            setUpdateStatus(exitCode == 0 ? QStringLiteral("Update check complete")
-                                        : (tail.isEmpty() ? QStringLiteral("Update check failed")
-                                                          : tail));
+        case 1: // check — show bootc's own verdict line
+            // ("No changes in: docker://…" or the new version queued).
+            setUpdateStatus(!tail.isEmpty() ? tail
+                                            : (exitCode == 0
+                                                   ? QStringLiteral("Update check complete")
+                                                   : QStringLiteral("Update check failed")));
             break;
         case 2: // upgrade
             setUpdateStatus(exitCode == 0
-                                ? QStringLiteral("Update staged — restart to apply")
+                                ? (tail.startsWith(QStringLiteral("No changes"))
+                                       ? QStringLiteral("System is up to date")
+                                       : QStringLiteral("Update staged — restart to apply"))
                                 : (tail.isEmpty() ? QStringLiteral("Update failed")
                                                   : tail));
             break;
