@@ -15,19 +15,12 @@ Item {
         function onProgressChanged() { deployPage.shown = backend.progress }
     }
 
-    // Elapsed install timer + reboot countdown on completion.
-    property int elapsed: 0
+    // Elapsed seconds come from the backend's wall-clock timer — the
+    // install blocks the GUI thread today, so a QML timer can't tick.
     property int rebootIn: -1
     function cancelCountdown() { deployPage.rebootIn = -1 }
-    Timer {
-        interval: 1000
-        running: backend.installing && !backend.done
-        repeat: true
-        onTriggered: deployPage.elapsed++
-    }
     Connections {
         target: backend
-        function onInstallingChanged() { if (backend.installing) deployPage.elapsed = 0 }
         function onDoneChanged() { if (backend.done) deployPage.rebootIn = 10 }
     }
     Timer {
@@ -96,7 +89,7 @@ Item {
             Item { Layout.fillWidth: true }
             Text {
                 visible: backend.installing
-                text: "elapsed " + deployPage.fmtElapsed(deployPage.elapsed)
+                text: "elapsed " + deployPage.fmtElapsed(backend.installElapsed)
                 color: Theme.textDim
                 font.family: Theme.fontMono
                 font.pixelSize: 11
@@ -153,7 +146,7 @@ Item {
                 text: backend.done
                     ? "installed to " + (backend.disks[backend.selectedDisk] || {}).name
                       + (backend.encrypt ? " · encrypted" : "")
-                      + " · " + deployPage.elapsed + "s"
+                      + " · " + backend.installElapsed + "s"
                     : backend.error ? backend.error
                     : (backend.progressText !== "" ? backend.progressText : "Preparing…")
                 color: backend.error ? Theme.danger : Theme.textSecondary

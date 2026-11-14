@@ -1,6 +1,7 @@
 #include "backend.h"
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -212,6 +213,15 @@ void Backend::setEncrypt(bool v)
 
 void Backend::setProgress(int pct, const QString &text)
 {
+    // Wall-clock elapsed survives a blocked GUI thread: the summary
+    // reports the real duration even when timers couldn't tick.
+    if (m_installTimer.isValid()) {
+        const int e = int(m_installTimer.elapsed() / 1000);
+        if (e != m_installElapsed) {
+            m_installElapsed = e;
+            emit installElapsedChanged();
+        }
+    }
     if (pct != m_progress) {
         m_progress = pct;
         emit progressChanged();
@@ -320,6 +330,9 @@ void Backend::startInstall()
     emit logLinesChanged();
     m_installing = true;
     emit installingChanged();
+    m_installElapsed = 0;
+    emit installElapsedChanged();
+    m_installTimer.start();
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
