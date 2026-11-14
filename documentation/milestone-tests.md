@@ -282,4 +282,41 @@ path and shows the broken-locker fallback; the ix1 shell does not
 call `loginctl lock-session`, so its Lock action is unaffected.
 
 ## M9
-See product spec §10 acceptance statements; tests live under `tests/`.
+
+Verified locally (GitHub Actions billing-locked, same as M5-M8):
+
+- [x] Release ISO: self-contained `ix1-0.8.0-x86_64.iso` (~4.4 GB)
+      built via image-builder-cli. The OS image is embedded in the
+      installer as an unpacked OCI layout (`oci:/usr/share/ix1/os`) —
+      `oci-archive:` was tried first and fails at install time:
+      containers/image untars the archive into the live
+      environment's RAM overlay -> "no space left on device". The
+      `oci:` layout reads blobs in place (`tests/installer/
+      ks-release.cfg`, `distribution/installer/Containerfile`).
+- [x] Install from ISO in QEMU: unattended anaconda install
+      (zerombr/clearpart/autopart) deploys all 97 layers, reboots
+      into the installed system: `/etc/ix1-release` = 0.8.0,
+      `systemctl is-system-running` = running, sddm greeter up on
+      weston kiosk, `ix1.desktop` session present, deployment tracks
+      `ghcr.io/dxxpcode/ix1-os:0.8.0`.
+- [x] Checksum + signature: `ix1-0.8.0-x86_64.iso.sha256` and a
+      cosign sign-blob signature (uploaded to the public Rekor
+      transparency log, so plain `cosign verify-blob --key ix1.pub`
+      verifies) in `output/release-v0.8.0/`; `ix1.pub` ships as a
+      release asset.
+- [x] Website: `website/` — Vite + React + Tailwind v4 + shadcn/ui,
+      monochrome, builds to static files for GitHub Pages.
+      Download/checksum/signature/pubkey links, install steps, and a
+      Releases page with 0.8.0 notes and known limitations.
+- [x] Update-channel plumbing: `policy.json` +
+      `registries.d/ix1-sigstore.yaml` now cover
+      `ghcr.io/dxxpcode`, so installed systems verify ix1-signed
+      images once the registry is published.
+- [ ] GitHub Release `v0.8.0` + site publish: the assets are staged
+      under `output/release-v0.8.0/`; pushing the tag, the release,
+      and GitHub Pages needs repo-admin action.
+- [ ] Online `bootc upgrade` from a public registry:
+      `ghcr.io/dxxpcode/ix1-os` is not published yet (the GitHub App
+      token cannot create org packages). Installed systems work
+      standalone; they begin tracking updates once the image is
+      pushed — documented on the Releases page.
