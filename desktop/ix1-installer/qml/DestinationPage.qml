@@ -11,7 +11,9 @@ Item {
         model: 9
         Shortcut {
             sequence: (index + 1).toString()
-            onActivated: if (index < backend.disks.length) backend.selectedDisk = index
+            onActivated: if (index < backend.disks.length &&
+                            backend.disks[index].installable !== false)
+                backend.selectedDisk = index
         }
     }
 
@@ -70,18 +72,35 @@ Item {
             border.width: 1
             border.color: Theme.border
 
-            Text {
+            Row {
                 visible: backend.disks.length === 0
                 anchors.centerIn: parent
-                text: "Scanning for disks…"
-                color: Theme.textMuted
-                font.family: Theme.fontMono
-                font.pixelSize: 12
-                SequentialAnimation on opacity {
-                    running: backend.disks.length === 0
-                    loops: Animation.Infinite
-                    NumberAnimation { to: 0.35; duration: 800; easing.type: Easing.InOutSine }
-                    NumberAnimation { to: 1.0; duration: 800; easing.type: Easing.InOutSine }
+                spacing: 10
+                Canvas {
+                    width: 16; height: 16
+                    anchors.verticalCenter: parent.verticalCenter
+                    onPaint: {
+                        const ctx = getContext("2d")
+                        ctx.clearRect(0, 0, width, height)
+                        ctx.strokeStyle = "#a1a1aa"
+                        ctx.lineWidth = 2
+                        ctx.lineCap = "round"
+                        ctx.beginPath()
+                        ctx.arc(8, 8, 6, -Math.PI / 2, -Math.PI / 2 + Math.PI * 1.4)
+                        ctx.stroke()
+                    }
+                    RotationAnimation on rotation {
+                        running: backend.disks.length === 0
+                        loops: Animation.Infinite
+                        from: 0; to: 360; duration: 900
+                    }
+                }
+                Text {
+                    text: "scanning disks"
+                    color: Theme.textMuted
+                    font.family: Theme.fontMono
+                    font.pixelSize: 12
+                    anchors.verticalCenter: parent.verticalCenter
                 }
             }
 
@@ -92,29 +111,41 @@ Item {
                 Repeater {
                     model: backend.disks
                     delegate: Item {
+                        id: row
                         width: diskCol.width
                         height: 72
 
-                        // Selection wash — quiet, fills the row's segment.
-                        Rectangle {
-                            anchors.fill: parent
-                            radius: 14
-                            color: "transparent"
-                            // Only the outer corners should be rounded on the
-                            // first/last row; Qt clips neither, so the wash is
-                            // drawn inset by the hairline instead.
-                            visible: index === backend.selectedDisk
-                            Rectangle {
-                                anchors.fill: parent
-                                anchors.margins: 1
-                                radius: 13
-                                color: "#121214"
+                        readonly property bool avail: modelData.installable !== false
+                        readonly property bool sel: index === backend.selectedDisk
+                        property real appear: 0
+
+                        opacity: (avail ? 1.0 : 0.42) * appear
+                        transform: Translate { y: (1 - row.appear) * 8 }
+
+                        // Staggered entry — the list builds row by row.
+                        SequentialAnimation {
+                            running: true
+                            PauseAnimation { duration: 60 + index * 45 }
+                            NumberAnimation {
+                                target: row; property: "appear"
+                                to: 1; duration: 300; easing.type: Easing.OutCubic
                             }
                         }
-                        // Hairline divider between rows (hidden beside the
-                        // selected row's wash).
+
+                        // Selection cell — an elevated chip inside the segment.
                         Rectangle {
-                            visible: index > 0 && index !== backend.selectedDisk
+                            anchors.fill: parent
+                            anchors.margins: 1
+                            radius: 13
+                            visible: row.sel
+                            color: "#141416"
+                            border.width: 1
+                            border.color: "#38383e"
+                        }
+                        // Hairline divider between rows (hidden beside the
+                        // selected row's cell).
+                        Rectangle {
+                            visible: index > 0 && !row.sel
                                      && index - 1 !== backend.selectedDisk
                             anchors.top: parent.top
                             anchors.left: parent.left
@@ -127,25 +158,26 @@ Item {
 
                         RowLayout {
                             anchors.fill: parent
-                            anchors.leftMargin: 20
+                            anchors.leftMargin: 18
                             anchors.rightMargin: 20
-                            spacing: 16
+                            spacing: 14
 
-                            // Leading check token.
+                            // Device glyph.
                             Rectangle {
-                                width: 18; height: 18; radius: 9
-                                color: index === backend.selectedDisk ? "#fafafa" : "transparent"
-                                border.width: 1.5
-                                border.color: index === backend.selectedDisk ? "#fafafa" : "#3f3f46"
+                                width: 34; height: 34; radius: 9
+                                color: row.sel ? "#1d1d21" : "#0d0d0f"
+                                border.width: 1
+                                border.color: row.sel ? "#33333a" : "#232327"
                                 Behavior on color { ColorAnimation { duration: 140 } }
                                 Behavior on border.color { ColorAnimation { duration: 140 } }
-                                Text {
+                                Image {
                                     anchors.centerIn: parent
-                                    visible: index === backend.selectedDisk
-                                    text: "✓"
-                                    color: "#18181b"
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
+                                    width: 18; height: 18
+                                    sourceSize.width: 36; sourceSize.height: 36
+                                    source: "qrc:/Ix1Installer/assets/icons/"
+                                            + (modelData.tran === "usb" || modelData.removable
+                                               ? "usb" : modelData.tran === "nvme" ? "nvme" : "drive")
+                                            + ".svg"
                                 }
                             }
 
@@ -159,7 +191,12 @@ Item {
                                     font.weight: Font.Medium
                                 }
                                 Text {
-                                    text: modelData.name
+                                    text: modelData.name + " · "
+                                          + (modelData.tran || "disk")
+                                          + (modelData.parts > 0
+                                             ? " · " + modelData.parts
+                                               + (modelData.parts === 1 ? " partition" : " partitions")
+                                             : "")
                                     color: Theme.textMuted
                                     font.family: Theme.fontMono
                                     font.pixelSize: 11
@@ -181,26 +218,44 @@ Item {
                                     width: tagTxt.implicitWidth + 14
                                     height: 18
                                     radius: 4
-                                    color: index === backend.selectedDisk ? "#242429" : "transparent"
-                                    border.width: index === backend.selectedDisk ? 0 : 1
+                                    color: row.sel ? "#242429" : "transparent"
+                                    border.width: row.sel ? 0 : 1
                                     border.color: "#26262a"
                                     anchors.right: parent.right
                                     Text {
                                         id: tagTxt
                                         anchors.centerIn: parent
-                                        text: index === backend.selectedDisk ? "install here" : "target"
-                                        color: index === backend.selectedDisk ? Theme.textSecondary : Theme.textMuted
+                                        text: !row.avail ? (modelData.note || "unavailable")
+                                              : row.sel ? "install here" : "target"
+                                        color: row.sel ? Theme.textSecondary : Theme.textMuted
                                         font.family: Theme.fontMono
                                         font.pixelSize: 10
                                     }
                                 }
                             }
+
+                            // Trailing check token — pops in on selection.
+                            Rectangle {
+                                width: 18; height: 18; radius: 9
+                                scale: row.sel ? 1 : 0.4
+                                opacity: row.sel ? 1 : 0
+                                color: "#fafafa"
+                                Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
+                                Behavior on opacity { NumberAnimation { duration: 140 } }
+                                Text {
+                                    anchors.centerIn: parent
+                                    text: "✓"
+                                    color: "#18181b"
+                                    font.pixelSize: 11
+                                    font.weight: Font.Medium
+                                }
+                            }
                         }
-                        HoverHandler { id: diskHover }
+                        HoverHandler { id: diskHover; enabled: row.avail }
                         MouseArea {
-                            id: diskMouse
                             anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
+                            enabled: row.avail
+                            cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                             onClicked: backend.selectedDisk = index
                         }
                         // Row hover tint behind content.
@@ -209,7 +264,7 @@ Item {
                             anchors.fill: parent
                             anchors.margins: 1
                             radius: 13
-                            color: diskHover.hovered ? "#0d0d0f" : "transparent"
+                            color: diskHover.hovered && !row.sel ? "#0d0d0f" : "transparent"
                             Behavior on color { ColorAnimation { duration: 140 } }
                         }
                     }
@@ -232,8 +287,23 @@ Item {
 
             RowLayout {
                 anchors.fill: parent
-                anchors.leftMargin: 20
+                anchors.leftMargin: 18
                 anchors.rightMargin: 20
+                spacing: 14
+                Rectangle {
+                    width: 34; height: 34; radius: 9
+                    color: backend.encrypt ? "#1d1d21" : "#0d0d0f"
+                    border.width: 1
+                    border.color: backend.encrypt ? "#33333a" : "#232327"
+                    Behavior on color { ColorAnimation { duration: 140 } }
+                    Behavior on border.color { ColorAnimation { duration: 140 } }
+                    Image {
+                        anchors.centerIn: parent
+                        width: 18; height: 18
+                        sourceSize.width: 36; sourceSize.height: 36
+                        source: "qrc:/Ix1Installer/assets/icons/shield.svg"
+                    }
+                }
                 Column {
                     spacing: 3
                     Text {

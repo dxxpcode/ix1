@@ -46,6 +46,23 @@ Backend::Backend(QObject *parent) : QObject(parent)
     enumerateDisks();
 }
 
+// True when the device or any descendant holds a live-boot mount.
+static bool hasBootMount(const QJsonObject &d)
+{
+    const QJsonArray mounts = d.value(QStringLiteral("mountpoints")).toArray();
+    for (const auto &m : mounts) {
+        const QString mp = m.toString();
+        if (mp == QLatin1String("/") || mp.startsWith(QLatin1String("/run/initramfs")) ||
+            mp.startsWith(QLatin1String("/sysroot")))
+            return true;
+    }
+    const QJsonArray children = d.value(QStringLiteral("children")).toArray();
+    for (const auto &c : children)
+        if (hasBootMount(c.toObject()))
+            return true;
+    return false;
+}
+
 void Backend::enumerateDisks()
 {
     m_disks.clear();
@@ -59,12 +76,30 @@ void Backend::enumerateDisks()
         a[QStringLiteral("model")] = QStringLiteral("Virtio Block Device");
         a[QStringLiteral("size")] = 32LL << 30;
         a[QStringLiteral("sizeText")] = QStringLiteral("32 GB");
+        a[QStringLiteral("tran")] = QStringLiteral("virtio");
+        a[QStringLiteral("removable")] = false;
+        a[QStringLiteral("parts")] = 0;
+        a[QStringLiteral("installable")] = true;
         QVariantMap b;
         b[QStringLiteral("name")] = QStringLiteral("/dev/nvme0n1");
         b[QStringLiteral("model")] = QStringLiteral("Samsung PM9A1 NVMe");
         b[QStringLiteral("size")] = 512LL << 30;
         b[QStringLiteral("sizeText")] = QStringLiteral("512 GB");
-        m_disks = {a, b};
+        b[QStringLiteral("tran")] = QStringLiteral("nvme");
+        b[QStringLiteral("removable")] = false;
+        b[QStringLiteral("parts")] = 3;
+        b[QStringLiteral("installable")] = true;
+        QVariantMap c;
+        c[QStringLiteral("name")] = QStringLiteral("/dev/sda");
+        c[QStringLiteral("model")] = QStringLiteral("ix1 live USB");
+        c[QStringLiteral("size")] = 16LL << 30;
+        c[QStringLiteral("sizeText")] = QStringLiteral("16 GB");
+        c[QStringLiteral("tran")] = QStringLiteral("usb");
+        c[QStringLiteral("removable")] = true;
+        c[QStringLiteral("parts")] = 2;
+        c[QStringLiteral("installable")] = false;
+        c[QStringLiteral("note")] = QStringLiteral("installation media — unavailable");
+        m_disks = {a, b, c};
         m_selectedDisk = 0;
         emit disksChanged();
         emit selectedDiskChanged();
@@ -73,8 +108,8 @@ void Backend::enumerateDisks()
 
     QProcess p;
     p.start(QStringLiteral("lsblk"),
-            {QStringLiteral("-J"), QStringLiteral("-b"), QStringLiteral("-d"),
-             QStringLiteral("-o"), QStringLiteral("NAME,SIZE,TYPE,MODEL,MOUNTPOINTS")});
+            {QStringLiteral("-J"), QStringLiteral("-b"),
+             QStringLiteral("-o"), QStringLiteral("NAME,SIZE,TYPE,MODEL,TRAN,RM,MOUNTPOINTS")});
     if (!p.waitForFinished(10000))
         return;
 
@@ -86,24 +121,31 @@ void Backend::enumerateDisks()
         const QJsonObject d = v.toObject();
         if (d.value(QStringLiteral("type")).toString() != QLatin1String("disk"))
             continue;
-        bool booted = false;
-        const QJsonArray mounts = d.value(QStringLiteral("mountpoints")).toArray();
-        for (const auto &m : mounts) {
-            const QString mp = m.toString();
-            if (mp == QLatin1String("/") || mp.startsWith(QLatin1String("/run/initramfs")) ||
-                mp.startsWith(QLatin1String("/sysroot")))
-                booted = true;
-        }
-        if (booted)
-            continue;
 
-        QVariantMap row;
         const QString name = d.value(QStringLiteral("name")).toString();
         const qint64 size = d.value(QStringLiteral("size")).toVariant().toLongLong();
         QString model = d.value(QStringLiteral("model")).toString().trimmed();
         if (model.isEmpty())
             model = name.startsWith(QLatin1String("vd")) ? QStringLiteral("Virtio Block Device")
                                                        : name;
+        QString tran = d.value(QStringLiteral("tran")).toString();
+        if (tran.isEmpty()) {
+            if (name.startsWith(QLatin1String("vd")))
+                tran = QStringLiteral("virtio");
+            else if (name.startsWith(QLatin1String("nvme")))
+                tran = QStringLiteral("nvme");
+            else if (name.startsWith(QLatin1String("mmcblk")))
+                tran = QStringLiteral("mmc");
+            else if (name.startsWith(QLatin1String("sr")))
+                tran = QStringLiteral("optical");
+        }
+        int parts = 0;
+        const QJsonArray children = d.value(QStringLiteral("children")).toArray();
+        for (const auto &c : children)
+            if (c.toObject().value(QStringLiteral("type")).toString() == QLatin1String("part"))
+                ++parts;
+
+        QVariantMap row;
         row[QStringLiteral("name")] = QStringLiteral("/dev/") + name;
         row[QStringLiteral("model")] = model;
         row[QStringLiteral("size")] = size;
@@ -112,10 +154,26 @@ void Backend::enumerateDisks()
                 ? QString::number(size / double(1LL << 30), 'f',
                                   size % (1LL << 30) ? 1 : 0) + QStringLiteral(" GB")
                 : QString::number(size / (1 << 20)) + QStringLiteral(" MB");
+        row[QStringLiteral("tran")] = tran;
+        row[QStringLiteral("removable")] = d.value(QStringLiteral("rm")).toBool();
+        row[QStringLiteral("parts")] = parts;
+        if (hasBootMount(d)) {
+            row[QStringLiteral("installable")] = false;
+            row[QStringLiteral("note")] = QStringLiteral("installation media — unavailable");
+        } else if (size < (8LL << 30)) {
+            row[QStringLiteral("installable")] = false;
+            row[QStringLiteral("note")] = QStringLiteral("needs ≥ 8 GB");
+        } else {
+            row[QStringLiteral("installable")] = true;
+        }
         m_disks.append(row);
     }
-    if (!m_disks.isEmpty())
-        m_selectedDisk = 0;
+    // First installable disk is the default target.
+    for (int i = 0; i < m_disks.size(); ++i)
+        if (m_disks[i].toMap().value(QStringLiteral("installable")).toBool()) {
+            m_selectedDisk = i;
+            break;
+        }
     emit disksChanged();
     emit selectedDiskChanged();
 }
@@ -125,6 +183,9 @@ void Backend::refreshDisks() { enumerateDisks(); }
 void Backend::setSelectedDisk(int i)
 {
     if (m_selectedDisk == i)
+        return;
+    if (i < 0 || i >= m_disks.size() ||
+        !m_disks[i].toMap().value(QStringLiteral("installable")).toBool())
         return;
     m_selectedDisk = i;
     emit selectedDiskChanged();
