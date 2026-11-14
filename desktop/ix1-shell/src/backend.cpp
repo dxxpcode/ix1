@@ -394,10 +394,19 @@ void ShellBackend::refreshWifi()
 
 void ShellBackend::toggleAirplane()
 {
+    const bool enable = !m_airplane;
     QProcess::startDetached(QStringLiteral("nmcli"),
                             { QStringLiteral("radio"), QStringLiteral("all"),
-                              m_airplane ? QStringLiteral("on") : QStringLiteral("off") });
+                              enable ? QStringLiteral("off") : QStringLiteral("on") });
+    // nmcli radios don't cover Bluetooth — power the controller down so the
+    // Airplane tile actually means it. Not force-restored on exit: a user
+    // who had Bluetooth off before airplane keeps it off either way.
+    if (enable) {
+        QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                                { QStringLiteral("power"), QStringLiteral("off") });
+    }
     QTimer::singleShot(500, this, &ShellBackend::refreshWifi);
+    QTimer::singleShot(500, this, &ShellBackend::refreshBluetooth);
 }
 
 void ShellBackend::toggleWifi()
