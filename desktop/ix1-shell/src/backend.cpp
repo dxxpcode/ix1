@@ -417,6 +417,11 @@ void ShellBackend::refreshBluetooth()
             emit bluetoothChanged();
         }
     });
+    // FailedToStart emits errorOccurred, never finished — release the guard.
+    connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError) {
+        m_btProbe = nullptr;
+        p->deleteLater();
+    });
     p->start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
 }
 
