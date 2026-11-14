@@ -23,16 +23,32 @@ mkdir -p "$OUT"
 podman push --tls-verify=false "$IMAGE" "$REGISTRY/ix1-installer:dev"
 
 # --network host so the container can reach the dev registry on localhost;
-# registries.conf.d marks it insecure (plain HTTP) for the pull.
-exec sudo podman run --rm \
+# registries.conf.d marks it insecure (plain HTTP) for the pull. The conf
+# is generated here so the script works on a host with no prior
+# /etc/containers provisioning.
+REGCONF="$(mktemp)"
+cat > "$REGCONF" <<'EOF'
+[[registry]]
+location = "localhost:5000"
+insecure = true
+
+[[registry]]
+location = "10.0.2.2:5000"
+insecure = true
+EOF
+
+status=0
+sudo podman run --rm \
   --privileged \
   --security-opt label=type:unconfined_t \
   --network host \
-  -v /etc/containers/registries.conf.d/ix1-dev.conf:/etc/containers/registries.conf.d/ix1-dev.conf:Z \
+  -v "$REGCONF:/etc/containers/registries.conf.d/ix1-dev.conf:Z" \
   -v "$OUT:/output" \
   "$CLI" build \
   --bootc-ref "$REGISTRY/ix1-installer:dev" \
   --bootc-pull-container \
   --bootc-default-fs ext4 \
   --output-dir /output \
-  generic-iso
+  generic-iso || status=$?
+rm -f "$REGCONF"
+exit $status
