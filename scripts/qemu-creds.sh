@@ -19,15 +19,24 @@ MNT="$(mktemp -d)"
 HASH="${IX1_HASH:-\$6\$N2XZc0mIBsArNlXz\$t0teDYxBKul2FN74WdT1CsGBZp0waJlado4ComI2xU/iKPjOD2O2u4nwHzMIr1D8n8RjcWyPAUGLB0myJ8nh10}" # openssl passwd -6 ix1
 KEY="${IX1_KEY:-ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIB+qxJmk47YuYuESo2ItmvIJdHH/T6WawmOuKxGDe87i dev-qemu}"
 
+CONNECTED=0
 cleanup() {
   sudo umount "$MNT" 2>/dev/null || true
-  sudo qemu-nbd --disconnect "$NBD" 2>/dev/null || true
+  if [[ $CONNECTED -eq 1 ]]; then
+    sudo qemu-nbd --disconnect "$NBD" 2>/dev/null || true
+  fi
   rmdir "$MNT" 2>/dev/null || true
 }
 trap cleanup EXIT
 
 sudo modprobe nbd max_part=8
+NBD_SYSFS="/sys/block/$(basename "$NBD")/pid"
+if [[ -s "$NBD_SYSFS" ]]; then
+  echo "$NBD is already connected (pid $(cat "$NBD_SYSFS")) — refusing to use a device in use" >&2
+  exit 1
+fi
 sudo qemu-nbd --connect="$NBD" "$DISK"
+CONNECTED=1
 sleep 2
 sudo mount "${NBD}p4" "$MNT"
 
