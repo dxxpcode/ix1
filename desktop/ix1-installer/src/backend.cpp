@@ -79,6 +79,7 @@ void Backend::enumerateDisks()
         a[QStringLiteral("tran")] = QStringLiteral("virtio");
         a[QStringLiteral("removable")] = false;
         a[QStringLiteral("parts")] = 0;
+        a[QStringLiteral("fss")] = QString();
         a[QStringLiteral("installable")] = true;
         QVariantMap b;
         b[QStringLiteral("name")] = QStringLiteral("/dev/nvme0n1");
@@ -88,6 +89,7 @@ void Backend::enumerateDisks()
         b[QStringLiteral("tran")] = QStringLiteral("nvme");
         b[QStringLiteral("removable")] = false;
         b[QStringLiteral("parts")] = 3;
+        b[QStringLiteral("fss")] = QStringLiteral("ext4, ntfs");
         b[QStringLiteral("installable")] = true;
         QVariantMap c;
         c[QStringLiteral("name")] = QStringLiteral("/dev/sda");
@@ -97,6 +99,7 @@ void Backend::enumerateDisks()
         c[QStringLiteral("tran")] = QStringLiteral("usb");
         c[QStringLiteral("removable")] = true;
         c[QStringLiteral("parts")] = 2;
+        c[QStringLiteral("fss")] = QStringLiteral("vfat, iso9660");
         c[QStringLiteral("installable")] = false;
         c[QStringLiteral("note")] = QStringLiteral("installation media — unavailable");
         m_disks = {a, b, c};
@@ -109,7 +112,7 @@ void Backend::enumerateDisks()
     QProcess p;
     p.start(QStringLiteral("lsblk"),
             {QStringLiteral("-J"), QStringLiteral("-b"),
-             QStringLiteral("-o"), QStringLiteral("NAME,SIZE,TYPE,MODEL,TRAN,RM,MOUNTPOINTS")});
+             QStringLiteral("-o"), QStringLiteral("NAME,SIZE,TYPE,MODEL,TRAN,RM,FSTYPE,MOUNTPOINTS")});
     if (!p.waitForFinished(10000))
         return;
 
@@ -140,10 +143,17 @@ void Backend::enumerateDisks()
                 tran = QStringLiteral("optical");
         }
         int parts = 0;
+        QStringList fss;
         const QJsonArray children = d.value(QStringLiteral("children")).toArray();
-        for (const auto &c : children)
-            if (c.toObject().value(QStringLiteral("type")).toString() == QLatin1String("part"))
-                ++parts;
+        for (const auto &c : children) {
+            const QJsonObject part = c.toObject();
+            if (part.value(QStringLiteral("type")).toString() != QLatin1String("part"))
+                continue;
+            ++parts;
+            const QString fs = part.value(QStringLiteral("fstype")).toString();
+            if (!fs.isEmpty() && !fss.contains(fs))
+                fss.append(fs);
+        }
 
         QVariantMap row;
         row[QStringLiteral("name")] = QStringLiteral("/dev/") + name;
@@ -157,6 +167,7 @@ void Backend::enumerateDisks()
         row[QStringLiteral("tran")] = tran;
         row[QStringLiteral("removable")] = d.value(QStringLiteral("rm")).toBool();
         row[QStringLiteral("parts")] = parts;
+        row[QStringLiteral("fss")] = fss.join(QStringLiteral(", "));
         if (hasBootMount(d)) {
             row[QStringLiteral("installable")] = false;
             row[QStringLiteral("note")] = QStringLiteral("installation media — unavailable");

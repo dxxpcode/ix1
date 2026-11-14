@@ -66,7 +66,7 @@ Item {
         Rectangle {
             Layout.topMargin: 34
             Layout.fillWidth: true
-            height: Math.max(72, backend.disks.length * 72)
+            height: Math.max(78, backend.disks.length * 78)
             radius: 14
             color: Theme.card
             border.width: 1
@@ -113,10 +113,15 @@ Item {
                     delegate: Item {
                         id: row
                         width: diskCol.width
-                        height: 72
+                        height: 78
 
                         readonly property bool avail: modelData.installable !== false
                         readonly property bool sel: index === backend.selectedDisk
+                        readonly property real frac: {
+                            let m = 0
+                            for (const d of backend.disks) m = Math.max(m, d.size || 0)
+                            return m > 0 ? (modelData.size || 0) / m : 0
+                        }
                         property real appear: 0
 
                         opacity: (avail ? 1.0 : 0.42) * appear
@@ -182,6 +187,7 @@ Item {
                             }
 
                             Column {
+                                Layout.fillWidth: true
                                 spacing: 3
                                 Text {
                                     text: modelData.model
@@ -193,26 +199,50 @@ Item {
                                 Text {
                                     text: modelData.name + " · "
                                           + (modelData.tran || "disk")
-                                          + (modelData.parts > 0
-                                             ? " · " + modelData.parts
-                                               + (modelData.parts === 1 ? " partition" : " partitions")
-                                             : "")
+                                          + (modelData.fss ? " · " + modelData.fss
+                                             : modelData.parts > 0
+                                               ? " · " + modelData.parts
+                                                 + (modelData.parts === 1 ? " partition" : " partitions")
+                                               : "")
                                     color: Theme.textMuted
                                     font.family: Theme.fontMono
                                     font.pixelSize: 11
                                 }
+                                // Relative capacity hairline.
+                                Rectangle {
+                                    width: parent.width
+                                    height: 2
+                                    radius: 1
+                                    color: "#1c1c1f"
+                                    Rectangle {
+                                        height: parent.height
+                                        radius: 1
+                                        width: Math.max(2, parent.width * row.frac)
+                                        color: row.sel ? "#a1a1aa" : "#3f3f46"
+                                        Behavior on color { ColorAnimation { duration: 160 } }
+                                    }
+                                }
                             }
-                            Item { Layout.fillWidth: true }
                             Column {
                                 spacing: 5
-                                Text {
-                                    text: modelData.sizeText
-                                    color: Theme.textPrimary
-                                    font.family: Theme.fontMono
-                                    font.pixelSize: 14
-                                    font.weight: Font.Medium
-                                    horizontalAlignment: Text.AlignRight
+                                Row {
                                     anchors.right: parent.right
+                                    spacing: 4
+                                    Text {
+                                        id: sizeNum
+                                        text: (modelData.sizeText || "").split(" ")[0]
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontMono
+                                        font.pixelSize: 17
+                                        font.weight: Font.Medium
+                                    }
+                                    Text {
+                                        text: (modelData.sizeText || "").split(" ")[1] || ""
+                                        color: Theme.textMuted
+                                        font.family: Theme.fontMono
+                                        font.pixelSize: 10
+                                        anchors.baseline: sizeNum.baseline
+                                    }
                                 }
                                 Rectangle {
                                     width: tagTxt.implicitWidth + 14
