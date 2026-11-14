@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<script>
+(function () {
+  var t;
+  try { t = localStorage.getItem("ix1-theme"); } catch (e) {}
+  t = t ||
+    (window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark");
+  if (t === "dark") document.documentElement.classList.add("dark");
+})();
+</script>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ix1 — releases</title>
+<meta name="description" content="ix1 release notes.">
+<link rel="icon" type="image/png" href="./assets/logo-uSrOrykp.png">
+  <script type="module" crossorigin src="./assets/releases-CbwLfjol.js"></script>
+  <link rel="modulepreload" crossorigin href="./assets/index-DriT8DQB.js">
+  <link rel="stylesheet" crossorigin href="./assets/index-fKlBOkNL.css">
+</head>
+<body>
+<div id="root"></div>
+</body>
+</html>
