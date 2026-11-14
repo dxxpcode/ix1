@@ -3,16 +3,23 @@ import { Check, Copy } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 
-async function copyText(text: string) {
+async function copyText(text: string): Promise<boolean> {
   try {
     await navigator.clipboard.writeText(text)
+    return true
   } catch {
     const el = document.createElement("textarea")
     el.value = text
     document.body.appendChild(el)
     el.select()
-    document.execCommand("copy")
+    let ok = false
+    try {
+      ok = document.execCommand("copy")
+    } catch {
+      ok = false
+    }
     el.remove()
+    return ok
   }
 }
 
@@ -42,7 +49,7 @@ export function CopyButton({
         className
       )}
       onClick={async () => {
-        await copyText(text)
+        if (!(await copyText(text))) return
         setCopied(true)
         if (timer.current) clearTimeout(timer.current)
         timer.current = setTimeout(() => setCopied(false), 1500)
