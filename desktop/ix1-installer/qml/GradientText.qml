@@ -28,12 +28,14 @@ Item {
     Rectangle {
         visible: root.gradient
         anchors.fill: parent
-        // Matches the site's `from-white via-white to-zinc-500`: pure white
-        // through the midpoint, easing to #71717a at the baseline.
+        // The site's headline reads mostly white — its two-line h1 keeps the
+        // whole first line pure white and only the last ~third fades toward
+        // zinc-500. Same visual on one line: white until ~60%, gentle dim to
+        // the baseline.
         gradient: Gradient {
-            GradientStop { position: 0.0; color: "transparent" }
-            GradientStop { position: 0.5; color: "transparent" }
-            GradientStop { position: 1.0; color: Qt.rgba(0, 0, 0, 0.55) }
+            GradientStop { position: 0.0;  color: "transparent" }
+            GradientStop { position: 0.62; color: "transparent" }
+            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.48) }
         }
     }
 }

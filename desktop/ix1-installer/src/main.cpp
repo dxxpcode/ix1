@@ -34,8 +34,17 @@ int main(int argc, char *argv[])
 
     // Headless render check: IX1_SCREENSHOT=out.png grabs the window
     // after it settles (used by CI/QEMU verification with -platform offscreen).
+    // IX1_SIZE=WxH renders at that size instead of the fullscreen default.
     const QString shot = qEnvironmentVariable("IX1_SCREENSHOT");
     if (!shot.isEmpty()) {
+        const QString size = qEnvironmentVariable("IX1_SIZE", QStringLiteral("1600x1000"));
+        const QStringList wh = size.split(QLatin1Char('x'));
+        for (QWindow *w : QGuiApplication::allWindows())
+            if (auto *qw = qobject_cast<QQuickWindow *>(w)) {
+                qw->setVisibility(QWindow::Windowed);
+                if (wh.size() == 2)
+                    qw->resize(wh[0].toInt(), wh[1].toInt());
+            }
         QTimer::singleShot(1500, [&app, shot]() {
             for (QWindow *w : QGuiApplication::allWindows())
                 if (auto *qw = qobject_cast<QQuickWindow *>(w))
