@@ -32,16 +32,16 @@ Window {
         border.color: Theme.hairline
         border.width: 1
 
-        // Tracks the pointer across the whole dock for magnification; sits
-        // behind the icon buttons, which forward their hover events down to it.
+        // Dock-wide pointer x for magnification. Icon buttons are on top of
+        // this tracker, so each forwards its own hover position here.
         MouseArea {
             id: dockTrack
             anchors.fill: parent
             anchors.bottomMargin: -14
             hoverEnabled: true
-            property real mouseX: -1
-            onPositionChanged: function (mouse) { mouseX = mouse.x }
-            onExited: mouseX = -1
+            property real hoverX: -1
+            onPositionChanged: function (mouse) { hoverX = mouse.x }
+            onExited: hoverX = -1
         }
 
         Row {
@@ -59,8 +59,8 @@ Window {
 
                     readonly property real centerX: dockRow.x + x + width / 2
                     readonly property real mag: {
-                        if (dockTrack.mouseX < 0) return 1.0
-                        const d = Math.abs(dockTrack.mouseX - centerX)
+                        if (dockTrack.hoverX < 0) return 1.0
+                        const d = Math.abs(dockTrack.hoverX - centerX)
                         return 1 + 0.35 * Math.max(0, 1 - d / 120)
                     }
 
@@ -87,7 +87,10 @@ Window {
                         id: dockButtonArea
                         anchors.fill: parent
                         hoverEnabled: true
-                        propagateComposedEvents: true
+                        onPositionChanged: function (mouse) {
+                            dockTrack.hoverX = centerX - width / 2 + mouse.x
+                        }
+                        onExited: dockTrack.hoverX = -1
                         onClicked: backend.launchApp(desktopFile)
                     }
                 }
