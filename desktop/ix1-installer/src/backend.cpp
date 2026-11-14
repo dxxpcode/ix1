@@ -72,8 +72,10 @@ void Backend::enumerateDisks()
     }
 
     QProcess p;
+    // No -d: children must be visible — the live USB mounts a partition,
+    // not the disk itself.
     p.start(QStringLiteral("lsblk"),
-            {QStringLiteral("-J"), QStringLiteral("-b"), QStringLiteral("-d"),
+            {QStringLiteral("-J"), QStringLiteral("-b"),
              QStringLiteral("-o"), QStringLiteral("NAME,SIZE,TYPE,MODEL,MOUNTPOINTS")});
     if (!p.waitForFinished(10000))
         return;
@@ -82,24 +84,34 @@ void Backend::enumerateDisks()
         QJsonDocument::fromJson(p.readAllStandardOutput())
             .object().value(QStringLiteral("blockdevices")).toArray();
 
+    // A disk is the boot device if it or any descendant holds a live-env
+    // mountpoint (root, initramfs, sysroot).
+    const std::function<bool(const QJsonObject &)> hasBootMount =
+        [&hasBootMount](const QJsonObject &d) {
+            for (const auto &m : d.value(QStringLiteral("mountpoints")).toArray()) {
+                const QString mp = m.toString();
+                if (mp == QLatin1String("/") || mp.startsWith(QLatin1String("/run/initramfs")) ||
+                    mp.startsWith(QLatin1String("/sysroot")))
+                    return true;
+            }
+            for (const auto &c : d.value(QStringLiteral("children")).toArray())
+                if (hasBootMount(c.toObject()))
+                    return true;
+            return false;
+        };
+
     for (const auto &v : list) {
         const QJsonObject d = v.toObject();
         if (d.value(QStringLiteral("type")).toString() != QLatin1String("disk"))
             continue;
-        bool booted = false;
-        const QJsonArray mounts = d.value(QStringLiteral("mountpoints")).toArray();
-        for (const auto &m : mounts) {
-            const QString mp = m.toString();
-            if (mp == QLatin1String("/") || mp.startsWith(QLatin1String("/run/initramfs")) ||
-                mp.startsWith(QLatin1String("/sysroot")))
-                booted = true;
-        }
-        if (booted)
+        if (hasBootMount(d))
             continue;
 
         QVariantMap row;
         const QString name = d.value(QStringLiteral("name")).toString();
         const qint64 size = d.value(QStringLiteral("size")).toVariant().toLongLong();
+        if (size < (8LL << 30))   // ix1 needs 8 GB — smaller targets can't install
+            continue;
         QString model = d.value(QStringLiteral("model")).toString().trimmed();
         if (model.isEmpty())
             model = name.startsWith(QLatin1String("vd")) ? QStringLiteral("Virtio Block Device")
