@@ -44,7 +44,7 @@ export function GithubButton() {
       >
         <Star
           aria-hidden
-          className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110 group-hover:fill-current"
+          className="h-3.5 w-3.5 fill-amber-400 text-amber-400 transition-transform duration-300 group-hover:scale-110 dark:fill-amber-300 dark:text-amber-300"
         />
         <span className="min-w-[1.5rem] text-center tabular-nums">
           {stars === null ? "—" : formatStars(stars)}
