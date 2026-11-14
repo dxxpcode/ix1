@@ -53,7 +53,8 @@ Item {
         GradientText {
             text: backend.done ? "Done." : (backend.error ? "Failed." : backend.progress + "%")
             pixelSize: 92
-            flatColor: backend.error ? Theme.danger : Theme.textPrimary
+            gradient: !backend.error
+            flatColor: Theme.danger
             Layout.topMargin: 14
         }
         // Live line — the step currently running, plus a quiet hint.
