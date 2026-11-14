@@ -33,7 +33,7 @@ fi
 # recorded per-repository-name, so both refs must be signed for the
 # containers policy's matchRepository check to pass on each side.
 # 10.0.2.2 is bound to loopback by scripts/start-registry.sh.
-podman push "$IMAGE" "$REGISTRY/ix1-os:dev"
+podman push --tls-verify=false "$IMAGE" "$REGISTRY/ix1-os:dev"
 podman push --tls-verify=false "$IMAGE" 10.0.2.2:5000/ix1-os:dev
 
 # Sign with cosign v2 (the `cosign2` binary): the installed system's
