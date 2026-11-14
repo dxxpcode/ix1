@@ -32,11 +32,7 @@ qt_add_qml_module(ix1-installer
         assets/logo.png
         assets/logo-light.png
         assets/logo-white.png
-        assets/fonts/geist-400.ttf
         assets/fonts/geist-500.ttf
-        assets/fonts/geist-600.ttf
-        assets/fonts/geist-700.ttf
-        assets/fonts/geistmono-400.ttf
         assets/fonts/geistmono-500.ttf
 )
 

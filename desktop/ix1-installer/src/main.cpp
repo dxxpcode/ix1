@@ -14,9 +14,9 @@ int main(int argc, char *argv[])
     QQuickWindow::setGraphicsApi(QSGRendererInterface::Software);
 
     // Bundled Geist faces — loaded from qrc so the live image needs
-    // no font packages at all.
-    for (const char *f : {"geist-400.ttf", "geist-500.ttf", "geist-600.ttf",
-                          "geist-700.ttf", "geistmono-400.ttf", "geistmono-500.ttf"})
+    // no font packages at all. Only the Medium (500) faces ship: every
+    // weight resolves to Medium for one consistent typographic voice.
+    for (const char *f : {"geist-500.ttf", "geistmono-500.ttf"})
         QFontDatabase::addApplicationFont(
             QStringLiteral("qrc:/Ix1Installer/assets/fonts/%1").arg(QLatin1String(f)));
 

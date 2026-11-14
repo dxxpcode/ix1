@@ -145,7 +145,7 @@ Item {
                                     text: "✓"
                                     color: "#18181b"
                                     font.pixelSize: 11
-                                    font.weight: Font.Bold
+                                    font.weight: Font.Medium
                                 }
                             }
 
@@ -156,7 +156,7 @@ Item {
                                     color: Theme.textPrimary
                                     font.family: Theme.fontSans
                                     font.pixelSize: 15
-                                    font.weight: Font.DemiBold
+                                    font.weight: Font.Medium
                                 }
                                 Text {
                                     text: modelData.name
