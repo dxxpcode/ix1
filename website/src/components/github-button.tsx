@@ -37,15 +37,18 @@ export function GithubButton() {
     >
       GitHub
       <span
-        aria-hidden
         className={cn(
           "flex items-center gap-1.5 border-l border-border pl-3 text-muted-foreground",
           "transition-colors duration-300 group-hover:text-foreground"
         )}
       >
-        <Star className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110 group-hover:fill-current" />
+        <Star
+          aria-hidden
+          className="h-3.5 w-3.5 transition-transform duration-300 group-hover:scale-110 group-hover:fill-current"
+        />
         <span className="min-w-[1.5rem] text-center tabular-nums">
           {stars === null ? "—" : formatStars(stars)}
+          <span className="sr-only"> stars</span>
         </span>
       </span>
       <ArrowUpRight className="transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
