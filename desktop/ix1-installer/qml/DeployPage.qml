@@ -91,20 +91,34 @@ Item {
             }
         }
 
-        Column {
-            Layout.topMargin: 24
-            spacing: 9
-            Repeater {
-                model: backend.logLines
-                Text {
-                    text: modelData
-                    color: modelData.startsWith("→") ? Theme.textPrimary
-                         : modelData.startsWith("✗") ? Theme.danger
-                         : Theme.textDim
-                    font.family: Theme.fontMono
-                    font.pixelSize: 12
-                    opacity: 0
-                    NumberAnimation on opacity { to: 1; duration: 260; running: true }
+        // Install log — bordered panel, lines fade in as they land.
+        Rectangle {
+            Layout.topMargin: 30
+            Layout.fillWidth: true
+            visible: backend.logLines.length > 0
+            height: logCol.implicitHeight + 30
+            radius: 12
+            color: "#0a0a0b"
+            border.width: 1
+            border.color: "#1c1c1f"
+            Column {
+                id: logCol
+                anchors.fill: parent
+                anchors.margins: 15
+                anchors.topMargin: 15
+                spacing: 8
+                Repeater {
+                    model: backend.logLines
+                    Text {
+                        text: modelData
+                        color: modelData.startsWith("→") ? Theme.textPrimary
+                             : modelData.startsWith("✗") ? Theme.danger
+                             : Theme.textDim
+                        font.family: Theme.fontMono
+                        font.pixelSize: 12
+                        opacity: 0
+                        NumberAnimation on opacity { to: 1; duration: 260; running: true }
+                    }
                 }
             }
         }

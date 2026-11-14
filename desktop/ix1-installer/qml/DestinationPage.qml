@@ -119,7 +119,7 @@ Item {
                         }
                         Item { Layout.fillWidth: true }
                         Column {
-                            spacing: 2
+                            spacing: 4
                             Text {
                                 text: modelData.sizeText
                                 color: Theme.textPrimary
@@ -128,21 +128,40 @@ Item {
                                 font.weight: Font.Medium
                                 horizontalAlignment: Text.AlignRight
                             }
-                            Text {
-                                text: index === backend.selectedDisk ? "install here" : "target"
-                                color: index === backend.selectedDisk ? Theme.textSecondary : Theme.textMuted
-                                font.family: Theme.fontMono
-                                font.pixelSize: 10
-                                horizontalAlignment: Text.AlignRight
+                            Rectangle {
+                                width: tagTxt.implicitWidth + 14
+                                height: 18
+                                radius: 4
+                                color: index === backend.selectedDisk ? "#242429" : "transparent"
+                                border.width: index === backend.selectedDisk ? 0 : 1
+                                border.color: "#26262a"
+                                anchors.right: parent.right
+                                Text {
+                                    id: tagTxt
+                                    anchors.centerIn: parent
+                                    text: index === backend.selectedDisk ? "install here" : "target"
+                                    color: index === backend.selectedDisk ? Theme.textSecondary : Theme.textMuted
+                                    font.family: Theme.fontMono
+                                    font.pixelSize: 10
+                                }
                             }
                         }
+                        // Selection token — filled circle with a check.
                         Rectangle {
-                            width: 16; height: 16; radius: 8
-                            color: "transparent"
-                            border.width: index === backend.selectedDisk ? 5 : 1.5
-                            border.color: index === backend.selectedDisk ? Theme.textPrimary : "#3f3f46"
-                            Behavior on border.width { NumberAnimation { duration: 140 } }
+                            width: 18; height: 18; radius: 9
+                            color: index === backend.selectedDisk ? "#fafafa" : "transparent"
+                            border.width: 1.5
+                            border.color: index === backend.selectedDisk ? "#fafafa" : "#3f3f46"
+                            Behavior on color { ColorAnimation { duration: 140 } }
                             Behavior on border.color { ColorAnimation { duration: 140 } }
+                            Text {
+                                anchors.centerIn: parent
+                                visible: index === backend.selectedDisk
+                                text: "✓"
+                                color: "#18181b"
+                                font.pixelSize: 11
+                                font.weight: Font.Bold
+                            }
                         }
                     }
                     HoverHandler { id: diskHover }
