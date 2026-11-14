@@ -323,10 +323,14 @@ void Backend::startInstall()
         if (!runStep(QStringLiteral("mounting target"), 20, QStringLiteral("mount"),
                      {QStringLiteral("/dev/mapper/ix1root"), sysroot}))
             return;
-        QDir().mkpath(sysroot + QStringLiteral("/boot/efi"));
+        QDir().mkpath(sysroot + QStringLiteral("/boot"));
         if (!runStep(QStringLiteral("mounting boot"), 21, QStringLiteral("mount"),
                      {bootPart, sysroot + QStringLiteral("/boot")}))
             return;
+        // The ESP mount point lives inside the mounted /boot fs — create
+        // it only after /boot is mounted (creating it earlier puts it on
+        // the hidden root fs and the mount fails).
+        QDir().mkpath(sysroot + QStringLiteral("/boot/efi"));
         if (!runStep(QStringLiteral("mounting esp"), 22, QStringLiteral("mount"),
                      {esp, sysroot + QStringLiteral("/boot/efi")}))
             return;
