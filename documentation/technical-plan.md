@@ -65,4 +65,7 @@
 - Dev-only update registry (plain HTTP on localhost/QEMU); production
   needs TLS + release channel refs.
 - No automatic health-based rollback (manual rollback/GRUB only).
+- KDE kscreenlocker is disabled (ix1 uses its own lock surface); an
+  out-of-band `loginctl lock-session` shows KWin's broken-locker
+  fallback rather than the ix1 lock screen.
 - No Secure Boot signing, no hardware matrix yet.

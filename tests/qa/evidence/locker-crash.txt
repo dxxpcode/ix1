@@ -1,0 +1,15 @@
+== kscreenlocker_greet crashes (audit) ==
+Nov 14 00:45:54 ix1 audit[1642]: ANOM_ABEND auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1642 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+Nov 14 00:45:54 ix1 kernel: audit: type=1701 audit(1794617154.280:376): auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1642 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+Nov 14 00:45:54 ix1 audit[1648]: ANOM_ABEND auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1648 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+Nov 14 00:45:54 ix1 kernel: audit: type=1701 audit(1794617154.424:377): auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1648 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+Nov 14 00:45:54 ix1 audit[1653]: ANOM_ABEND auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1653 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+Nov 14 00:45:54 ix1 kernel: audit: type=1701 audit(1794617154.549:378): auid=1000 uid=1000 gid=1000 ses=10 subj=unconfined_u:unconfined_r:unconfined_t:s0-s0:c0.c1023 pid=1653 comm="kscreenlocker_g" exe="/usr/libexec/kscreenlocker_greet" sig=6 res=1
+
+== sessions ==
+10 1000 ix1 seat0 1220 user    tty2 no -
+13 1000 ix1 -     1487 user    -    no -
+24 1000 ix1 -     1849 user    -    no -
+28 1000 ix1 -     2205 user    -    no -
+30 1000 ix1 -     2784 user    -    no -
+ 8 1000 ix1 -     1145 manager -    no -

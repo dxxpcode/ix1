@@ -1,0 +1,16 @@
+== is-system-running (0.7.2) ==
+running
+
+== remount-fs ==
+● systemd-remount-fs.service - Remount Root and Kernel File Systems
+     Loaded: loaded (/usr/lib/systemd/system/systemd-remount-fs.service; enabled-runtime; preset: disabled)
+    Drop-In: /usr/lib/systemd/system/service.d
+             └─10-timeout-abort.conf
+
+== idle lock check (journal, this boot) ==
+0
+
+== ix1-release ==
+0.7.2
+== getenforce ==
+Enforcing

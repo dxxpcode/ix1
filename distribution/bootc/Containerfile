@@ -134,6 +134,17 @@ COPY distribution/bootc/files/etc/polkit-1/rules.d/50-ix1-updates.rules \
      /etc/polkit-1/rules.d/50-ix1-updates.rules
 RUN chmod 755 /usr/libexec/ix1-update
 
+# ---- M8 QA fixes ------------------------------------------------------------
+# ix1 ships its own lock screen; KDE's kscreenlocker daemon is only present
+# as a KWin dependency and its greeter aborts in this image, so disable its
+# automatic locking (idle/resume) — the ix1 lock surface is the only one.
+COPY distribution/bootc/files/etc/xdg/kscreenlockerrc /etc/xdg/kscreenlockerrc
+# The deployment root is an overlay (composefs) on bootc; remounting it per
+# fstab fails and leaves every boot 'degraded'. The initrd already mounts it
+# read-only, so the remount is a no-op — tolerate the failure.
+COPY distribution/bootc/files/etc/systemd/system/systemd-remount-fs.service.d/bootc-root-overlay.conf \
+     /etc/systemd/system/systemd-remount-fs.service.d/bootc-root-overlay.conf
+
 # Release marker read by ix1-settings and used in update verification.
 RUN echo "${IX1_RELEASE}" > /etc/ix1-release
 

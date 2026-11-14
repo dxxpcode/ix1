@@ -224,5 +224,56 @@ previous deployment through a tested procedure.
       clean re-install verified: canonical spec + `upgrade --check` works,
       tests/updates/evidence/clean-install-spec.txt).
 
-## M8–M9
+## M8 — Quality Assurance
+
+Goal (spec §10): test installation, desktop, essential apps, security,
+update reliability, supported hardware; resolve critical defects.
+Pass run on the merged main image (0.7.1 -> 0.7.2 upgrade cycle in QEMU);
+evidence under `tests/qa/evidence/`.
+
+- [x] Reproducible build: `IX1_RELEASE=0.7.2 ./scripts/build-image.sh` on
+      merged main builds cleanly, `bootc container lint` passes.
+- [x] Boot/install: graphical.target, SDDM, UEFI boot, account `ix1`
+      (wheel), `/home/ix1` present, SELinux `Enforcing`, network
+      connected/full, `systemctl is-system-running` -> `running`.
+- [x] Desktop interaction: launcher (icon grid incl. Flatpak app),
+      quick settings, notification card, custom lock screen render +
+      PAM unlock (qa2-*.png).
+- [x] Essential apps: Konsole, Dolphin, Kate, Plasma System Monitor,
+      Firefox all launch as Wayland windows (qa-apps.png + pgrep).
+- [x] Flatpak: `flatpak --user install` from Flathub works; installed
+      app runs under bwrap and appears in the launcher.
+- [x] Security config: signature policy enforced on the update
+      registry; polkit rule (wheel + active + local) verified both
+      directions; SELinux enforcing.
+- [x] Update reliability on merged main: signed 0.7.2 staged ->
+      booted (0.7.1 retained) -> `bootc rollback` -> booted 0.7.1 ->
+      rolled forward again -> 0.7.2, `is-system-running` = running
+      (update-cycle.txt).
+- [x] Defect found + fixed: `systemd-remount-fs.service` failed at
+      every boot (`overlay: No changes allowed in reconfigure` — the
+      bootc deployment root is an overlay over btrfs and cannot be
+      remounted) leaving the system `degraded`. Drop-in
+      `etc/systemd/system/systemd-remount-fs.service.d/bootc-root-overlay.conf`
+      tolerates the no-op remount; verified `running` on 0.7.2
+      (system-state-before/after.txt).
+- [x] Defect found + fixed: KDE's kscreenlocker daemon (a KWin
+      dependency) idle-locked the session after ~5 min and spawned
+      `kscreenlocker_greet`, which aborts in our minimal Qt
+      environment — KWin showed "the screen locker is broken".
+      `/etc/xdg/kscreenlockerrc` disables the daemon's
+      Autolock/LockOnResume so ix1's own lock screen is the only lock
+      surface; verified: >7 min idle, no greet spawn, session unlocked
+      (locker-crash.txt, qa2-lock/unlock.png).
+- [ ] Supported hardware: QEMU/KVM only — no physical machine in this
+      environment (documented limitation since M4).
+- [ ] Audio device output: QEMU has no audio device; WirePlumber runs
+      and the Sound page binds correctly (documented since M5).
+
+Residual known limitation: a session lock triggered outside the ix1
+shell (e.g. `loginctl lock-session`) still routes to KWin's greeter
+path and shows the broken-locker fallback; the ix1 shell does not
+call `loginctl lock-session`, so its Lock action is unaffected.
+
+## M9
 See product spec §10 acceptance statements; tests live under `tests/`.
