@@ -181,7 +181,7 @@ ApplicationWindow {
         if (step === 0) {
             if (backend.selectedDisk >= 0) win.step = 1
         } else if (step === 1) {
-            if (backend.userName !== "" && backend.password !== "" &&
+            if (backend.userNameValid && backend.password !== "" &&
                 (!backend.encrypt || backend.luksPassphrase !== "")) {
                 win.step = 2
                 backend.startInstall()

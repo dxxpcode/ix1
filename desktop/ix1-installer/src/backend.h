@@ -17,6 +17,7 @@ class Backend : public QObject
     Q_PROPERTY(bool encrypt READ encrypt WRITE setEncrypt NOTIFY encryptChanged)
     Q_PROPERTY(QString fullName READ fullName WRITE setFullName)
     Q_PROPERTY(QString userName READ userName WRITE setUserName)
+    Q_PROPERTY(bool userNameValid READ userNameValid NOTIFY userNameChanged)
     Q_PROPERTY(QString password READ password WRITE setPassword)
     Q_PROPERTY(QString luksPassphrase READ luksPassphrase WRITE setLuksPassphrase)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
@@ -40,8 +41,13 @@ public:
     void setEncrypt(bool v);
     QString fullName() const { return m_fullName; }
     void setFullName(const QString &v) { m_fullName = v; }
-    void setUserName(const QString &v) { m_userName = v; }
+    void setUserName(const QString &v) {
+        if (m_userName == v) return;
+        m_userName = v;
+        emit userNameChanged();
+    }
     QString userName() const { return m_userName; }
+    bool userNameValid() const;
     void setPassword(const QString &v) { m_password = v; }
     QString password() const { return m_password; }
     void setLuksPassphrase(const QString &v) { m_luksPass = v; }
@@ -63,6 +69,7 @@ signals:
     void disksChanged();
     void selectedDiskChanged();
     void encryptChanged();
+    void userNameChanged();
     void progressChanged();
     void progressTextChanged();
     void logLinesChanged();
@@ -79,6 +86,7 @@ private:
                  const QString &stdinText = QString());
     bool provisionUser(const QString &rootMount);
     void fail(const QString &msg);
+    void runInstall();
 
     QVariantList m_disks;
     int m_selectedDisk = -1;

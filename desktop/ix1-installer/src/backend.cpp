@@ -7,6 +7,9 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QThread>
+
+#include <functional>
 
 // The installer runs as root in the live environment.
 
@@ -247,6 +250,13 @@ bool Backend::provisionUser(const QString &sysroot)
     return true;
 }
 
+// POSIX login names — useradd rejects anything else.
+bool Backend::userNameValid() const
+{
+    static const QRegularExpression re(QStringLiteral("^[a-z_][a-z0-9_-]{0,31}$"));
+    return re.match(m_userName).hasMatch();
+}
+
 void Backend::startInstall()
 {
     if (m_installing || m_selectedDisk < 0 || m_selectedDisk >= m_disks.size())
@@ -260,6 +270,21 @@ void Backend::startInstall()
     emit logLinesChanged();
     m_installing = true;
     emit installingChanged();
+
+    // The install steps block on subprocesses — run them on a worker
+    // thread so the progress screen keeps rendering. Signals emitted from
+    // the worker are queued to the GUI thread.
+    QThread *t = QThread::create(&Backend::runInstall, this);
+    connect(t, &QThread::finished, t, &QObject::deleteLater);
+    t->start();
+}
+
+void Backend::runInstall()
+{
+    if (!userNameValid()) {
+        fail(QStringLiteral("invalid username — use lowercase letters, digits, '_' or '-'"));
+        return;
+    }
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
