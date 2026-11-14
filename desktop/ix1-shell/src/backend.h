@@ -124,6 +124,7 @@ private:
     void setLocked(bool locked);
     void refreshVolume();
     void refreshWifi();
+    void refreshWifiName();
     void refreshBluetooth();
     void refreshBrightness();
     void setDnd(bool on);
@@ -142,6 +143,8 @@ private:
     bool m_btAvailable = false;
     bool m_btEnabled = false;
     class QProcess *m_btProbe = nullptr;
+    class QProcess *m_wifiProbe = nullptr;
+    class QProcess *m_ssidProbe = nullptr;
     bool m_brightnessAvailable = false;
     int m_brightness = -1;
     QString m_backlightDevice;

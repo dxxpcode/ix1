@@ -348,50 +348,92 @@ void ShellBackend::setVolume(int percent)
 
 void ShellBackend::refreshWifi()
 {
-    QProcess p;
-    p.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"), QStringLiteral("WIFI"),
-                                        QStringLiteral("radio") });
-    if (p.waitForFinished(3000)) {
-        const QString out = QString::fromLocal8Bit(p.readAllStandardOutput()).trimmed();
-        m_wifiEnabled = (out == QLatin1String("enabled"));
+    // Async like refreshBluetooth — this runs on a 5s poll and NetworkManager
+    // stalls must not freeze the shell (or the lock screen).
+    if (m_wifiProbe) {
+        return;
     }
+    // `-t -f WIFI,WWAN radio` prints one colon-separated line,
+    // e.g. "enabled:disabled" — one probe covers Wi-Fi state and airplane.
+    auto *p = new QProcess(this);
+    m_wifiProbe = p;
+    connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, p](int, QProcess::ExitStatus) {
+        m_wifiProbe = nullptr;
+        const QStringList radios = QString::fromLocal8Bit(p->readAllStandardOutput())
+                                       .trimmed().split(QLatin1Char(':'));
+        p->deleteLater();
 
-    QString ssid;
-    if (m_wifiEnabled) {
-        QProcess a;
-        a.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
-                                            QStringLiteral("ACTIVE,SSID"), QStringLiteral("dev"),
-                                            QStringLiteral("wifi"), QStringLiteral("list") });
-        if (a.waitForFinished(3000)) {
-            const QStringList lines = QString::fromLocal8Bit(a.readAllStandardOutput()).split(QLatin1Char('\n'));
-            for (const QString &line : lines) {
-                if (line.startsWith(QLatin1String("yes:"))) {
-                    ssid = line.mid(4).trimmed();
-                    break;
-                }
-            }
+        bool changed = false;
+        const bool enabled = !radios.isEmpty()
+                             && radios.at(0).trimmed() == QLatin1String("enabled");
+        if (enabled != m_wifiEnabled) {
+            m_wifiEnabled = enabled;
+            changed = true;
         }
-    }
-    m_wifiName = ssid;
-    emit wifiChanged();
-
-    // Airplane = WIFI and WWAN radios both disabled. `-t -f WIFI,WWAN radio`
-    // prints a single colon-separated line, e.g. "disabled:disabled".
-    QProcess r;
-    r.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
-                                       QStringLiteral("WIFI,WWAN"),
-                                       QStringLiteral("radio") });
-    if (r.waitForFinished(3000)) {
-        const QStringList radios = QString::fromLocal8Bit(r.readAllStandardOutput())
-                                       .trimmed().split(QLatin1Char(':'), Qt::SkipEmptyParts);
+        // Airplane = every listed radio disabled.
         const bool airplane = !radios.isEmpty() && std::all_of(
             radios.cbegin(), radios.cend(),
-            [](const QString &s) { return s == QLatin1String("disabled"); });
+            [](const QString &s) { return s.trimmed() == QLatin1String("disabled"); });
         if (airplane != m_airplane) {
             m_airplane = airplane;
             emit airplaneChanged();
         }
+
+        if (m_wifiEnabled) {
+            refreshWifiName();
+        } else if (!m_wifiName.isEmpty()) {
+            m_wifiName.clear();
+            changed = true;
+        }
+        if (changed) {
+            emit wifiChanged();
+        }
+    });
+    // FailedToStart emits errorOccurred, never finished — release the guard.
+    connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError) {
+        m_wifiProbe = nullptr;
+        p->deleteLater();
+    });
+    p->start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
+                                        QStringLiteral("WIFI,WWAN"),
+                                        QStringLiteral("radio") });
+}
+
+void ShellBackend::refreshWifiName()
+{
+    if (m_ssidProbe) {
+        return;
     }
+    auto *p = new QProcess(this);
+    m_ssidProbe = p;
+    connect(p, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, [this, p](int, QProcess::ExitStatus) {
+        m_ssidProbe = nullptr;
+        const QStringList lines = QString::fromLocal8Bit(p->readAllStandardOutput())
+                                      .split(QLatin1Char('\n'));
+        p->deleteLater();
+
+        QString ssid;
+        for (const QString &line : lines) {
+            if (line.startsWith(QLatin1String("yes:"))) {
+                ssid = line.mid(4).trimmed();
+                break;
+            }
+        }
+        if (ssid != m_wifiName) {
+            m_wifiName = ssid;
+            emit wifiChanged();
+        }
+    });
+    connect(p, &QProcess::errorOccurred, this, [this, p](QProcess::ProcessError) {
+        m_ssidProbe = nullptr;
+        p->deleteLater();
+    });
+    p->start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"),
+                                        QStringLiteral("ACTIVE,SSID"),
+                                        QStringLiteral("dev"),
+                                        QStringLiteral("wifi"), QStringLiteral("list") });
 }
 
 void ShellBackend::toggleAirplane()
