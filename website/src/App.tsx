@@ -99,27 +99,22 @@ export default function App() {
           aria-hidden
           className="pointer-events-none absolute inset-0"
           style={{
-            backgroundImage:
-              "radial-gradient(circle at 1px 1px, var(--dot) 1px, transparent 0)",
-            backgroundSize: "32px 32px",
-            maskImage:
-              "radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%)",
-            WebkitMaskImage:
-              "radial-gradient(ellipse 70% 60% at 50% 40%, black 30%, transparent 75%)",
+            background:
+              "radial-gradient(ellipse 52% 44% at 50% 30%, var(--glow), transparent 72%)",
           }}
         />
         <div className="relative">
-          <p className="mb-6 text-sm font-medium tracking-wide text-muted-foreground">
+          <p className="ix1-enter mb-6 text-sm font-medium tracking-[0.02em] text-muted-foreground">
             ix1 — a minimal atomic Linux desktop
           </p>
-          <h1 className="mx-auto max-w-3xl bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-400 bg-clip-text text-[64px] font-bold leading-[1.02] tracking-[-0.04em] text-transparent sm:text-[88px] dark:from-white dark:via-white dark:to-zinc-500">
+          <h1 className="ix1-enter ix1-enter-1 mx-auto max-w-3xl bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-400 bg-clip-text text-[64px] font-bold leading-[1.02] tracking-[-0.04em] text-transparent sm:text-[88px] dark:from-white dark:via-white dark:to-zinc-500">
             A desktop that just works.
           </h1>
-          <p className="mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
+          <p className="ix1-enter ix1-enter-2 mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
             Every update is one signed image. It installs in the background and
             rolls back instantly.
           </p>
-          <div className="mt-10 flex justify-center gap-3">
+          <div className="ix1-enter ix1-enter-3 mt-10 flex justify-center gap-3">
             <a
               href="#download"
               className={cn(
@@ -134,11 +129,11 @@ export default function App() {
               href="https://github.com/dxxpcode/ix1"
               className={cn(
                 buttonVariants({ variant: "outline", size: "lg" }),
-                "rounded-full border-border px-7"
+                "group rounded-full border-border px-7"
               )}
             >
               GitHub
-              <ArrowUpRight />
+              <ArrowUpRight className="transition-transform group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
             </a>
           </div>
         </div>
@@ -151,7 +146,7 @@ export default function App() {
             <div
               key={f.title}
               className={cn(
-                "p-8",
+                "p-8 transition-colors hover:bg-accent/40",
                 i > 0 && "border-t border-border sm:border-l sm:border-t-0"
               )}
             >
@@ -167,7 +162,7 @@ export default function App() {
         </section>
 
         {/* download */}
-        <section id="download" className="py-28">
+        <section id="download" className="scroll-mt-20 py-28">
           <h2 className="mb-3 text-3xl font-bold tracking-tight">Download.</h2>
           <p className="mb-10 text-muted-foreground">
             ix1 {RELEASE} — installable ISO for x86_64. Self-contained; no
@@ -222,6 +217,7 @@ export default function App() {
                 </code>
               </div>
               <div className="flex gap-6 pt-1 text-sm">
+                {/* artifact links */}
                 <a
                   className="text-muted-foreground underline decoration-border underline-offset-4 transition-colors hover:text-foreground"
                   href={`${BASE}/${ISO}.sha256`}
@@ -246,7 +242,7 @@ export default function App() {
         </section>
 
         {/* install */}
-        <section id="install" className="pb-28">
+        <section id="install" className="scroll-mt-20 pb-28">
           <h2 className="mb-10 text-3xl font-bold tracking-tight">
             Install in four steps.
           </h2>

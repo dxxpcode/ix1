@@ -44,7 +44,7 @@
   --border: #e4e4e7;
   --input: #e4e4e7;
   --ring: #71717a;
-  --dot: rgba(0, 0, 0, 0.14);
+  --glow: rgba(24, 24, 27, 0.07);
   color-scheme: light;
 }
 
@@ -64,12 +64,16 @@
   --border: #1f1f1f;
   --input: #1f1f1f;
   --ring: #d4d4d8;
-  --dot: rgba(255, 255, 255, 0.12);
+  --glow: rgba(255, 255, 255, 0.06);
   color-scheme: dark;
 }
 
 * {
   border-color: var(--border);
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
@@ -78,6 +82,65 @@ body {
   font-family: "Geist Sans", ui-sans-serif, system-ui, -apple-system,
     "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body,
+nav a,
+nav button,
+section {
+  transition:
+    background-color 200ms ease,
+    color 200ms ease,
+    border-color 200ms ease;
+}
+
+@keyframes ix1-fade-up {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.ix1-enter {
+  animation: ix1-fade-up 600ms cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+.ix1-enter-1 {
+  animation-delay: 80ms;
+}
+
+.ix1-enter-2 {
+  animation-delay: 160ms;
+}
+
+.ix1-enter-3 {
+  animation-delay: 240ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+  .ix1-enter {
+    animation: none;
+  }
+  body,
+  nav a,
+  nav button,
+  section {
+    transition: none;
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+  border-radius: 2px;
 }
 
 code,
