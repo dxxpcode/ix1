@@ -30,8 +30,13 @@ for f in "$ISO" "$ISO.sha256" "$ISO.sig" ix1.pub; do
   [ -f "$f" ] || { echo "missing $f" >&2; exit 1; }
 done
 
-# Split the ISO into <2GB parts for the asset limit (idempotent).
-if ! ls "${ISO}.part"* >/dev/null 2>&1; then
+# Split the ISO into <2GB parts for the asset limit. Existing parts are
+# reused only when they reassemble to exactly the ISO's size — parts left
+# incomplete by an interrupted split must never be published.
+ISO_SIZE="$(stat -c%s "$ISO")"
+if ! ls "${ISO}".part* >/dev/null 2>&1 || \
+   [ "$(cat "${ISO}".part* | wc -c)" != "$ISO_SIZE" ]; then
+  rm -f "${ISO}".part*
   split -b 1900m -d "$ISO" "$ISO.part"
 fi
 ASSETS=( "${ISO}".part* "$ISO.sha256" "$ISO.sig" ix1.pub )
