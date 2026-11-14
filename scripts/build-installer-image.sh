@@ -19,13 +19,19 @@ TARGET_IMG="${TARGET_IMG#docker://}"
 # release ISOs can install offline (IX1_INSTALL_IMAGE=oci:/usr/share/ix1/os).
 # oci: (directory), not oci-archive:: bootc untars an archive into the
 # installer live env's RAM overlay, which runs out of space on install.
-# Export it once; reused across builds while the source image is unchanged.
+# The export is reused only while it provably came from the current
+# source image: the stamp records SRC_IMG's resolved image ID, so a
+# rebuilt :dev tag or a changed IX1_OS_IMAGE forces a re-export instead
+# of silently embedding a stale OS into offline installers.
 ARCHIVE="$REPO_ROOT/output/ix1-os-oci"
+STAMP="$REPO_ROOT/output/ix1-os-oci.src-image-id"
 SRC_IMG="${IX1_OS_IMAGE:-localhost/ix1-os:dev}"
+SRC_ID="$(podman image inspect --format '{{.Id}}' "$SRC_IMG")"
 mkdir -p "$REPO_ROOT/output"
-if [ ! -f "$ARCHIVE/index.json" ]; then
-  rm -rf "$ARCHIVE"
+if [ ! -f "$ARCHIVE/index.json" ] || [ "$(cat "$STAMP" 2>/dev/null || true)" != "$SRC_ID" ]; then
+  rm -rf "$ARCHIVE" "$STAMP"
   podman save --format oci-dir -o "$ARCHIVE" "$SRC_IMG"
+  printf '%s\n' "$SRC_ID" > "$STAMP"
 fi
 
 podman build \
