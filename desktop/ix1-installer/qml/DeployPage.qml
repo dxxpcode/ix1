@@ -157,13 +157,35 @@ Item {
                 font.pixelSize: 15
             }
         }
-        // Reboot countdown after completion.
+        // Reboot countdown after completion — the seconds read primary.
+        Row {
+            Layout.topMargin: 8
+            visible: backend.done && deployPage.rebootIn > 0
+            spacing: 0
+            Text {
+                text: "rebooting in "
+                color: Theme.textMuted
+                font.family: Theme.fontMono
+                font.pixelSize: 11
+            }
+            Text {
+                text: deployPage.rebootIn
+                color: Theme.textPrimary
+                font.family: Theme.fontMono
+                font.pixelSize: 11
+                font.weight: Font.Medium
+            }
+            Text {
+                text: " — esc to stay"
+                color: Theme.textMuted
+                font.family: Theme.fontMono
+                font.pixelSize: 11
+            }
+        }
         Text {
-            Layout.topMargin: 6
-            visible: backend.done
-            text: deployPage.rebootIn > 0
-                  ? "rebooting in " + deployPage.rebootIn + " — esc to stay"
-                  : "reboot from the footer, or press r"
+            Layout.topMargin: 8
+            visible: backend.done && deployPage.rebootIn <= 0
+            text: "reboot from the footer, or press r"
             color: Theme.textMuted
             font.family: Theme.fontMono
             font.pixelSize: 11
@@ -272,18 +294,51 @@ Item {
             color: "#0a0a0b"
             border.width: 1
             border.color: "#1c1c1f"
+            // Lit top edge — matches the cards' inner highlight.
+            Rectangle {
+                anchors.top: parent.top
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2
+                height: 1
+                radius: 1
+                color: Qt.rgba(1, 1, 1, 0.05)
+            }
             Column {
                 id: logCol
                 anchors.fill: parent
                 anchors.margins: 15
                 anchors.topMargin: 15
                 spacing: 8
+                // Panel header — transcript label + event count.
+                RowLayout {
+                    width: logCol.width
+                    Text {
+                        text: "install log"
+                        color: Theme.textDim
+                        font.family: Theme.fontMono
+                        font.pixelSize: 10
+                        font.letterSpacing: 1.6
+                    }
+                    Item { Layout.fillWidth: true }
+                    Text {
+                        text: backend.logLines.length + " events"
+                        color: Theme.textDim
+                        font.family: Theme.fontMono
+                        font.pixelSize: 10
+                    }
+                }
+                Rectangle {
+                    width: logCol.width
+                    height: 1
+                    color: "#1c1c1f"
+                }
                 Repeater {
                     model: backend.logLines.slice(Math.max(0, backend.logLines.length - 6))
                     Text {
+                        readonly property bool newest: index === backend.logLines.slice(Math.max(0, backend.logLines.length - 6)).length - 1
                         text: modelData
-                        color: modelData.startsWith("→") ? Theme.textPrimary
-                             : modelData.startsWith("✗") ? Theme.danger
+                        color: modelData.startsWith("✗") ? Theme.danger
+                             : newest || modelData.startsWith("→") ? Theme.textPrimary
                              : Theme.textDim
                         font.family: Theme.fontMono
                         font.pixelSize: 12
