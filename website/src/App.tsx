@@ -1,5 +1,6 @@
 import {
   ArrowDown,
+  Github,
   FileArchive,
   Layers,
   LayoutGrid,
@@ -72,20 +73,33 @@ export default function App() {
               className="h-5 w-auto dark:invert"
             />
           </a>
-          <div className="hidden items-center gap-7 text-sm text-muted-foreground sm:flex">
-            <a className="transition-colors hover:text-foreground" href="#download">
+          <div className="hidden items-center gap-7 text-[13px] tracking-[0.01em] text-muted-foreground sm:flex">
+            <a
+              className="relative py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
+              href="#download"
+            >
               Download
             </a>
-            <a className="transition-colors hover:text-foreground" href="#install">
+            <a
+              className="relative py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
+              href="#install"
+            >
               Install
             </a>
-            <a className="transition-colors hover:text-foreground" href="releases.html">
+            <a
+              className="relative py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
+              href="releases.html"
+            >
               Releases
             </a>
             <a
-              className="transition-colors hover:text-foreground"
+              className="group relative flex items-center gap-1.5 py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
               href="https://github.com/dxxpcode/ix1"
             >
+              <Github
+                aria-hidden
+                className="h-3.5 w-3.5 transition-transform duration-200 group-hover:-translate-y-px"
+              />
               GitHub
             </a>
           </div>
