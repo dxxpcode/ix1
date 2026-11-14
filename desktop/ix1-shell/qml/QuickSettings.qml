@@ -48,6 +48,28 @@ Window {
             border.color: Theme.hairline
             border.width: 1
 
+            Component.onCompleted: enterAnim.restart()
+            onVisibleChanged: { if (visible) enterAnim.restart() }
+
+            ParallelAnimation {
+                id: enterAnim
+                NumberAnimation {
+                    target: card
+                    property: "opacity"
+                    from: 0
+                    to: 1
+                    duration: 140
+                }
+                NumberAnimation {
+                    target: card
+                    property: "anchors.topMargin"
+                    from: 30
+                    to: 40
+                    duration: 200
+                    easing.type: Easing.OutCubic
+                }
+            }
+
             MouseArea { anchors.fill: parent; onClicked: {} }
 
             Column {
@@ -87,14 +109,21 @@ Window {
                         radius: 11
                         color: backend.wifiEnabled ? Theme.accent : Theme.surface3
 
+                        Behavior on color {
+                            ColorAnimation { duration: 160 }
+                        }
+
                         Rectangle {
+                            x: backend.wifiEnabled ? 20 : 2
                             width: 18
                             height: 18
                             radius: 9
                             color: "#FFFFFF"
                             anchors.verticalCenter: parent.verticalCenter
-                            anchors.right: parent.right
-                            anchors.rightMargin: backend.wifiEnabled ? 2 : 22
+
+                            Behavior on x {
+                                NumberAnimation { duration: 160; easing.type: Easing.OutQuad }
+                            }
                         }
                         MouseArea {
                             anchors.fill: parent

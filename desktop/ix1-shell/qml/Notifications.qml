@@ -74,6 +74,25 @@ Window {
                     border.color: Theme.hairline
                     border.width: 1
 
+                    ParallelAnimation {
+                        running: true
+                        NumberAnimation {
+                            target: parent
+                            property: "opacity"
+                            from: 0
+                            to: 1
+                            duration: 160
+                        }
+                        NumberAnimation {
+                            target: parent
+                            property: "x"
+                            from: parent.x + 32
+                            to: parent.x
+                            duration: 240
+                            easing.type: Easing.OutCubic
+                        }
+                    }
+
                     Timer {
                         interval: modelData.expire
                         running: true

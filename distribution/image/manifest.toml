@@ -9,3 +9,6 @@ hostname = "ix1"
 [[customizations.user]]
 name = "ix1"
 groups = ["wheel"]
+# Note: BIB does not apply user `password`/`key` to bootc qcow2 images —
+# the account ships locked. Local verification injects credentials into
+# the built disk via qemu-nbd (see scripts/qemu-creds.sh).

@@ -68,12 +68,12 @@ Window {
         onClicked: backend.toggleLauncher()
     }
 
-    // Center: clock
+    // Center: date + clock
     Text {
         id: clock
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.verticalCenter: parent.verticalCenter
-        text: Qt.formatDateTime(new Date(), "HH:mm")
+        text: Qt.formatDateTime(new Date(), "ddd MMM d  HH:mm")
         color: Theme.textPrimary
         font.family: Theme.fontFamily
         font.pixelSize: 13
@@ -83,7 +83,7 @@ Window {
             interval: 1000
             running: true
             repeat: true
-            onTriggered: clock.text = Qt.formatDateTime(new Date(), "HH:mm")
+            onTriggered: clock.text = Qt.formatDateTime(new Date(), "ddd MMM d  HH:mm")
         }
     }
 
