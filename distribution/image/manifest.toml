@@ -9,5 +9,6 @@ hostname = "ix1"
 [[customizations.user]]
 name = "ix1"
 groups = ["wheel"]
-# Dev-disk password ("ix1"); this manifest only feeds local QEMU builds.
-password = "$6$N2XZc0mIBsArNlXz$t0teDYxBKul2FN74WdT1CsGBZp0waJlado4ComI2xU/iKPjOD2O2u4nwHzMIr1D8n8RjcWyPAUGLB0myJ8nh10"
+# Note: BIB does not apply user `password`/`key` to bootc qcow2 images —
+# the account ships locked. Local verification injects credentials into
+# the built disk via qemu-nbd (see scripts/qemu-creds.sh).
