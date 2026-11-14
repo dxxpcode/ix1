@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { ArrowUpRight, Star } from "lucide-react"
+import { ArrowUpRight, Github, Star } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
@@ -35,6 +35,7 @@ export function GithubButton() {
         "active:translate-y-0 active:scale-[0.98]"
       )}
     >
+      <Github aria-hidden className="h-4 w-4" />
       GitHub
       <span
         className={cn(
