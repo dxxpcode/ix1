@@ -29,13 +29,15 @@ Item {
     Rectangle {
         visible: root.gradient
         anchors.fill: parent
-        // Site headline on one line: bg-gradient-to-b from-white via-white
-        // to-zinc-500 — pure white through the midpoint, fading to zinc-500
-        // (#71717a) at the baseline. Overlay equivalent: dim to ~55% black.
+        // Faithful port of the site's headline gradient: the text element's
+        // bg-gradient-to-b from-white via-white to-zinc-500 maps over the
+        // whole line box (which, like the site's, extends below the glyph
+        // baseline). Over a #fafafa glyph, dimming to zinc-500 (#71717a)
+        // at the element's bottom edge is a black overlay at ~55% alpha.
         gradient: Gradient {
             GradientStop { position: 0.0;  color: "transparent" }
             GradientStop { position: 0.5;  color: "transparent" }
-            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.55) }
+            GradientStop { position: 1.0;  color: Qt.rgba(0, 0, 0, 0.548) }
         }
     }
 }
