@@ -254,6 +254,7 @@ Window {
             anchors.verticalCenter: parent.verticalCenter
 
             Canvas {
+                id: batGlyph
                 anchors.centerIn: parent
                 width: 20
                 height: 12
@@ -283,7 +284,7 @@ Window {
                 }
                 Connections {
                     target: backend
-                    function onBatteryPctChanged() { parent.requestPaint() }
+                    function onBatteryPctChanged() { batGlyph.requestPaint() }
                 }
             }
             MouseArea {
