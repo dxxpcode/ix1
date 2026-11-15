@@ -206,9 +206,23 @@ ShellBackend::ShellBackend(QObject *parent)
         m_batteryPct = 82;
         m_volume = 45;
         m_activeApp = QStringLiteral("Firefox");
+        m_runningApps = { QStringLiteral("firefox") };
         if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
             m_calOpen = true;
         }
+        if (qEnvironmentVariableIsSet("IX1_SHOW_QS")) {
+            m_qsOpen = true;
+        }
+        if (qEnvironmentVariableIsSet("IX1_SHOW_LAUNCH")) {
+            m_launcherOpen = true;
+        }
+        // A demo toast so headless renders show the notification material.
+        // Deferred: the emit must land after the QML engines connect.
+        QTimer::singleShot(600, this, [this]() {
+            emit notificationAdded(QStringLiteral("ix1"),
+                                   QStringLiteral("Welcome to ix1"),
+                                   QStringLiteral("Your desktop is up to date."), 1);
+        });
     }
 
     // Idle + suspend locking. KDE's own locker daemon is disabled
@@ -459,6 +473,22 @@ void ShellBackend::setActiveWindow(const QString &appId)
         emit activeAppChanged();
     }
 }
+
+void ShellBackend::setRunningApps(const QString &joined)
+{
+    QStringList next;
+    const QStringList ids = joined.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    for (const QString &id : ids) {
+        if (!next.contains(id, Qt::CaseInsensitive)) {
+            next.append(id);
+        }
+    }
+    if (next != m_runningApps) {
+        m_runningApps = next;
+        emit runningAppsChanged();
+    }
+}
+
 
 void ShellBackend::toggleWifi()
 {

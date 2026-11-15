@@ -1,14 +1,42 @@
-// ix1 KWin script: report the focused window's app id to the shell, which
-// shows it in the panel's brand area. Loaded by ix1-session at login.
+// ix1 KWin script: report the focused window's app id and the set of open
+// apps to the shell. The focused app shows in the panel's brand area; the
+// open set drives the dock's running indicators. Loaded by ix1-session.
+function appIdOf(window) {
+    return String(window.resourceClass || window.resourceName || "");
+}
+
 function report(window) {
     try {
-        var appId = "";
-        if (window) {
-            appId = String(window.resourceClass || window.resourceName || "");
-        }
         callDBus("org.ix1.Shell", "/Window", "org.ix1.Shell",
-                 "setActiveWindow", appId);
+                 "setActiveWindow", window ? appIdOf(window) : "");
     } catch (e) {}
 }
-workspace.windowActivated.connect(report);
+
+function reportWindows() {
+    try {
+        var list = workspace.windowList ? workspace.windowList()
+                                        : workspace.stackingOrder;
+        var ids = [];
+        for (var i = 0; i < list.length; ++i) {
+            var w = list[i];
+            if (!w || w.skipTaskbar || w.desktopWindow) {
+                continue;
+            }
+            var id = appIdOf(w);
+            if (id && ids.indexOf(id) < 0) {
+                ids.push(id);
+            }
+        }
+        callDBus("org.ix1.Shell", "/Window", "org.ix1.Shell",
+                 "setRunningApps", ids.join(";"));
+    } catch (e) {}
+}
+
+workspace.windowActivated.connect(function (w) {
+    report(w);
+    reportWindows();
+});
+workspace.windowAdded.connect(reportWindows);
+workspace.windowRemoved.connect(reportWindows);
 report(workspace.activeWindow);
+reportWindows();

@@ -13,6 +13,10 @@ Window {
         | LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
+    // Anchors size the window under the layer shell; set it explicitly so
+    // offscreen (headless render) grabs work too.
+    width: 1920
+    height: 1080
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
@@ -97,7 +101,7 @@ Window {
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: -6
-                        radius: 8
+                        radius: Theme.radiusSmall
                         color: Theme.accent
                         opacity: backend.qsSection === "wifi" ? 0.15 : 0
                         Behavior on opacity { NumberAnimation { duration: 350 } }
@@ -150,7 +154,7 @@ Window {
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: -6
-                        radius: 8
+                        radius: Theme.radiusSmall
                         color: Theme.accent
                         opacity: backend.qsSection === "sound" ? 0.15 : 0
                         Behavior on opacity { NumberAnimation { duration: 350 } }
@@ -264,7 +268,7 @@ Window {
                         anchors.verticalCenter: parent.verticalCenter
                         width: 60
                         height: 26
-                        radius: 8
+                        radius: Theme.radiusSmall
                         color: sendArea.containsMouse ? Theme.surface3 : Theme.surface2
                         border.color: Theme.hairline
                         border.width: 1
@@ -309,7 +313,7 @@ Window {
                             required property var modelData
                             width: (parent.width - 8) / 2
                             height: 34
-                            radius: 8
+                            radius: Theme.radiusSmall
                             color: powerArea.containsMouse ? Theme.surface3 : Theme.surface2
 
                             Text {

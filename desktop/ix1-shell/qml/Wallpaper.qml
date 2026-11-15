@@ -13,6 +13,10 @@ Window {
         | LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
+    // Anchors size the window under the layer shell; set it explicitly so
+    // offscreen (headless render) grabs show the wallpaper too.
+    width: 1920
+    height: 1080
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {

@@ -59,7 +59,7 @@ Window {
             anchors.right: parent.right
             anchors.rightMargin: 12
             width: 348
-            spacing: 8
+            spacing: 10
 
             Repeater {
                 model: items
@@ -104,7 +104,7 @@ Window {
                         anchors.left: parent.left
                         anchors.right: parent.right
                         anchors.top: parent.top
-                        anchors.margins: 10
+                        anchors.margins: 12
                         spacing: 2
 
                         Row {
@@ -124,7 +124,7 @@ Window {
                             Rectangle {
                                 width: 20
                                 height: 20
-                                radius: 6
+                                radius: 10
                                 color: closeArea.containsMouse ? Theme.surface3 : "transparent"
                                 Text {
                                     anchors.centerIn: parent

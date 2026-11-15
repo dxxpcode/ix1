@@ -56,6 +56,7 @@ class ShellBackend : public QObject
     Q_PROPERTY(int wifiSignal READ wifiSignal NOTIFY wifiSignalChanged)
     Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
     Q_PROPERTY(QString activeApp READ activeApp NOTIFY activeAppChanged)
+    Q_PROPERTY(QStringList runningApps READ runningApps NOTIFY runningAppsChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
     Q_PROPERTY(bool quickSettingsOpen READ quickSettingsOpen NOTIFY quickSettingsOpenChanged)
     Q_PROPERTY(QString qsSection READ qsSection NOTIFY qsSectionChanged)
@@ -73,6 +74,7 @@ public:
     int wifiSignal() const { return m_wifiSignal; }
     int batteryPct() const { return m_batteryPct; }
     QString activeApp() const { return m_activeApp; }
+    QStringList runningApps() const { return m_runningApps; }
     bool launcherOpen() const { return m_launcherOpen; }
     bool quickSettingsOpen() const { return m_qsOpen; }
     QString qsSection() const { return m_qsSection; }
@@ -100,6 +102,7 @@ public:
 public slots:
     // Called over the session bus by the KWin focus script.
     void setActiveWindow(const QString &appId);
+    void setRunningApps(const QString &joined);
 
 signals:
     void themeChanged();
@@ -108,6 +111,7 @@ signals:
     void wifiSignalChanged();
     void batteryPctChanged();
     void activeAppChanged();
+    void runningAppsChanged();
     void launcherOpenChanged();
     void quickSettingsOpenChanged();
     void qsSectionChanged();
@@ -142,6 +146,7 @@ private:
     int m_wifiSignal = -1;
     int m_batteryPct = -1;
     QString m_activeApp;
+    QStringList m_runningApps;
     bool m_launcherOpen = false;
     bool m_qsOpen = false;
     QString m_qsSection;
