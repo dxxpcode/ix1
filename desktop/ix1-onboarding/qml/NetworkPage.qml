@@ -104,7 +104,7 @@ Item {
         Rectangle {
             Layout.topMargin: 34
             Layout.fillWidth: true
-            height: Math.max(78, Math.min(backend.networks.length, 5) * 78 + pwCard.height)
+            height: Math.max(78, backend.networks.length * 78 + pwCard.height)
             radius: 14
             color: Theme.card
             border.width: 1
