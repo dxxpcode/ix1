@@ -88,6 +88,12 @@ export default function App() {
             </a>
             <a
               className="relative py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
+              href="#open-source"
+            >
+              Source
+            </a>
+            <a
+              className="relative py-1 transition-colors duration-200 after:absolute after:inset-x-0 after:bottom-0 after:h-px after:origin-left after:scale-x-0 after:bg-foreground after:transition-transform after:duration-200 hover:text-foreground hover:after:scale-x-100"
               href="releases.html"
             >
               Releases
