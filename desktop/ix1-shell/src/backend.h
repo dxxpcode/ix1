@@ -96,8 +96,6 @@ public:
     Q_INVOKABLE void toggleCalendar();
     Q_INVOKABLE void closeCalendar() { setCalendarOpen(false); }
     Q_INVOKABLE bool verifyPassword(const QString &password);
-    // True while a window whose app id maps to this desktop file is open.
-    Q_INVOKABLE bool isRunning(const QString &desktopFile) const;
     Q_INVOKABLE void lock();
     Q_INVOKABLE void unlock(const QString &password);
 

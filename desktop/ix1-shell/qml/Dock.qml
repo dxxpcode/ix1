@@ -62,7 +62,15 @@ Window {
 
                     // Taskbar-style running indicator (KWin reports the
                     // open app ids to the backend over the session bus).
-                    readonly property bool running: backend.isRunning(desktopFile)
+                    // Bind to the runningApps property so it re-evaluates
+                    // when the open set changes — an isRunning() call
+                    // would not subscribe to runningAppsChanged.
+                    readonly property string appId:
+                        desktopFile.replace(/\.desktop$/, "").toLowerCase()
+                    readonly property bool running:
+                        backend.runningApps.map(function (id) {
+                            return id.toLowerCase()
+                        }).indexOf(appId) >= 0
 
                     readonly property real centerX: dockRow.x + x + width / 2
                     readonly property real mag: {

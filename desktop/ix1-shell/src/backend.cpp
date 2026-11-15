@@ -210,6 +210,16 @@ ShellBackend::ShellBackend(QObject *parent)
         if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
             m_calOpen = true;
         }
+        if (qEnvironmentVariableIsSet("IX1_SHOW_QS")) {
+            m_qsOpen = true;
+        }
+        if (qEnvironmentVariableIsSet("IX1_SHOW_LAUNCH")) {
+            m_launcherOpen = true;
+        }
+        // A demo toast so headless renders show the notification material.
+        emit notificationAdded(QStringLiteral("ix1"),
+                               QStringLiteral("Welcome to ix1"),
+                               QStringLiteral("Your desktop is up to date."), 1);
     }
 
     // Idle + suspend locking. KDE's own locker daemon is disabled
@@ -476,11 +486,6 @@ void ShellBackend::setRunningApps(const QString &joined)
     }
 }
 
-bool ShellBackend::isRunning(const QString &desktopFile) const
-{
-    const QString id = QFileInfo(desktopFile).completeBaseName();
-    return m_runningApps.contains(id, Qt::CaseInsensitive);
-}
 
 void ShellBackend::toggleWifi()
 {

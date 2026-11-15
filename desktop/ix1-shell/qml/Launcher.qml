@@ -14,6 +14,10 @@ Window {
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
     LayerShellQt.Window.keyboardInteractivity: LayerShellQt.Window.KeyboardInteractivityExclusive
+    // Anchors size the window under the layer shell; set it explicitly so
+    // offscreen (headless render) grabs work too.
+    width: 1920
+    height: 1080
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
