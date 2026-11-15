@@ -101,36 +101,23 @@ Item {
                 gradient: !backend.error
                 flatColor: Theme.danger
             }
-            // Completion ring draws itself beside the headline.
-            Canvas {
+            // Completion badge — an emerald disc that pops in,
+            // then the white check draws itself inside it.
+            Rectangle {
                 visible: backend.done
-                Layout.preferredWidth: 40
-                Layout.preferredHeight: 40
+                Layout.preferredWidth: 42
+                Layout.preferredHeight: 42
                 Layout.alignment: Qt.AlignBottom
-                Layout.bottomMargin: 14
-                property real r: deployPage.ring
-                onRChanged: requestPaint()
-                onPaint: {
-                    const ctx = getContext("2d")
-                    ctx.clearRect(0, 0, width, height)
-                    ctx.strokeStyle = "#fafafa"
-                    ctx.lineWidth = 2
-                    ctx.lineCap = "round"
-                    const cx = width / 2, cy = height / 2, rad = 17
-                    ctx.beginPath()
-                    ctx.arc(cx, cy, rad, -Math.PI / 2,
-                            -Math.PI / 2 + Math.PI * 2 * Math.min(r * 2, 1))
-                    ctx.stroke()
-                    if (r > 0.5) {
-                        const t = Math.min((r - 0.5) * 2, 1)
-                        ctx.beginPath()
-                        ctx.moveTo(cx - 8, cy + 0.5)
-                        ctx.lineTo(cx - 8 + 6 * t, cy + 0.5 + 6 * t)
-                        if (t > 0.5)
-                            ctx.lineTo(cx - 2 + 12 * (t - 0.5) * 2,
-                                       cy + 6.5 - 13 * (t - 0.5) * 2)
-                        ctx.stroke()
-                    }
+                Layout.bottomMargin: 13
+                radius: 21
+                color: Theme.success
+                scale: 0.4 + deployPage.ring * 0.6
+                CheckMark {
+                    anchors.centerIn: parent
+                    width: 22; height: 22
+                    strokeWidth: 2.4
+                    checkColor: "#fafafa"
+                    progress: Math.max(0, (deployPage.ring - 0.45) * 2.2)
                 }
             }
         }
@@ -255,16 +242,27 @@ Item {
                     property bool phaseDone: backend.done || backend.progress >= modelData.end
                     property bool phaseActive: !phaseDone && (backend.installing || backend.error !== "")
                     property bool phaseFailed: phaseActive && backend.error !== ""
-                    Rectangle {
-                        width: 8; height: 8; radius: 4
-                        color: phaseDone ? Theme.textPrimary
-                             : phaseFailed ? Theme.danger
-                             : phaseActive ? Theme.amber : "#333338"
-                        SequentialAnimation on opacity {
-                            running: phaseActive && !phaseFailed
-                            loops: Animation.Infinite
-                            NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
-                            NumberAnimation { to: 1.0; duration: 700; easing.type: Easing.InOutSine }
+                    Item {
+                        width: 10; height: 10
+                        Rectangle {
+                            visible: !phaseDone
+                            anchors.centerIn: parent
+                            width: 8; height: 8; radius: 4
+                            color: phaseFailed ? Theme.danger
+                                 : phaseActive ? Theme.amber : "#333338"
+                            SequentialAnimation on opacity {
+                                running: phaseActive && !phaseFailed
+                                loops: Animation.Infinite
+                                NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                                NumberAnimation { to: 1.0; duration: 700; easing.type: Easing.InOutSine }
+                            }
+                        }
+                        CheckMark {
+                            visible: phaseDone
+                            anchors.centerIn: parent
+                            width: 10; height: 10
+                            strokeWidth: 1.6
+                            progress: phaseDone ? 1 : 0
                         }
                     }
                     Text {
