@@ -25,6 +25,7 @@ qt_add_qml_module(ix1-installer
         qml/Main.qml
         qml/Theme.qml
         qml/GradientText.qml
+        qml/ShimmerText.qml
         qml/CheckMark.qml
         qml/DestinationPage.qml
         qml/AccountPage.qml

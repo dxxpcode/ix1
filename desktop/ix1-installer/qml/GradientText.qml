@@ -13,22 +13,25 @@ Item {
     property real letterSpacing: -0.02 * pixelSize
     property bool gradient: true
     property color flatColor: Theme.textPrimary
+    property bool shimmer: false   // loops the highlight sweep
+    property bool sweep: false     // plays a single pass
 
     implicitWidth: glyph.implicitWidth
     implicitHeight: glyph.implicitHeight
 
-    Text {
+    ShimmerText {
         id: glyph
         color: root.gradient ? "#fafafa" : root.flatColor
-        font.family: Theme.fontSans
-        font.pixelSize: root.pixelSize
-        font.weight: Font.Medium
-        font.letterSpacing: root.letterSpacing
-        renderType: Text.NativeRendering
+        fontFamily: Theme.fontSans
+        fontPixelSize: root.pixelSize
+        fontWeight: Font.Medium
+        fontLetterSpacing: root.letterSpacing
+        running: root.shimmer
+        sweep: root.sweep
     }
     Rectangle {
         visible: root.gradient
-        anchors.fill: parent
+        anchors.fill: glyph
         // bg-gradient-to-b from-white via-white to-zinc-500 over the line
         // box (which extends below the glyph baseline, like the site's).
         gradient: Gradient {
