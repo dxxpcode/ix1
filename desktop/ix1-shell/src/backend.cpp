@@ -217,9 +217,12 @@ ShellBackend::ShellBackend(QObject *parent)
             m_launcherOpen = true;
         }
         // A demo toast so headless renders show the notification material.
-        emit notificationAdded(QStringLiteral("ix1"),
-                               QStringLiteral("Welcome to ix1"),
-                               QStringLiteral("Your desktop is up to date."), 1);
+        // Deferred: the emit must land after the QML engines connect.
+        QTimer::singleShot(600, this, [this]() {
+            emit notificationAdded(QStringLiteral("ix1"),
+                                   QStringLiteral("Welcome to ix1"),
+                                   QStringLiteral("Your desktop is up to date."), 1);
+        });
     }
 
     // Idle + suspend locking. KDE's own locker daemon is disabled

@@ -66,7 +66,9 @@ Window {
                     // when the open set changes — an isRunning() call
                     // would not subscribe to runningAppsChanged.
                     readonly property string appId:
-                        desktopFile.replace(/\.desktop$/, "").toLowerCase()
+                        desktopFile.replace(/^.*\//, "")
+                                   .replace(/\.desktop$/, "")
+                                   .toLowerCase()
                     readonly property bool running:
                         backend.runningApps.map(function (id) {
                             return id.toLowerCase()
