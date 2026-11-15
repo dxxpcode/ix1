@@ -12,12 +12,19 @@ Item {
     readonly property var selNet: backend.selectedNetwork >= 0
         && backend.selectedNetwork < backend.networks.length
         ? backend.networks[backend.selectedNetwork] : null
+    // selNet is a fresh QVariantMap on every refresh — key clearing on
+    // the ssid itself so a rescan never silently drops a typed password.
+    readonly property string selSsid: selNet !== null ? selNet.ssid : ""
     // The password row appears for a secured, not-yet-connected selection.
     readonly property bool wantsPassword:
         selNet !== null && selNet.secured && !selNet.active
 
-    onWantsPasswordChanged: if (!wantsPassword) password = ""
-    onSelNetChanged: password = ""
+    function clearPassword() {
+        password = ""
+        pwField.text = ""
+    }
+    onWantsPasswordChanged: if (!wantsPassword) clearPassword()
+    onSelSsidChanged: clearPassword()
 
     Repeater {
         model: 9
