@@ -46,6 +46,8 @@ private:
 class ShellBackend : public QObject
 {
     Q_OBJECT
+    // The KWin focus script calls methods on this interface name.
+    Q_CLASSINFO("D-Bus Interface", "org.ix1.Shell")
     Q_PROPERTY(AppModel *apps READ apps CONSTANT)
     Q_PROPERTY(QString userName READ userName CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
