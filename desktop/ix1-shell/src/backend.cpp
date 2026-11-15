@@ -176,10 +176,40 @@ ShellBackend::ShellBackend(QObject *parent)
             this, &ShellBackend::notificationClosed);
 
     m_apps.reload();
+
+    // Session-bus endpoint the KWin focus script calls to report the
+    // active window's app id (see kwin/active-window.js).
+    QDBusConnection sessionBus = QDBusConnection::sessionBus();
+    sessionBus.registerService(QStringLiteral("org.ix1.Shell"));
+    sessionBus.registerObject(QStringLiteral("/Window"), this,
+                              QDBusConnection::ExportAllSlots);
+
     QTimer::singleShot(0, this, [this]() {
         refreshVolume();
         refreshWifi();
+        refreshBattery();
     });
+
+    // Signal and battery drift while the desktop sits idle.
+    m_pollTimer = new QTimer(this);
+    m_pollTimer->setInterval(15000);
+    connect(m_pollTimer, &QTimer::timeout, this, [this]() {
+        refreshWifi();
+        refreshBattery();
+    });
+    m_pollTimer->start();
+
+    // Headless-render seeding (see IX1_SHOT_DIR in main.cpp).
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        m_wifiEnabled = true;
+        m_wifiSignal = 78;
+        m_batteryPct = 82;
+        m_volume = 45;
+        m_activeApp = QStringLiteral("Firefox");
+        if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
+            m_calOpen = true;
+        }
+    }
 
     // Idle + suspend locking. KDE's own locker daemon is disabled
     // (/etc/xdg/kscreenlockerrc): its greeter aborts in this image, and
@@ -318,6 +348,9 @@ void ShellBackend::refreshVolume()
     if (p.waitForFinished(2000)) {
         const QString out = QString::fromLocal8Bit(p.readAllStandardOutput());
         const QString num = out.section(QLatin1Char(':'), -1).trimmed();
+        if (num.isEmpty()) {
+            return;
+        }
         const float v = num.toFloat();
         if (v >= 0.0f) {
             m_volume = qBound(0, qRound(v * 100.0f), 150);
@@ -342,8 +375,88 @@ void ShellBackend::refreshWifi()
                                         QStringLiteral("radio") });
     if (p.waitForFinished(3000)) {
         const QString out = QString::fromLocal8Bit(p.readAllStandardOutput()).trimmed();
-        m_wifiEnabled = (out == QLatin1String("enabled"));
-        emit wifiEnabledChanged();
+        const bool enabled = (out == QLatin1String("enabled"));
+        if (enabled != m_wifiEnabled) {
+            m_wifiEnabled = enabled;
+            emit wifiEnabledChanged();
+        }
+    }
+
+    int signal = -1;
+    bool got = !m_wifiEnabled;  // disabled radio is a definitive -1
+    if (m_wifiEnabled) {
+        QProcess s;
+        s.start(QStringLiteral("nmcli"),
+                { QStringLiteral("-t"), QStringLiteral("-f"),
+                  QStringLiteral("IN-USE,SIGNAL"), QStringLiteral("dev"),
+                  QStringLiteral("wifi") });
+        if (s.waitForFinished(3000)) {
+            got = true;
+            const QStringList rows = QString::fromLocal8Bit(s.readAllStandardOutput())
+                                         .split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            for (const QString &row : rows) {
+                // The AP in use is marked "*:<signal>".
+                if (row.startsWith(QLatin1Char('*'))) {
+                    signal = qBound(0, row.section(QLatin1Char(':'), -1).toInt(), 100);
+                    break;
+                }
+            }
+        }
+    }
+    // A failed nmcli call keeps the last reading; a successful one with
+    // no active AP reports -1 (wifi on, not connected).
+    if (!got) {
+        return;
+    }
+    if (signal != m_wifiSignal) {
+        m_wifiSignal = signal;
+        emit wifiSignalChanged();
+    }
+}
+
+void ShellBackend::refreshBattery()
+{
+    const QDir power(QStringLiteral("/sys/class/power_supply"));
+    const QStringList bats = power.entryList({ QStringLiteral("BAT*") }, QDir::Dirs | QDir::NoDotAndDotDot);
+    if (bats.isEmpty()) {
+        return;  // no battery on this machine — keep whatever we have
+    }
+    int pct = -1;
+    for (const QString &bat : bats) {
+        QFile cap(power.absoluteFilePath(bat + QStringLiteral("/capacity")));
+        if (cap.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            pct = qBound(0, QString::fromLocal8Bit(cap.readAll()).trimmed().toInt(), 100);
+            break;
+        }
+    }
+    if (pct != m_batteryPct) {
+        m_batteryPct = pct;
+        emit batteryPctChanged();
+    }
+}
+
+QString ShellBackend::appNameForId(const QString &appId) const
+{
+    for (int i = 0; i < m_apps.rowCount(); ++i) {
+        const QModelIndex idx = m_apps.index(i, 0);
+        const QString file = m_apps.data(idx, AppModel::DesktopFileRole).toString();
+        if (QFileInfo(file).completeBaseName().compare(appId, Qt::CaseInsensitive) == 0) {
+            return m_apps.data(idx, AppModel::NameRole).toString();
+        }
+    }
+    QString tail = appId.section(QLatin1Char('.'), -1);
+    if (!tail.isEmpty()) {
+        tail[0] = tail[0].toUpper();
+    }
+    return tail;
+}
+
+void ShellBackend::setActiveWindow(const QString &appId)
+{
+    const QString name = appId.isEmpty() ? QString() : appNameForId(appId);
+    if (name != m_activeApp) {
+        m_activeApp = name;
+        emit activeAppChanged();
     }
 }
 
@@ -395,11 +508,44 @@ void ShellBackend::setQuickSettingsOpen(bool open)
         return;
     }
     m_qsOpen = open;
+    if (open) {
+        setCalendarOpen(false);
+        if (!m_qsSection.isEmpty()) {
+            // The target row's flash plays once per open, then the section clears.
+            QTimer::singleShot(1400, this, [this]() {
+                if (!m_qsSection.isEmpty()) {
+                    m_qsSection.clear();
+                    emit qsSectionChanged();
+                }
+            });
+        }
+    }
     emit quickSettingsOpenChanged();
 }
 
 void ShellBackend::toggleLauncher() { setLauncherOpen(!m_launcherOpen); }
 void ShellBackend::toggleQuickSettings() { setQuickSettingsOpen(!m_qsOpen); }
+
+void ShellBackend::openQuickSettings(const QString &section)
+{
+    m_qsSection = section;
+    emit qsSectionChanged();
+    setQuickSettingsOpen(true);
+}
+
+void ShellBackend::toggleCalendar() { setCalendarOpen(!m_calOpen); }
+
+void ShellBackend::setCalendarOpen(bool open)
+{
+    if (m_calOpen == open) {
+        return;
+    }
+    m_calOpen = open;
+    if (open) {
+        setQuickSettingsOpen(false);
+    }
+    emit calendarOpenChanged();
+}
 
 void ShellBackend::lock() { setLocked(true); }
 void ShellBackend::unlock(const QString &password)

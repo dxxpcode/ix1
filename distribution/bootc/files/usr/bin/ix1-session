@@ -56,6 +56,24 @@ dbus-update-activation-environment \
     WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_DATA_DIRS \
     2>/dev/null || true
 
+# KWin script that reports the focused window to the shell's header.
+# Loaded after the compositor's session-bus name appears; failure is
+# non-fatal (the brand area simply shows "ix1").
+if command -v gdbus >/dev/null 2>&1; then
+    (
+        i=0
+        while [ "$i" -lt 40 ]; do
+            gdbus call --session --dest org.kde.KWin --object-path /Scripting \
+                --method org.kde.kwin.Scripting.loadScript \
+                /usr/share/ix1/kwin/active-window.js >/dev/null 2>&1 && break
+            sleep 0.5
+            i=$((i + 1))
+        done
+        gdbus call --session --dest org.kde.KWin --object-path /Scripting \
+            --method org.kde.kwin.Scripting.start >/dev/null 2>&1 || true
+    ) &
+fi
+
 # Start the shell; when it exits, stop the compositor.
 /usr/bin/ix1-shell &
 SHELL_PID=$!

@@ -93,6 +93,16 @@ Window {
                     width: parent.width
                     height: 34
 
+                    // Flash when the tray's wifi zone targeted this row.
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        radius: 8
+                        color: Theme.accent
+                        opacity: backend.qsSection === "wifi" ? 0.15 : 0
+                        Behavior on opacity { NumberAnimation { duration: 350 } }
+                    }
+
                     Text {
                         anchors.left: parent.left
                         anchors.verticalCenter: parent.verticalCenter
@@ -133,9 +143,23 @@ Window {
                 }
 
                 // Volume
-                Column {
+                Item {
                     width: parent.width
-                    spacing: 4
+                    height: volCol.implicitHeight
+
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: -6
+                        radius: 8
+                        color: Theme.accent
+                        opacity: backend.qsSection === "sound" ? 0.15 : 0
+                        Behavior on opacity { NumberAnimation { duration: 350 } }
+                    }
+
+                    Column {
+                        id: volCol
+                        width: parent.width
+                        spacing: 4
 
                     Text {
                         text: "Volume"
@@ -188,6 +212,7 @@ Window {
                         color: Theme.textSecondary
                         font.family: Theme.fontFamily
                         font.pixelSize: 11
+                    }
                     }
                 }
 
