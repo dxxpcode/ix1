@@ -6,6 +6,7 @@
 #include <QStringList>
 
 class NotificationServer;
+class QTimer;
 
 class AppModel : public QAbstractListModel
 {
@@ -45,13 +46,20 @@ private:
 class ShellBackend : public QObject
 {
     Q_OBJECT
+    // The KWin focus script calls methods on this interface name.
+    Q_CLASSINFO("D-Bus Interface", "org.ix1.Shell")
     Q_PROPERTY(AppModel *apps READ apps CONSTANT)
     Q_PROPERTY(QString userName READ userName CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY wifiEnabledChanged)
+    Q_PROPERTY(int wifiSignal READ wifiSignal NOTIFY wifiSignalChanged)
+    Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
+    Q_PROPERTY(QString activeApp READ activeApp NOTIFY activeAppChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
     Q_PROPERTY(bool quickSettingsOpen READ quickSettingsOpen NOTIFY quickSettingsOpenChanged)
+    Q_PROPERTY(QString qsSection READ qsSection NOTIFY qsSectionChanged)
+    Q_PROPERTY(bool calendarOpen READ calendarOpen NOTIFY calendarOpenChanged)
     Q_PROPERTY(bool locked READ locked NOTIFY lockedChanged)
 
 public:
@@ -62,8 +70,13 @@ public:
     QString theme() const { return m_theme; }
     int volume() const { return m_volume; }
     bool wifiEnabled() const { return m_wifiEnabled; }
+    int wifiSignal() const { return m_wifiSignal; }
+    int batteryPct() const { return m_batteryPct; }
+    QString activeApp() const { return m_activeApp; }
     bool launcherOpen() const { return m_launcherOpen; }
     bool quickSettingsOpen() const { return m_qsOpen; }
+    QString qsSection() const { return m_qsSection; }
+    bool calendarOpen() const { return m_calOpen; }
     bool locked() const { return m_locked; }
 
     Q_INVOKABLE void launchApp(const QString &desktopFile);
@@ -76,17 +89,29 @@ public:
     Q_INVOKABLE void toggleLauncher();
     Q_INVOKABLE void closeLauncher() { setLauncherOpen(false); }
     Q_INVOKABLE void toggleQuickSettings();
+    Q_INVOKABLE void openQuickSettings(const QString &section = QString());
     Q_INVOKABLE void closeQuickSettings() { setQuickSettingsOpen(false); }
+    Q_INVOKABLE void toggleCalendar();
+    Q_INVOKABLE void closeCalendar() { setCalendarOpen(false); }
     Q_INVOKABLE bool verifyPassword(const QString &password);
     Q_INVOKABLE void lock();
     Q_INVOKABLE void unlock(const QString &password);
+
+public slots:
+    // Called over the session bus by the KWin focus script.
+    void setActiveWindow(const QString &appId);
 
 signals:
     void themeChanged();
     void volumeChanged();
     void wifiEnabledChanged();
+    void wifiSignalChanged();
+    void batteryPctChanged();
+    void activeAppChanged();
     void launcherOpenChanged();
     void quickSettingsOpenChanged();
+    void qsSectionChanged();
+    void calendarOpenChanged();
     void lockedChanged();
     void notificationAdded(const QString &appName, const QString &summary,
                            const QString &body, uint id);
@@ -98,9 +123,12 @@ private slots:
 private:
     void setLauncherOpen(bool open);
     void setQuickSettingsOpen(bool open);
+    void setCalendarOpen(bool open);
     void setLocked(bool locked);
     void refreshVolume();
     void refreshWifi();
+    void refreshBattery();
+    QString appNameForId(const QString &appId) const;
     QStringList parseDesktopExec(const QString &exec, const QString &name) const;
     void loadTheme();
 
@@ -111,8 +139,14 @@ private:
     QFileSystemWatcher m_configWatcher;
     int m_volume = -1;
     bool m_wifiEnabled = true;
+    int m_wifiSignal = -1;
+    int m_batteryPct = -1;
+    QString m_activeApp;
     bool m_launcherOpen = false;
     bool m_qsOpen = false;
+    QString m_qsSection;
+    bool m_calOpen = false;
     bool m_locked = false;
     int m_idleTimeoutId = -1;
+    QTimer *m_pollTimer = nullptr;
 };

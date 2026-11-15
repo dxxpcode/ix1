@@ -37,6 +37,7 @@ qt_add_qml_module(ix1-shell
         qml/Dock.qml
         qml/Launcher.qml
         qml/QuickSettings.qml
+        qml/Calendar.qml
         qml/Notifications.qml
         qml/LockScreen.qml
     RESOURCES
@@ -57,3 +58,4 @@ qt_add_qml_module(ix1-shell
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)
+install(FILES kwin/active-window.js DESTINATION share/ix1/kwin)
