@@ -17,10 +17,10 @@ class Backend : public QObject
     Q_PROPERTY(QVariantList disks READ disks NOTIFY disksChanged)
     Q_PROPERTY(int selectedDisk READ selectedDisk WRITE setSelectedDisk NOTIFY selectedDiskChanged)
     Q_PROPERTY(bool encrypt READ encrypt WRITE setEncrypt NOTIFY encryptChanged)
-    Q_PROPERTY(QString fullName READ fullName WRITE setFullName)
-    Q_PROPERTY(QString userName READ userName WRITE setUserName)
-    Q_PROPERTY(QString password READ password WRITE setPassword)
-    Q_PROPERTY(QString luksPassphrase READ luksPassphrase WRITE setLuksPassphrase)
+    Q_PROPERTY(QString fullName READ fullName WRITE setFullName NOTIFY fullNameChanged)
+    Q_PROPERTY(QString userName READ userName WRITE setUserName NOTIFY userNameChanged)
+    Q_PROPERTY(QString password READ password WRITE setPassword NOTIFY passwordChanged)
+    Q_PROPERTY(QString luksPassphrase READ luksPassphrase WRITE setLuksPassphrase NOTIFY luksPassphraseChanged)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(QString progressText READ progressText NOTIFY progressTextChanged)
     // Structured entries: {ts: seconds, kind: step|ok|sub|err|info, text}.
@@ -43,12 +43,12 @@ public:
     bool encrypt() const { return m_encrypt; }
     void setEncrypt(bool v);
     QString fullName() const { return m_fullName; }
-    void setFullName(const QString &v) { m_fullName = v; }
-    void setUserName(const QString &v) { m_userName = v; }
+    void setFullName(const QString &v) { if (v != m_fullName) { m_fullName = v; emit fullNameChanged(); } }
+    void setUserName(const QString &v) { if (v != m_userName) { m_userName = v; emit userNameChanged(); } }
     QString userName() const { return m_userName; }
-    void setPassword(const QString &v) { m_password = v; }
+    void setPassword(const QString &v) { if (v != m_password) { m_password = v; emit passwordChanged(); } }
     QString password() const { return m_password; }
-    void setLuksPassphrase(const QString &v) { m_luksPass = v; }
+    void setLuksPassphrase(const QString &v) { if (v != m_luksPass) { m_luksPass = v; emit luksPassphraseChanged(); } }
     QString luksPassphrase() const { return m_luksPass; }
     int progress() const { return m_progress; }
     QString progressText() const { return m_progressText; }
@@ -75,6 +75,10 @@ signals:
     void doneChanged();
     void installElapsedChanged();
     void errorChanged();
+    void fullNameChanged();
+    void userNameChanged();
+    void passwordChanged();
+    void luksPassphraseChanged();
 
 private:
     void enumerateDisks();
