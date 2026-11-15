@@ -16,6 +16,7 @@ set(IX1_UI_QML_FILES
     ${IX1_UI_DIR}/qml/GradientText.qml
     ${IX1_UI_DIR}/qml/ShimmerText.qml
     ${IX1_UI_DIR}/qml/CheckMark.qml
+    ${IX1_UI_DIR}/qml/WifiGlyph.qml
 )
 
 set_source_files_properties(${IX1_UI_DIR}/qml/Theme.qml

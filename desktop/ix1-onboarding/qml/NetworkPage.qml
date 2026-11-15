@@ -18,6 +18,12 @@ Item {
     // The password row appears for a secured, not-yet-connected selection.
     readonly property bool wantsPassword:
         selNet !== null && selNet.secured && !selNet.active
+    // The connected row's index — dividers hide beside its cell too.
+    readonly property int activeIndex: {
+        for (let i = 0; i < backend.networks.length; ++i)
+            if (backend.networks[i].active) return i
+        return -1
+    }
 
     function clearPassword() {
         password = ""
@@ -100,7 +106,8 @@ Item {
             Layout.topMargin: 14
         }
 
-        // Segmented network list — one bordered container, hairline dividers.
+        // Segmented network list — one bordered container, hairline
+        // dividers, the same lit-top-edge elevation as the welcome card.
         Rectangle {
             Layout.topMargin: 34
             Layout.fillWidth: true
@@ -108,7 +115,18 @@ Item {
             radius: 14
             color: Theme.card
             border.width: 1
-            border.color: Theme.border
+            border.color: "#26262b"
+
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.topMargin: 1
+                anchors.leftMargin: 16
+                anchors.rightMargin: 16
+                height: 1
+                color: "#29292f"
+            }
 
             Row {
                 visible: backend.networks.length === 0
@@ -172,21 +190,30 @@ Item {
                             }
                         }
 
-                        // Selection cell — an elevated chip inside the segment.
+                        // Selection cell — an elevated chip inside the
+                        // segment; the connected row washes emerald as the
+                        // success state it is.
                         Rectangle {
                             anchors.fill: parent
                             anchors.margins: 1
                             radius: 13
-                            visible: row.sel
-                            color: "#141416"
+                            visible: row.sel || row.active
+                            color: row.active
+                                   ? Qt.rgba(16/255, 185/255, 129/255, 0.07)
+                                   : "#141416"
                             border.width: 1
-                            border.color: "#38383e"
+                            border.color: row.active
+                                          ? Qt.rgba(16/255, 185/255, 129/255, 0.30)
+                                          : "#38383e"
+                            Behavior on color { ColorAnimation { duration: 160 } }
+                            Behavior on border.color { ColorAnimation { duration: 160 } }
                         }
-                        // Hairline divider between rows (hidden beside the
-                        // selected row's cell).
+                        // Hairline divider between rows (hidden beside any
+                        // row showing a cell — selected or connected).
                         Rectangle {
-                            visible: index > 0 && !row.sel
+                            visible: index > 0 && !row.sel && !row.active
                                      && index - 1 !== backend.selectedNetwork
+                                     && index - 1 !== networkPage.activeIndex
                             anchors.top: parent.top
                             anchors.left: parent.left
                             anchors.right: parent.right
@@ -202,21 +229,23 @@ Item {
                             anchors.rightMargin: 20
                             spacing: 14
 
-                            // Wi-Fi glyph — arcs filled by signal strength.
+                            // Wi-Fi glyph — tiered arcs filled by signal
+                            // strength; emerald on the connected row.
                             Rectangle {
                                 width: 34; height: 34; radius: 9
                                 color: row.sel ? "#1d1d21" : "#0d0d0f"
                                 border.width: 1
-                                border.color: row.sel ? "#33333a" : "#232327"
+                                border.color: row.active ? "#15563c"
+                                              : row.sel ? "#33333a" : "#232327"
                                 Behavior on color { ColorAnimation { duration: 140 } }
                                 Behavior on border.color { ColorAnimation { duration: 140 } }
-                                Image {
+                                WifiGlyph {
                                     anchors.centerIn: parent
-                                    width: 18; height: 18
-                                    sourceSize.width: 36; sourceSize.height: 36
-                                    source: "qrc:/Ix1Onboarding/assets/icons/wifi.svg"
-                                    opacity: row.active ? 1
-                                             : Math.max(0.35, modelData.signal / 100)
+                                    width: 19; height: 19
+                                    signal: modelData.signal
+                                    litColor: row.active ? Theme.success
+                                              : "#e4e4e7"
+                                    Behavior on litColor { ColorAnimation { duration: 160 } }
                                 }
                             }
 
