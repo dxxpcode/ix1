@@ -13,7 +13,6 @@ ARG IX1_OS_IMAGE=localhost/ix1-os:dev
 # ---- ix1-installer build stage (Qt6/QML, same toolchain as the shell) -------
 FROM quay.io/fedora/fedora-bootc:44 AS installer-build
 RUN dnf -y install gcc-c++ cmake make qt6-qtbase-devel qt6-qtdeclarative-devel && dnf clean all
-COPY desktop/ix1-ui /src/ix1-ui
 COPY desktop/ix1-installer /src/ix1-installer
 RUN cmake -S /src/ix1-installer -B /build -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr && cmake --build /build && cmake --install /build

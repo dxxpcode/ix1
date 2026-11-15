@@ -1,5 +1,5 @@
 import QtQuick
-
+import Ix1Installer
 
 // Landing-page display type: Geist Medium, -0.02em tracking, with the
 // site's white→zinc-500 vertical fade mapped over the line box — pure
