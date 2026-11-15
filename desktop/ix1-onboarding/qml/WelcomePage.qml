@@ -4,8 +4,32 @@ import QtQuick.Layouts
 import Ix1Onboarding
 
 Item {
+    id: welcomePage
     opacity: StackLayout.isCurrentItem ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+    // Staggered entrance — emblem, kicker, headline, support, card each
+    // rise in turn when the page lands. `enter` runs once per landing.
+    readonly property bool landed: StackLayout.isCurrentItem
+    property real enter: 0
+    onLandedChanged: if (landed) enterAnim.restart()
+    Component.onCompleted: if (landed) enterAnim.restart()
+    NumberAnimation {
+        id: enterAnim
+        target: welcomePage
+        property: "enter"
+        from: 0
+        to: 1
+        duration: 900
+        easing.type: Easing.OutCubic
+    }
+    // Elements stage in ~90ms apart across the first 60% of `enter`.
+    function staged(i) { return Math.min(1, Math.max(0, (enter - i * 0.15) / 0.4)) }
+
+    // The name line only earns its row when it fits the 54px column —
+    // unusually long names fall back to the brand-only greeting.
+    readonly property bool hasName:
+        backend.firstName !== "" && backend.firstName.length <= 16
 
     Flickable {
         id: fl
@@ -25,21 +49,45 @@ Item {
         ColumnLayout {
             id: col
             x: Math.max(0, (fl.width - width) / 2)
-            y: Math.max(24, fl.height * 0.14)
+            y: Math.max(24, fl.height * 0.12)
             width: 620
             spacing: 0
 
+            // The brand moment — the mark arrives first.
+            Image {
+                source: "qrc:/Ix1Onboarding/assets/logo-white.png"
+                Layout.preferredHeight: 52
+                fillMode: Image.PreserveAspectFit
+                smooth: true
+                mipmap: true
+                opacity: welcomePage.staged(0)
+                transform: Translate { y: (1 - welcomePage.staged(0)) * 10 }
+            }
             Text {
                 text: "step 01 — welcome"
                 color: Theme.textMuted
                 font.family: Theme.fontMono
                 font.pixelSize: 11
                 font.letterSpacing: 2.2
+                Layout.topMargin: 26
+                opacity: welcomePage.staged(1)
+                transform: Translate { y: (1 - welcomePage.staged(1)) * 8 }
             }
             GradientText {
-                text: "Welcome to ix1."
+                // A name turns the greeting two-line — the brand line
+                // keeps its period only when it stands alone.
+                text: "Welcome to ix1" + (welcomePage.hasName ? "," : ".")
                 pixelSize: 54
                 Layout.topMargin: 16
+                opacity: welcomePage.staged(2)
+                transform: Translate { y: (1 - welcomePage.staged(2)) * 8 }
+            }
+            GradientText {
+                visible: welcomePage.hasName
+                text: backend.firstName + "."
+                pixelSize: 54
+                opacity: welcomePage.staged(2)
+                transform: Translate { y: (1 - welcomePage.staged(2)) * 8 }
             }
             Text {
                 text: "Two quiet steps and the desktop is yours — get online, then go."
@@ -50,6 +98,8 @@ Item {
                 wrapMode: Text.Wrap
                 Layout.fillWidth: true
                 Layout.topMargin: 14
+                opacity: welcomePage.staged(3)
+                transform: Translate { y: (1 - welcomePage.staged(3)) * 8 }
             }
 
             // The road ahead — the same row language as the disk list.
@@ -61,6 +111,8 @@ Item {
                 color: Theme.card
                 border.width: 1
                 border.color: Theme.border
+                opacity: welcomePage.staged(4)
+                transform: Translate { y: (1 - welcomePage.staged(4)) * 8 }
 
                 Column {
                     width: parent.width

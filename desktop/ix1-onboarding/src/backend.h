@@ -18,6 +18,9 @@ class Backend : public QObject
     Q_PROPERTY(int selectedNetwork READ selectedNetwork WRITE setSelectedNetwork
                NOTIFY selectedNetworkChanged)
     Q_PROPERTY(QString connectedSsid READ connectedSsid NOTIFY connectedSsidChanged)
+    // The install-created account's first name, from GECOS — "" when
+    // unavailable (demos seed it so the greeting renders).
+    Q_PROPERTY(QString firstName READ firstName CONSTANT)
     Q_PROPERTY(QString connectingSsid READ connectingSsid NOTIFY connectingSsidChanged)
     Q_PROPERTY(QString connectError READ connectError NOTIFY connectErrorChanged)
 
@@ -29,6 +32,7 @@ public:
     int selectedNetwork() const { return m_selectedNetwork; }
     void setSelectedNetwork(int i);
     QString connectedSsid() const { return m_connectedSsid; }
+    QString firstName() const { return m_firstName; }
     QString connectingSsid() const { return m_connectingSsid; }
     QString connectError() const { return m_connectError; }
 
@@ -59,6 +63,7 @@ private:
     QString m_connectingSsid;
     QString m_connectError;
     QString m_flagPath;
+    QString m_firstName;
     QProcess *m_proc = nullptr;
 };
 

@@ -3,10 +3,19 @@
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
-#include <QFileInfo>
+
+#include <pwd.h>
+#include <unistd.h>
 
 Backend::Backend(QObject *parent) : QObject(parent)
 {
+    // GECOS carries the full name the installer provisioned
+    // (useradd -c); the first word is the greeting's name.
+    if (const passwd *pw = getpwuid(getuid())) {
+        const QString gecos = QString::fromLocal8Bit(pw->pw_gecos)
+                                  .split(QLatin1Char(',')).first().trimmed();
+        m_firstName = gecos.split(QLatin1Char(' ')).first();
+    }
     if (qEnvironmentVariableIsSet("IX1_DEMO")) {
         seedDemo();
         return;
@@ -32,6 +41,7 @@ void Backend::seedDemo()
                   net(QStringLiteral("coffeehouse-5g"), 62, true, false),
                   net(QStringLiteral("xfinitywifi"), 34, false, false)};
     m_connectedSsid = QStringLiteral("ix1-home");
+    m_firstName = QStringLiteral("Alex");
     m_selectedNetwork = 0;
     emit networksChanged();
     emit connectedSsidChanged();
