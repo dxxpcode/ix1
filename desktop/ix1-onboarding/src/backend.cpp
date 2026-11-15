@@ -65,27 +65,30 @@ void Backend::listNetworks()
 
         // nmcli terse output: SSID:SIGNAL:SECURITY:ACTIVE — ':' inside an
         // SSID is escaped as '\:', so split on unescaped colons only.
+        // Fields stay raw bytes until the SSID needs to be a QString —
+        // UTF-8 names (Café) must not go through per-byte Latin-1.
         QVariantList rows;
         for (const QByteArray &line : out.split('\n')) {
             if (line.isEmpty())
                 continue;
-            QStringList fields;
-            QString cur;
+            QList<QByteArray> fields;
+            QByteArray cur;
             bool esc = false;
             for (const char c : line) {
-                if (esc) { cur += QLatin1Char(c); esc = false; }
+                if (esc) { cur += c; esc = false; }
                 else if (c == '\\') esc = true;
                 else if (c == ':') { fields.append(cur); cur.clear(); }
-                else cur += QLatin1Char(c);
+                else cur += c;
             }
             fields.append(cur);
             if (fields.size() < 4 || fields[0].isEmpty())
                 continue;
-            const bool active = fields[3] == QLatin1String("yes");
-            rows << net(fields[0], fields[1].toInt(),
+            const QString ssid = QString::fromUtf8(fields[0]);
+            const bool active = fields[3] == QByteArrayLiteral("yes");
+            rows << net(ssid, fields[1].toInt(),
                         !fields[2].isEmpty(), active);
             if (active)
-                m_connectedSsid = fields[0];
+                m_connectedSsid = ssid;
         }
         m_networks = rows;
         m_scanning = false;
