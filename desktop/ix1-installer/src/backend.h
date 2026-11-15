@@ -1,6 +1,7 @@
 #ifndef IX1_INSTALLER_BACKEND_H
 #define IX1_INSTALLER_BACKEND_H
 
+#include <QElapsedTimer>
 #include <QObject>
 #include <QProcess>
 #include <QStringList>
@@ -24,6 +25,7 @@ class Backend : public QObject
     Q_PROPERTY(QStringList logLines READ logLines NOTIFY logLinesChanged)
     Q_PROPERTY(bool installing READ installing NOTIFY installingChanged)
     Q_PROPERTY(bool done READ done NOTIFY doneChanged)
+    Q_PROPERTY(int installElapsed READ installElapsed NOTIFY installElapsedChanged)
     Q_PROPERTY(QString error READ error NOTIFY errorChanged)
     // Install image refs resolved at build time by the Containerfile
     // (written to /etc/ix1-install.conf), with CLI/env overrides.
@@ -51,6 +53,7 @@ public:
     QStringList logLines() const { return m_logLines; }
     bool installing() const { return m_installing; }
     bool done() const { return m_done; }
+    int installElapsed() const { return m_installElapsed; }
     QString error() const { return m_error; }
     QString sourceImgref() const { return m_sourceImgref; }
     QString targetImgref() const { return m_targetImgref; }
@@ -68,6 +71,7 @@ signals:
     void logLinesChanged();
     void installingChanged();
     void doneChanged();
+    void installElapsedChanged();
     void errorChanged();
 
 private:
@@ -89,6 +93,8 @@ private:
     QStringList m_logLines;
     bool m_installing = false;
     bool m_done = false;
+    int m_installElapsed = 0;
+    QElapsedTimer m_installTimer;
     QString m_error;
     QString m_sourceImgref, m_targetImgref;
     QProcess *m_proc = nullptr;

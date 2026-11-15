@@ -1,6 +1,7 @@
 #include "backend.h"
 
 #include <QDir>
+#include <QElapsedTimer>
 #include <QFile>
 #include <QJsonArray>
 #include <QJsonDocument>
@@ -106,6 +107,32 @@ void Backend::enumerateDisks()
         m_selectedDisk = 0;
         emit disksChanged();
         emit selectedDiskChanged();
+
+        // Dev-only demo states for renders: IX1_DEMO_PROGRESS=<n> seeds a
+        // mid-install frame; IX1_DEMO_DONE=1 seeds the completed frame.
+        const QByteArray demoPct = qgetenv("IX1_DEMO_PROGRESS");
+        if (!demoPct.isEmpty()) {
+            m_installing = true;
+            emit installingChanged();
+            m_installElapsed = 41;
+            emit installElapsedChanged();
+            m_logLines = {QStringLiteral("→ preparing disk"),
+                          QStringLiteral("→ deploying image"),
+                          QStringLiteral("fetching layer 14 of 51")};
+            emit logLinesChanged();
+            setProgress(demoPct.toInt(), QStringLiteral("deploying image — layer 14 of 51"));
+        } else if (qEnvironmentVariableIsSet("IX1_DEMO_DONE")) {
+            m_installElapsed = 42;
+            emit installElapsedChanged();
+            m_logLines = {QStringLiteral("→ preparing disk"),
+                          QStringLiteral("→ deploying image"),
+                          QStringLiteral("→ provisioning user"),
+                          QStringLiteral("installation complete")};
+            emit logLinesChanged();
+            setProgress(100, QStringLiteral("ix1 installed."));
+            m_done = true;
+            emit doneChanged();
+        }
         return;
     }
 
@@ -212,6 +239,15 @@ void Backend::setEncrypt(bool v)
 
 void Backend::setProgress(int pct, const QString &text)
 {
+    // Wall-clock elapsed survives a blocked GUI thread: the summary
+    // reports the real duration even when timers couldn't tick.
+    if (m_installTimer.isValid()) {
+        const int e = int(m_installTimer.elapsed() / 1000);
+        if (e != m_installElapsed) {
+            m_installElapsed = e;
+            emit installElapsedChanged();
+        }
+    }
     if (pct != m_progress) {
         m_progress = pct;
         emit progressChanged();
@@ -320,6 +356,9 @@ void Backend::startInstall()
     emit logLinesChanged();
     m_installing = true;
     emit installingChanged();
+    m_installElapsed = 0;
+    emit installElapsedChanged();
+    m_installTimer.start();
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
