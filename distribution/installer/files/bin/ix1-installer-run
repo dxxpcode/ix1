@@ -1,0 +1,13 @@
+#!/bin/sh
+# ix1 installer entry point on the live ISO's tty1.
+# Runs the Qt6/QML installer directly on KMS/DRM (eglfs) — no compositor.
+export QT_QPA_PLATFORM=eglfs
+export QT_QPA_EGLFS_ALWAYS_SET_MODE=1
+export QT_QPA_EGLFS_NO_LIBINPUT=0
+export QT_QPA_EGLFS_HIDECURSOR=0
+export QT_QPA_EGLFS_KMS_ATOMIC=0
+export QT_QUICK_BACKEND=software
+export QT_LOGGING_RULES="qt.qml.connections=false"
+export XDG_RUNTIME_DIR=/run/user/0
+mkdir -p "$XDG_RUNTIME_DIR"
+exec /usr/bin/ix1-installer

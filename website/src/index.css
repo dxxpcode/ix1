@@ -1,5 +1,5 @@
-@import "@fontsource/geist-sans";
-@import "@fontsource/geist-mono";
+@import "@fontsource/geist-sans/500.css";
+@import "@fontsource/geist-mono/500.css";
 @import "tailwindcss";
 @import "tw-animate-css";
 

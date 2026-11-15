@@ -135,7 +135,7 @@ export default function App() {
           <p className="ix1-enter mb-6 text-sm font-medium tracking-[0.02em] text-muted-foreground">
             ix1 — a minimal atomic Linux desktop
           </p>
-          <h1 className="ix1-enter ix1-enter-1 mx-auto max-w-3xl bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-400 bg-clip-text text-[64px] font-bold leading-[1.02] tracking-[-0.04em] text-transparent sm:text-[88px] dark:from-white dark:via-white dark:to-zinc-500">
+          <h1 className="ix1-enter ix1-enter-1 mx-auto max-w-3xl bg-gradient-to-b from-zinc-950 via-zinc-950 to-zinc-400 bg-clip-text text-[64px] font-medium leading-[1.02] tracking-[-0.02em] text-transparent sm:text-[88px] dark:from-white dark:via-white dark:to-zinc-500">
             A desktop that just works.
           </h1>
           <p className="ix1-enter ix1-enter-2 mx-auto mt-6 max-w-xl text-lg leading-relaxed text-muted-foreground">
@@ -184,7 +184,7 @@ export default function App() {
               )}
             >
               <f.icon className="mb-6 h-5 w-5 text-foreground" strokeWidth={1.75} />
-              <h3 className="mb-3 font-semibold tracking-tight">{f.title}</h3>
+              <h3 className="mb-3 font-medium tracking-[-0.02em]">{f.title}</h3>
               <p className="text-sm leading-relaxed text-muted-foreground">
                 {f.body}
               </p>
@@ -194,7 +194,7 @@ export default function App() {
 
         {/* download */}
         <section id="download" className="scroll-mt-20 py-28">
-          <h2 className="mb-3 text-3xl font-bold tracking-tight">Download.</h2>
+          <h2 className="mb-3 text-3xl font-medium tracking-[-0.02em]">Download.</h2>
           <p className="mb-10 text-muted-foreground">
             ix1 {RELEASE} — installable ISO for x86_64. Self-contained; no
             internet needed during install.
@@ -289,7 +289,7 @@ export default function App() {
 
         {/* install */}
         <section id="install" className="scroll-mt-20 pb-28">
-          <h2 className="mb-10 text-3xl font-bold tracking-tight">
+          <h2 className="mb-10 text-3xl font-medium tracking-[-0.02em]">
             Install in four steps.
           </h2>
           <ol>
@@ -301,7 +301,7 @@ export default function App() {
                 <span className="w-5 shrink-0 text-sm text-zinc-600">{s.n}</span>
                 <div className="min-w-0">
                   <p className="text-[15px] text-muted-foreground">
-                    <strong className="font-semibold text-foreground">
+                    <strong className="font-medium text-foreground">
                       {s.t}
                     </strong>{" "}
                     {s.b.startsWith("dd if=") ? (

@@ -55,12 +55,12 @@ export default function Releases() {
       </nav>
 
       <main className="mx-auto max-w-3xl px-6 pb-28 pt-32">
-        <h1 className="mb-14 text-4xl font-bold tracking-tight">Releases.</h1>
+        <h1 className="mb-14 text-4xl font-medium tracking-[-0.02em]">Releases.</h1>
         {RELEASES.map((r) => (
           <article key={r.tag} className="border-t border-border py-10">
             <div className="mb-6 flex items-baseline justify-between">
               <div className="flex items-center gap-3">
-                <h2 className="text-2xl font-semibold tracking-tight">
+                <h2 className="text-2xl font-medium tracking-[-0.02em]">
                   ix1 {r.version}
                 </h2>
                 <Badge variant="secondary">latest</Badge>
