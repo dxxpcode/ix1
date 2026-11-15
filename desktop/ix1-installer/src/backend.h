@@ -2,6 +2,7 @@
 #define IX1_INSTALLER_BACKEND_H
 
 #include <QElapsedTimer>
+#include <QFile>
 #include <QObject>
 #include <QProcess>
 #include <QStringList>
@@ -22,7 +23,8 @@ class Backend : public QObject
     Q_PROPERTY(QString luksPassphrase READ luksPassphrase WRITE setLuksPassphrase)
     Q_PROPERTY(int progress READ progress NOTIFY progressChanged)
     Q_PROPERTY(QString progressText READ progressText NOTIFY progressTextChanged)
-    Q_PROPERTY(QStringList logLines READ logLines NOTIFY logLinesChanged)
+    // Structured entries: {ts: seconds, kind: step|ok|sub|err|info, text}.
+    Q_PROPERTY(QVariantList logLines READ logLines NOTIFY logLinesChanged)
     Q_PROPERTY(bool installing READ installing NOTIFY installingChanged)
     Q_PROPERTY(bool done READ done NOTIFY doneChanged)
     Q_PROPERTY(int installElapsed READ installElapsed NOTIFY installElapsedChanged)
@@ -50,7 +52,7 @@ public:
     QString luksPassphrase() const { return m_luksPass; }
     int progress() const { return m_progress; }
     QString progressText() const { return m_progressText; }
-    QStringList logLines() const { return m_logLines; }
+    QVariantList logLines() const { return m_logLines; }
     bool installing() const { return m_installing; }
     bool done() const { return m_done; }
     int installElapsed() const { return m_installElapsed; }
@@ -78,6 +80,8 @@ private:
     void enumerateDisks();
     void setProgress(int pct, const QString &text);
     void appendLog(const QString &line, bool active = false);
+    void appendSub(const QString &line);
+    void appendEntry(const QString &kind, const QString &line);
     bool runStep(const QString &desc, int pctBefore, const QString &cmd,
                  const QStringList &args, QString *out = nullptr,
                  const QString &stdinText = QString());
@@ -90,7 +94,8 @@ private:
     QString m_fullName, m_userName, m_password, m_luksPass;
     int m_progress = 0;
     QString m_progressText;
-    QStringList m_logLines;
+    QVariantList m_logLines;
+    QFile m_logFile;
     bool m_installing = false;
     bool m_done = false;
     int m_installElapsed = 0;

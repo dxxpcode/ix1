@@ -8,6 +8,7 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QTextStream>
 
 // The installer runs as root in the live environment.
 
@@ -45,6 +46,15 @@ Backend::Backend(QObject *parent) : QObject(parent)
         conf.value(QStringLiteral("install/target"), QStringLiteral("10.0.2.2:5000/ix1-os:dev"))
             .toString().toUtf8());
     enumerateDisks();
+}
+
+static QVariantMap logEntry(const QString &kind, const QString &text, int ts)
+{
+    QVariantMap e;
+    e[QStringLiteral("ts")] = ts;
+    e[QStringLiteral("kind")] = kind;
+    e[QStringLiteral("text")] = text;
+    return e;
 }
 
 // True when the device or any descendant holds a live-boot mount.
@@ -116,18 +126,18 @@ void Backend::enumerateDisks()
             emit installingChanged();
             m_installElapsed = 41;
             emit installElapsedChanged();
-            m_logLines = {QStringLiteral("→ preparing disk"),
-                          QStringLiteral("→ deploying image"),
-                          QStringLiteral("fetching layer 14 of 51")};
+            m_logLines = {logEntry(QStringLiteral("ok"), QStringLiteral("preparing disk"), 3),
+                          logEntry(QStringLiteral("step"), QStringLiteral("deploying image"), 9),
+                          logEntry(QStringLiteral("sub"), QStringLiteral("fetching layer 14 of 51"), 39)};
             emit logLinesChanged();
             setProgress(demoPct.toInt(), QStringLiteral("deploying image — layer 14 of 51"));
         } else if (qEnvironmentVariableIsSet("IX1_DEMO_DONE")) {
             m_installElapsed = 42;
             emit installElapsedChanged();
-            m_logLines = {QStringLiteral("→ preparing disk"),
-                          QStringLiteral("→ deploying image"),
-                          QStringLiteral("→ provisioning user"),
-                          QStringLiteral("installation complete")};
+            m_logLines = {logEntry(QStringLiteral("ok"), QStringLiteral("preparing disk"), 3),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("deploying image"), 9),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("provisioning user"), 38),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("installation complete"), 42)};
             emit logLinesChanged();
             setProgress(100, QStringLiteral("ix1 installed."));
             m_done = true;
@@ -258,18 +268,52 @@ void Backend::setProgress(int pct, const QString &text)
     }
 }
 
+void Backend::appendEntry(const QString &kind, const QString &line)
+{
+    const int ts = m_installTimer.isValid()
+        ? int(m_installTimer.elapsed() / 1000) : m_installElapsed;
+    m_logLines.append(logEntry(kind, line, ts));
+    if (m_logFile.isOpen()) {
+        QTextStream s(&m_logFile);
+        s << '[' << (ts / 60 < 10 ? "0" : "") << ts / 60 << ':'
+          << (ts % 60 < 10 ? "0" : "") << ts % 60 << "] "
+          << line << '\n';
+        s.flush();
+    }
+    emit logLinesChanged();
+}
+
 void Backend::appendLog(const QString &line, bool active)
 {
-    if (!m_logLines.isEmpty() && m_logLines.last().startsWith(QLatin1String("→")))
-        m_logLines.last() = QStringLiteral("✓ ") + m_logLines.last().mid(2);
-    m_logLines.append((active ? QStringLiteral("→ ") : QStringLiteral("✓ ")) + line);
-    emit logLinesChanged();
+    // The running step's arrow resolves to a check when the next begins.
+    if (!m_logLines.isEmpty()) {
+        QVariantMap last = m_logLines.last().toMap();
+        if (last.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
+            last[QStringLiteral("kind")] = QStringLiteral("ok");
+            m_logLines.last() = last;
+        }
+    }
+    appendEntry(active ? QStringLiteral("step") : QStringLiteral("ok"), line);
+}
+
+void Backend::appendSub(const QString &line)
+{
+    appendEntry(QStringLiteral("sub"), line);
 }
 
 void Backend::fail(const QString &msg)
 {
-    appendLog(QStringLiteral("failed: ") + msg, false);
-    m_logLines.last() = QStringLiteral("✗ ") + m_logLines.last().mid(2);
+    // The step that was running is the one that failed — mark it, then
+    // attach the detail and the transcript path as indented sub-lines.
+    if (!m_logLines.isEmpty()) {
+        QVariantMap last = m_logLines.last().toMap();
+        if (last.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
+            last[QStringLiteral("kind")] = QStringLiteral("err");
+            m_logLines.last() = last;
+        }
+    }
+    appendEntry(QStringLiteral("err"), QStringLiteral("failed: ") + msg);
+    appendSub(QStringLiteral("log saved to /tmp/ix1-install.log"));
     m_error = msg;
     emit errorChanged();
     m_installing = false;
@@ -332,6 +376,7 @@ bool Backend::provisionUser(const QString &sysroot)
             f.write(QByteArray("d /home/") + m_userName.toUtf8() +
                     QByteArray(" 0700 ") + m_userName.toUtf8() +
                     QByteArray(" ") + m_userName.toUtf8() + QByteArray(" -\n"));
+            appendSub(QStringLiteral("home directory rule written"));
     }
     if (!runStep(QStringLiteral("setting password"), 96, QStringLiteral("chpasswd"),
                  {QStringLiteral("-R"), deploy}, nullptr,
@@ -359,6 +404,10 @@ void Backend::startInstall()
     m_installElapsed = 0;
     emit installElapsedChanged();
     m_installTimer.start();
+
+    // Transcript — every event lands here for post-mortem bug reports.
+    m_logFile.setFileName(QStringLiteral("/tmp/ix1-install.log"));
+    (void)m_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
@@ -452,6 +501,7 @@ void Backend::startInstall()
             if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
                 f.write(QByteArray("ix1root UUID=") + uuid.toUtf8() +
                         QByteArray(" none luks,discard\n"));
+                appendSub(QStringLiteral("crypttab written"));
             }
         }
 
