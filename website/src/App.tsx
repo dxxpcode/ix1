@@ -1,12 +1,21 @@
+import { useEffect, useState } from "react"
 import {
   ArrowDown,
+  ArrowUpRight,
+  BadgeCheck,
+  CircleDot,
+  Code2,
   FileArchive,
+  GitFork,
   Layers,
   LayoutGrid,
+  Scale,
   ShieldCheck,
+  Star,
 } from "lucide-react"
 
 import logoUrl from "../assets/logo.png"
+import { fetchRepoStats, type RepoStats } from "@/lib/github"
 import { CopyButton } from "@/components/copy-button"
 import { GithubButton } from "@/components/github-button"
 import { ThemeToggle } from "@/components/theme-toggle"
@@ -36,6 +45,36 @@ const FEATURES = [
   },
 ]
 
+const REPO = "https://github.com/dxxpcode/ix1"
+
+const OPENSOURCE = [
+  {
+    icon: Code2,
+    title: "Everything, in the open",
+    body: "The image recipes, the custom shell, the installer, and this website live in one public repository.",
+    href: REPO,
+  },
+  {
+    icon: Scale,
+    title: "MIT, top to bottom",
+    body: "Use it, fork it, ship it. The only requirement is keeping the license text intact.",
+    href: `${REPO}/blob/main/LICENSE`,
+  },
+  {
+    icon: BadgeCheck,
+    title: "Rebuild it yourself",
+    body: "Signed releases built from public Containerfiles — run the same build and verify exactly what ships.",
+    href: `${REPO}/tree/main/distribution`,
+  },
+]
+
+const SOURCE_MAP = [
+  { label: "the atomic image", path: "distribution/bootc" },
+  { label: "the desktop shell", path: "desktop/ix1-shell" },
+  { label: "the installer", path: "desktop/ix1-installer" },
+  { label: "this website", path: "website" },
+]
+
 const STEPS = [
   {
     n: "1",
@@ -59,6 +98,44 @@ const STEPS = [
   },
 ]
 
+function RepoStats() {
+  const [stats, setStats] = useState<RepoStats | null>(null)
+
+  useEffect(() => {
+    let mounted = true
+    fetchRepoStats().then((d) => {
+      if (mounted && d) setStats(d)
+    })
+    return () => {
+      mounted = false
+    }
+  }, [])
+
+  const items = [
+    { icon: Star, n: stats?.stars, label: "stars", star: true },
+    { icon: GitFork, n: stats?.forks, label: "forks" },
+    { icon: CircleDot, n: stats?.issues, label: "open issues" },
+  ]
+
+  return (
+    <div className="mt-6 flex items-center gap-6 text-[13px] text-muted-foreground">
+      {items.map((it) => (
+        <span key={it.label} className="flex items-center gap-1.5">
+          <it.icon
+            className={cn(
+              "h-3.5 w-3.5",
+              it.star && "fill-amber-400 text-amber-400 dark:fill-amber-300 dark:text-amber-300"
+            )}
+          />
+          <span className="tabular-nums">
+            {it.n !== undefined ? it.n : "—"} {it.label}
+          </span>
+        </span>
+      ))}
+    </div>
+  )
+}
+
 export default function App() {
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -78,6 +155,12 @@ export default function App() {
             </a>
             <a className="transition-colors hover:text-foreground" href="#install">
               Install
+            </a>
+            <a
+              className="transition-colors hover:text-foreground"
+              href="#open-source"
+            >
+              Source
             </a>
             <a className="transition-colors hover:text-foreground" href="releases.html">
               Releases
@@ -314,6 +397,70 @@ export default function App() {
             Requires a UEFI machine with Secure Boot off. Runs well in a VM
             (QEMU/KVM, 2 CPU / 4 GB / 25 GB).
           </p>
+        </section>
+
+        {/* open source */}
+        <section id="open-source" className="scroll-mt-20 pb-28">
+          <p className="mb-3 text-sm font-medium tracking-[0.02em] text-muted-foreground">
+            open source
+          </p>
+          <h2 className="mb-3 text-3xl font-medium tracking-[-0.02em]">
+            Open source, end to end.
+          </h2>
+          <p className="mb-10 max-w-xl text-muted-foreground">
+            Every layer is public — the image build, the shell, the
+            installer, this website. Read it, audit it, rebuild it.
+          </p>
+
+          <div className="grid grid-cols-1 border border-border sm:grid-cols-3">
+            {OPENSOURCE.map((o, i) => (
+              <a
+                key={o.title}
+                href={o.href}
+                className={cn(
+                  "group p-8 transition-colors duration-200 hover:bg-accent/40",
+                  i > 0 && "border-t border-border sm:border-l sm:border-t-0"
+                )}
+              >
+                <o.icon
+                  className="mb-6 h-5 w-5 text-foreground"
+                  strokeWidth={1.75}
+                />
+                <h3 className="mb-3 flex items-center gap-1.5 font-medium tracking-[-0.02em]">
+                  {o.title}
+                  <ArrowUpRight className="h-3.5 w-3.5 text-muted-foreground opacity-0 transition-opacity duration-200 group-hover:opacity-100" />
+                </h3>
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  {o.body}
+                </p>
+              </a>
+            ))}
+          </div>
+
+          <RepoStats />
+
+          <div className="mt-10">
+            <p className="mb-2 text-xs font-medium uppercase tracking-wider text-zinc-600">
+              Read the source
+            </p>
+            <div className="flex flex-col gap-1.5">
+              {SOURCE_MAP.map((m) => (
+                <a
+                  key={m.path}
+                  href={`${REPO}/tree/main/${m.path}`}
+                  className="group flex items-center justify-between gap-4 border border-border px-3.5 py-2.5 transition-colors hover:border-zinc-400 hover:bg-accent/40 dark:hover:border-zinc-600"
+                >
+                  <span className="flex min-w-0 items-baseline gap-3">
+                    <span className="shrink-0 text-[13px] text-muted-foreground">
+                      {m.label}
+                    </span>
+                    <code className="truncate text-[13px]">{m.path}</code>
+                  </span>
+                  <ArrowUpRight className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+                </a>
+              ))}
+            </div>
+          </div>
         </section>
       </main>
 

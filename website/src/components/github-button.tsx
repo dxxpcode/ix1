@@ -2,6 +2,7 @@ import { useEffect, useState } from "react"
 import { ArrowUpRight, Github, Star } from "lucide-react"
 
 import { buttonVariants } from "@/components/ui/button"
+import { fetchRepoStats } from "@/lib/github"
 import { cn } from "@/lib/utils"
 
 function formatStars(n: number) {
@@ -13,16 +14,13 @@ export function GithubButton() {
   const [stars, setStars] = useState<number | null>(null)
 
   useEffect(() => {
-    const ctrl = new AbortController()
-    fetch("https://api.github.com/repos/dxxpcode/ix1", { signal: ctrl.signal })
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d) => {
-        if (d && typeof d.stargazers_count === "number") {
-          setStars(d.stargazers_count)
-        }
-      })
-      .catch(() => {})
-    return () => ctrl.abort()
+    let mounted = true
+    fetchRepoStats().then((d) => {
+      if (mounted && d) setStars(d.stars)
+    })
+    return () => {
+      mounted = false
+    }
   }, [])
 
   return (
