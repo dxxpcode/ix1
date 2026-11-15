@@ -10,6 +10,8 @@
 #include <QSettings>
 #include <QTextStream>
 
+#include <fcntl.h>
+
 // The installer runs as root in the live environment.
 
 static QStringList deploymentsAt(const QString &sysroot)
@@ -283,16 +285,24 @@ void Backend::appendEntry(const QString &kind, const QString &line)
     emit logLinesChanged();
 }
 
+// Marks the most recent still-running step — sub-lines may sit between
+// it and the end of the list.
+static void resolveLastStep(QVariantList &lines, const QString &kind)
+{
+    for (int i = lines.size() - 1; i >= 0; --i) {
+        QVariantMap e = lines[i].toMap();
+        if (e.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
+            e[QStringLiteral("kind")] = kind;
+            lines[i] = e;
+            return;
+        }
+    }
+}
+
 void Backend::appendLog(const QString &line, bool active)
 {
     // The running step's arrow resolves to a check when the next begins.
-    if (!m_logLines.isEmpty()) {
-        QVariantMap last = m_logLines.last().toMap();
-        if (last.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
-            last[QStringLiteral("kind")] = QStringLiteral("ok");
-            m_logLines.last() = last;
-        }
-    }
+    resolveLastStep(m_logLines, QStringLiteral("ok"));
     appendEntry(active ? QStringLiteral("step") : QStringLiteral("ok"), line);
 }
 
@@ -305,15 +315,10 @@ void Backend::fail(const QString &msg)
 {
     // The step that was running is the one that failed — mark it, then
     // attach the detail and the transcript path as indented sub-lines.
-    if (!m_logLines.isEmpty()) {
-        QVariantMap last = m_logLines.last().toMap();
-        if (last.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
-            last[QStringLiteral("kind")] = QStringLiteral("err");
-            m_logLines.last() = last;
-        }
-    }
+    resolveLastStep(m_logLines, QStringLiteral("err"));
     appendEntry(QStringLiteral("err"), QStringLiteral("failed: ") + msg);
-    appendSub(QStringLiteral("log saved to /tmp/ix1-install.log"));
+    if (m_logFile.isOpen())
+        appendSub(QStringLiteral("log saved to /tmp/ix1-install.log"));
     m_error = msg;
     emit errorChanged();
     m_installing = false;
@@ -372,11 +377,12 @@ bool Backend::provisionUser(const QString &sysroot)
     // exists with the right owner and SELinux label on first boot.
     {
         QFile f(deploy + QStringLiteral("/usr/lib/tmpfiles.d/ix1-install-user.conf"));
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
             f.write(QByteArray("d /home/") + m_userName.toUtf8() +
                     QByteArray(" 0700 ") + m_userName.toUtf8() +
                     QByteArray(" ") + m_userName.toUtf8() + QByteArray(" -\n"));
             appendSub(QStringLiteral("home directory rule written"));
+        }
     }
     if (!runStep(QStringLiteral("setting password"), 96, QStringLiteral("chpasswd"),
                  {QStringLiteral("-R"), deploy}, nullptr,
@@ -406,8 +412,15 @@ void Backend::startInstall()
     m_installTimer.start();
 
     // Transcript — every event lands here for post-mortem bug reports.
+    // O_NOFOLLOW: running as root, a planted symlink must not redirect
+    // the truncate into a root-owned target.
     m_logFile.setFileName(QStringLiteral("/tmp/ix1-install.log"));
-    (void)m_logFile.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text);
+    const int logFd = ::open(m_logFile.fileName().toLocal8Bit().constData(),
+                             O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC,
+                             0644);
+    if (logFd >= 0)
+        (void)m_logFile.open(logFd, QIODevice::WriteOnly | QIODevice::Text,
+                             QFileDevice::AutoCloseHandle);
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
