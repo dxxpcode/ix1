@@ -52,7 +52,7 @@ qemu-system-x86_64 -m 4096 -enable-kvm -cdrom ix1-0.8.0-x86_64.iso   # try it in
 | ✓ **M7** | Updates & recovery — signed atomic updates, rollback, retention |
 | ✓ **M8** | Quality assurance — full-stack test pass, [evidence](tests/qa/evidence/) |
 | ✓ **M9** | Release — ISO, checksums, signatures, [website](https://dxxpcode.github.io/ix1/) |
-| ▶ **Next** | Continued polish |
+| ▶ **Next** | First-run onboarding (in design), continued polish |
 
 See [`documentation/milestone-tests.md`](documentation/milestone-tests.md) for the acceptance test each milestone had to pass.
 
@@ -74,7 +74,7 @@ This repository is the monorepo for the whole system:
 
 ```
 distribution/   bootc image, packages, branding, installer, release
-desktop/        shell, dock, launcher, panel, settings, installer, onboarding, design system
+desktop/        shell, dock, launcher, panel, settings, design system
 applications/   first-party apps (files, software center, ...)
 system/         boot, services, networking, storage, security, updates
 platform/       portals, permissions, application integration

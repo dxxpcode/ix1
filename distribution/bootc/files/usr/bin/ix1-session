@@ -59,11 +59,6 @@ dbus-update-activation-environment \
 # Start the shell; when it exits, stop the compositor.
 /usr/bin/ix1-shell &
 SHELL_PID=$!
-
-# First-run onboarding — a full-screen sibling of the installer that
-# overlays the shell, stamps ~/.config/ix1/onboarded when finished, and
-# exits immediately on every later boot.
-/usr/bin/ix1-onboarding &
 wait "$SHELL_PID"
 kill "$KWIN_PID" 2>/dev/null || true
 exit 0

@@ -13,11 +13,9 @@ RUN dnf -y install \
         layer-shell-qt kf6-kidletime-devel pam-devel \
     && dnf clean all
 
-COPY desktop/ix1-ui /src/ix1-ui
 COPY desktop/ix1-shell /src/ix1-shell
 COPY desktop/ix1-settings /src/ix1-settings
 COPY desktop/ix1-software-center /src/ix1-software-center
-COPY desktop/ix1-onboarding /src/ix1-onboarding
 RUN cmake -S /src/ix1-shell -B /build-shell \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
@@ -32,12 +30,7 @@ RUN cmake -S /src/ix1-shell -B /build-shell \
         -DCMAKE_BUILD_TYPE=Release \
         -DCMAKE_INSTALL_PREFIX=/usr \
     && cmake --build /build-software-center -j"$(nproc)" \
-    && cmake --install /build-software-center \
-    && cmake -S /src/ix1-onboarding -B /build-onboarding \
-        -DCMAKE_BUILD_TYPE=Release \
-        -DCMAKE_INSTALL_PREFIX=/usr \
-    && cmake --build /build-onboarding -j"$(nproc)" \
-    && cmake --install /build-onboarding
+    && cmake --install /build-software-center
 
 # ---- Final image ------------------------------------------------------------
 FROM quay.io/fedora/fedora-bootc:44
@@ -115,9 +108,7 @@ RUN systemctl set-default graphical.target || true
 COPY --from=shell-build /usr/bin/ix1-shell /usr/bin/ix1-shell
 COPY --from=shell-build /usr/bin/ix1-settings /usr/bin/ix1-settings
 COPY --from=shell-build /usr/bin/ix1-software-center /usr/bin/ix1-software-center
-COPY --from=shell-build /usr/bin/ix1-onboarding /usr/bin/ix1-onboarding
-RUN chmod 755 /usr/bin/ix1-shell /usr/bin/ix1-settings /usr/bin/ix1-software-center \
-    /usr/bin/ix1-onboarding
+RUN chmod 755 /usr/bin/ix1-shell /usr/bin/ix1-settings /usr/bin/ix1-software-center
 
 COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
      /usr/share/applications/ix1-settings.desktop
