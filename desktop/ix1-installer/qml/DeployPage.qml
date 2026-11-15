@@ -100,6 +100,8 @@ Item {
                 pixelSize: 92
                 gradient: !backend.error
                 flatColor: Theme.danger
+                shimmer: backend.installing && !backend.done && !backend.error
+                sweep: backend.done
             }
             // Completion badge — an emerald disc that pops in,
             // then the white check draws itself inside it.
@@ -125,7 +127,7 @@ Item {
         Row {
             Layout.topMargin: 10
             spacing: 0
-            Text {
+            ShimmerText {
                 text: backend.done
                     ? "installed to " + (backend.disks[backend.selectedDisk] || {}).name
                       + (backend.encrypt ? " · encrypted" : "")
@@ -133,8 +135,9 @@ Item {
                     : backend.error ? backend.error
                     : (backend.progressText !== "" ? backend.progressText : "Preparing…")
                 color: backend.error ? Theme.danger : Theme.textSecondary
-                font.family: Theme.fontSans
-                font.pixelSize: 15
+                fontFamily: Theme.fontSans
+                fontPixelSize: 15
+                running: backend.installing && !backend.done && !backend.error
             }
             Text {
                 visible: backend.installing && !backend.done && !backend.error
