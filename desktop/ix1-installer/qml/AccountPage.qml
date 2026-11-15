@@ -3,8 +3,13 @@ import QtQuick.Layouts
 import Ix1Installer
 
 Item {
+    id: accountPage
     opacity: StackLayout.isCurrentItem ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+
+    property string confirm
+    readonly property bool passwordsMatch: backend.password !== ""
+        && backend.password === confirm
 
     Flickable {
         id: fl
@@ -55,10 +60,11 @@ Item {
 
             Repeater {
                 model: [
-                    { l: "full name",       ph: "Alex",                val: "full" },
-                    { l: "username",        ph: "alex",                val: "user" },
-                    { l: "password",        ph: "a strong password",   val: "pass" },
-                    { l: "disk passphrase", ph: "for luks encryption", val: "luks",
+                    { l: "full name",        ph: "Alex",                val: "full",    ic: "user" },
+                    { l: "username",         ph: "alex",                val: "user",    ic: "at" },
+                    { l: "password",         ph: "a strong password",   val: "pass",    ic: "lock" },
+                    { l: "confirm password", ph: "repeat the password", val: "confirm", ic: "lock" },
+                    { l: "disk passphrase",  ph: "for luks encryption", val: "luks",    ic: "key",
                       hide: !backend.encrypt },
                 ]
                 delegate: ColumnLayout {
@@ -75,6 +81,9 @@ Item {
                     Item {
                         Layout.fillWidth: true
                         height: 50
+                        readonly property bool secret: modelData.val === "pass"
+                            || modelData.val === "luks" || modelData.val === "confirm"
+                        property bool reveal: false
                         // Focus ring — a soft halo outside the field border.
                         Rectangle {
                             anchors.centerIn: parent
@@ -97,16 +106,27 @@ Item {
                             Behavior on border.color { ColorAnimation { duration: 140 } }
                             Behavior on color { ColorAnimation { duration: 140 } }
                         }
+                        // Leading glyph — identifies the field at a glance.
+                        Image {
+                            anchors.left: parent.left
+                            anchors.leftMargin: 15
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 16; height: 16
+                            sourceSize.width: 36; sourceSize.height: 36
+                            source: "qrc:/Ix1Installer/assets/icons/" + modelData.ic + ".svg"
+                            opacity: field.activeFocus || field.text !== "" ? 1 : 0.5
+                            Behavior on opacity { NumberAnimation { duration: 160 } }
+                        }
                         TextInput {
                             id: field
                             anchors.fill: parent
-                            anchors.leftMargin: 15
-                            anchors.rightMargin: 15
+                            anchors.leftMargin: 44
+                            anchors.rightMargin: parent.secret ? 48 : 15
                             verticalAlignment: Text.AlignVCenter
                             color: Theme.textPrimary
                             font.family: Theme.fontSans
                             font.pixelSize: 15
-                            echoMode: modelData.val === "pass" || modelData.val === "luks"
+                            echoMode: parent.secret && !parent.reveal
                                       ? TextInput.Password : TextInput.Normal
                             selectByMouse: true
                             activeFocusOnTab: true
@@ -122,10 +142,58 @@ Item {
                                 if (modelData.val === "full") backend.fullName = text
                                 else if (modelData.val === "user") backend.userName = text
                                 else if (modelData.val === "pass") backend.password = text
+                                else if (modelData.val === "confirm") accountPage.confirm = text
                                 else if (modelData.val === "luks") backend.luksPassphrase = text
                             }
                         }
+                        // Show/hide toggle on secret fields.
+                        Rectangle {
+                            visible: parent.secret
+                            anchors.right: parent.right
+                            anchors.rightMargin: 8
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 34; height: 34; radius: 8
+                            color: eyeHover.hovered ? "#1b1b1f" : "transparent"
+                            Behavior on color { ColorAnimation { duration: 120 } }
+                            Image {
+                                anchors.centerIn: parent
+                                width: 17; height: 17
+                                sourceSize.width: 36; sourceSize.height: 36
+                                source: "qrc:/Ix1Installer/assets/icons/eye"
+                                        + (parent.parent.reveal ? "" : "-off") + ".svg"
+                                opacity: eyeHover.hovered ? 1 : 0.55
+                                Behavior on opacity { NumberAnimation { duration: 120 } }
+                            }
+                            HoverHandler { id: eyeHover }
+                            MouseArea {
+                                anchors.fill: parent
+                                cursorShape: Qt.PointingHandCursor
+                                onClicked: parent.parent.reveal = !parent.parent.reveal
+                            }
+                        }
                         HoverHandler { id: fieldHover }
+                    }
+                    // Match hint under the confirm field.
+                    Row {
+                        visible: modelData.val === "confirm" && backend.password !== ""
+                        spacing: 7
+                        CheckMark {
+                            width: 11; height: 11
+                            anchors.verticalCenter: parent.verticalCenter
+                            strokeWidth: 1.7
+                            progress: accountPage.passwordsMatch ? 1 : 0
+                            checkColor: accountPage.passwordsMatch ? Theme.success : Theme.amber
+                        }
+                        Text {
+                            text: accountPage.confirm === "" ? "type the password again"
+                                : accountPage.passwordsMatch ? "passwords match"
+                                : "passwords don't match"
+                            color: accountPage.confirm === "" ? Theme.textDim
+                                : accountPage.passwordsMatch ? Theme.success
+                                : Theme.amber
+                            font.family: Theme.fontMono
+                            font.pixelSize: 11
+                        }
                     }
                     // strength meter under the password field
                     Column {

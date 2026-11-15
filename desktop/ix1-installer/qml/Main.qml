@@ -108,7 +108,7 @@ ApplicationWindow {
         width: parent.width
         currentIndex: win.step
         DestinationPage {}
-        AccountPage {}
+        AccountPage { id: accountPage }
         DeployPage { id: deployPage }
     }
 
@@ -204,6 +204,7 @@ ApplicationWindow {
             if (backend.selectedDisk >= 0) win.step = 1
         } else if (step === 1) {
             if (backend.userName !== "" && backend.password !== "" &&
+                accountPage.passwordsMatch &&
                 (!backend.encrypt || backend.luksPassphrase !== "")) {
                 win.step = 2
                 backend.startInstall()

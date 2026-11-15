@@ -38,6 +38,12 @@ qt_add_qml_module(ix1-installer
         assets/icons/nvme.svg
         assets/icons/usb.svg
         assets/icons/shield.svg
+        assets/icons/user.svg
+        assets/icons/at.svg
+        assets/icons/lock.svg
+        assets/icons/key.svg
+        assets/icons/eye.svg
+        assets/icons/eye-off.svg
         assets/fonts/geist-500.ttf
         assets/fonts/geistmono-500.ttf
 )
