@@ -23,6 +23,9 @@ class Backend : public QObject
     Q_PROPERTY(QString firstName READ firstName CONSTANT)
     Q_PROPERTY(QString connectingSsid READ connectingSsid NOTIFY connectingSsidChanged)
     Q_PROPERTY(QString connectError READ connectError NOTIFY connectErrorChanged)
+    // The ssid whose last join attempt failed — the row carries the
+    // retry affordance instead of the error floating free.
+    Q_PROPERTY(QString failedSsid READ failedSsid NOTIFY failedSsidChanged)
 
 public:
     explicit Backend(QObject *parent = nullptr);
@@ -35,9 +38,13 @@ public:
     QString firstName() const { return m_firstName; }
     QString connectingSsid() const { return m_connectingSsid; }
     QString connectError() const { return m_connectError; }
+    QString failedSsid() const { return m_failedSsid; }
 
     void setFlagPath(const QString &p) { m_flagPath = p; }
 
+    // Arrow-key navigation previews a row without joining — only a
+    // deliberate activate (click re-tap / Enter / join) connects.
+    Q_INVOKABLE void previewNetwork(int i);
     Q_INVOKABLE void rescan();                      // rescan + list
     Q_INVOKABLE void refresh();                     // list only
     Q_INVOKABLE void connectSelected(const QString &password);
@@ -50,6 +57,7 @@ signals:
     void connectedSsidChanged();
     void connectingSsidChanged();
     void connectErrorChanged();
+    void failedSsidChanged();
 
 private:
     void listNetworks();
@@ -62,6 +70,7 @@ private:
     QString m_connectedSsid;
     QString m_connectingSsid;
     QString m_connectError;
+    QString m_failedSsid;
     QString m_flagPath;
     QString m_firstName;
     QProcess *m_proc = nullptr;

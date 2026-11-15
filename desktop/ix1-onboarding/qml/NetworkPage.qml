@@ -40,6 +40,33 @@ Item {
                 backend.selectedNetwork = index
         }
     }
+    // Arrow-key flow — walk the list, Enter joins (or opens the
+    // password row). Preview moves the cell without connecting;
+    // commit() is the deliberate activate. Digits stay as direct jumps.
+    Shortcut {
+        sequence: "Up"
+        onActivated: backend.previewNetwork(backend.selectedNetwork - 1)
+    }
+    Shortcut {
+        sequence: "Down"
+        onActivated: backend.previewNetwork(backend.selectedNetwork + 1)
+    }
+    Shortcut {
+        sequence: "Return"
+        onActivated: networkPage.commit()
+    }
+    Shortcut {
+        sequence: "Enter"
+        onActivated: networkPage.commit()
+    }
+    function commit() {
+        if (wantsPassword) {
+            pwField.forceActiveFocus()
+            return
+        }
+        if (selNet !== null && !selNet.active)
+            backend.connectSelected(password)
+    }
     // Rescan on entry, light refresh while the page is up.
     onVisibleChanged: if (visible) backend.rescan()
     Timer {
@@ -242,10 +269,34 @@ Item {
                                 WifiGlyph {
                                     anchors.centerIn: parent
                                     width: 19; height: 19
+                                    visible: !row.connecting
                                     signal: modelData.signal
                                     litColor: row.active ? Theme.success
                                               : "#e4e4e7"
                                     Behavior on litColor { ColorAnimation { duration: 160 } }
+                                }
+                                // The join attempt spins inside the row's
+                                // own glyph square.
+                                Canvas {
+                                    anchors.centerIn: parent
+                                    width: 16; height: 16
+                                    visible: row.connecting
+                                    onPaint: {
+                                        const ctx = getContext("2d")
+                                        ctx.reset()
+                                        ctx.strokeStyle = "#a1a1aa"
+                                        ctx.lineWidth = 2
+                                        ctx.lineCap = "round"
+                                        ctx.beginPath()
+                                        ctx.arc(8, 8, 6, -Math.PI / 2,
+                                                -Math.PI / 2 + Math.PI * 1.4)
+                                        ctx.stroke()
+                                    }
+                                    RotationAnimation on rotation {
+                                        running: row.connecting
+                                        loops: Animation.Infinite
+                                        from: 0; to: 360; duration: 900
+                                    }
                                 }
                             }
 
@@ -287,24 +338,39 @@ Item {
                                     }
                                 }
                             }
+                            // Tag slot — connected / joining / retry /
+                            // network. A failed join keeps the row and
+                            // offers retry right here.
                             Rectangle {
+                                readonly property bool failed:
+                                    backend.failedSsid === modelData.ssid
                                 width: tagTxt.implicitWidth + 14
                                 height: 18
                                 radius: 4
-                                color: row.sel || row.active ? "#242429" : "transparent"
-                                border.width: row.sel || row.active ? 0 : 1
+                                color: failed ? "#241a12"
+                                      : row.sel || row.active ? "#242429" : "transparent"
+                                border.width: row.sel || row.active || failed ? 0 : 1
                                 border.color: "#26262a"
                                 Text {
                                     id: tagTxt
                                     anchors.centerIn: parent
                                     text: row.active ? "connected"
                                           : row.connecting ? "joining"
+                                          : parent.failed ? "retry"
                                           : "network"
                                     color: row.active ? Theme.success
+                                          : parent.failed ? Theme.amber
                                           : row.sel ? Theme.textSecondary
                                           : Theme.textMuted
                                     font.family: Theme.fontMono
                                     font.pixelSize: 10
+                                }
+                                MouseArea {
+                                    anchors.fill: parent
+                                    enabled: parent.failed
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: backend.connectSelected(
+                                                   networkPage.password)
                                 }
                             }
 

@@ -201,6 +201,7 @@ ApplicationWindow {
     }
 
     Shortcut { sequence: "Escape"; onActivated: win.skip() }
-    Shortcut { sequence: "Return"; onActivated: win.advance() }
-    Shortcut { sequence: "Enter"; onActivated: win.advance() }
+    // The network page owns Return/Enter — they walk and join there.
+    Shortcut { sequence: "Return"; enabled: win.step !== 1; onActivated: win.advance() }
+    Shortcut { sequence: "Enter"; enabled: win.step !== 1; onActivated: win.advance() }
 }

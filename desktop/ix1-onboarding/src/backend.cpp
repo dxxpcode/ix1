@@ -7,6 +7,8 @@
 #include <pwd.h>
 #include <unistd.h>
 
+#include <algorithm>
+
 Backend::Backend(QObject *parent) : QObject(parent)
 {
     // GECOS carries the full name the installer provisioned
@@ -100,6 +102,18 @@ void Backend::listNetworks()
             if (active)
                 m_connectedSsid = ssid;
         }
+        // Strongest first — the network you're most likely to want is
+        // row one; the connected row keeps the lead regardless.
+        std::stable_sort(rows.begin(), rows.end(), [](const QVariant &a,
+                                                      const QVariant &b) {
+            const QVariantMap ma = a.toMap(), mb = b.toMap();
+            const bool aa = ma.value(QStringLiteral("active")).toBool();
+            const bool ba = mb.value(QStringLiteral("active")).toBool();
+            if (aa != ba)
+                return aa;
+            return ma.value(QStringLiteral("signal")).toInt()
+                 > mb.value(QStringLiteral("signal")).toInt();
+        });
         m_networks = rows;
         m_scanning = false;
         emit networksChanged();
@@ -130,6 +144,18 @@ QVariantMap Backend::networkAt(int i) const
     return m_networks[i].toMap();
 }
 
+void Backend::previewNetwork(int i)
+{
+    if (i < 0 || i >= m_networks.size() || i == m_selectedNetwork)
+        return;
+    m_selectedNetwork = i;
+    m_connectError.clear();
+    m_failedSsid.clear();
+    emit selectedNetworkChanged();
+    emit connectErrorChanged();
+    emit failedSsidChanged();
+}
+
 void Backend::setSelectedNetwork(int i)
 {
     if (i < 0 || i >= m_networks.size())
@@ -146,8 +172,10 @@ void Backend::setSelectedNetwork(int i)
     }
     m_selectedNetwork = i;
     m_connectError.clear();
+    m_failedSsid.clear();
     emit selectedNetworkChanged();
     emit connectErrorChanged();
+    emit failedSsidChanged();
 
     // Open networks join on tap — secured ones wait for the password.
     const QVariantMap n = networkAt(i);
@@ -165,7 +193,9 @@ void Backend::connectSelected(const QString &password)
         return;
 
     m_connectError.clear();
+    m_failedSsid.clear();
     emit connectErrorChanged();
+    emit failedSsidChanged();
     m_connectingSsid = ssid;
     emit connectingSsidChanged();
 
@@ -192,7 +222,9 @@ void Backend::connectSelected(const QString &password)
             msg.remove(QStringLiteral("Error: "));
             m_connectError = msg.isEmpty()
                 ? QStringLiteral("could not connect") : msg;
+            m_failedSsid = ssid;
             emit connectErrorChanged();
+            emit failedSsidChanged();
         }
     });
     p->start(QStringLiteral("nmcli"), args);
