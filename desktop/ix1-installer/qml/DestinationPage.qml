@@ -264,20 +264,22 @@ Item {
                                 }
                             }
 
-                            // Trailing check token — pops in on selection.
+                            // Trailing check token — drawn emerald check,
+                            // pops in on selection.
                             Rectangle {
-                                width: 18; height: 18; radius: 9
+                                width: 20; height: 20; radius: 10
                                 scale: row.sel ? 1 : 0.4
                                 opacity: row.sel ? 1 : 0
-                                color: "#fafafa"
+                                color: Qt.rgba(16/255, 185/255, 129/255, 0.10)
+                                border.width: 1
+                                border.color: Qt.rgba(16/255, 185/255, 129/255, 0.35)
                                 Behavior on scale { NumberAnimation { duration: 220; easing.type: Easing.OutBack } }
                                 Behavior on opacity { NumberAnimation { duration: 140 } }
-                                Text {
+                                CheckMark {
                                     anchors.centerIn: parent
-                                    text: "✓"
-                                    color: "#18181b"
-                                    font.pixelSize: 11
-                                    font.weight: Font.Medium
+                                    width: 12; height: 12
+                                    strokeWidth: 1.8
+                                    progress: row.sel ? 1 : 0
                                 }
                             }
                         }

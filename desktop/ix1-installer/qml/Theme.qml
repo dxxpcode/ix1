@@ -13,6 +13,7 @@ QtObject {
     readonly property color textDim: "#52525b"
     readonly property color amber: "#fbbf24"
     readonly property color danger: "#dc2626"
+    readonly property color success: "#10b981"
     readonly property string fontSans: "Geist"
     readonly property string fontMono: "Geist Mono"
     readonly property int radius: 12
