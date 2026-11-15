@@ -122,8 +122,18 @@ QVariantMap Backend::networkAt(int i) const
 
 void Backend::setSelectedNetwork(int i)
 {
-    if (i == m_selectedNetwork || i < 0 || i >= m_networks.size())
+    if (i < 0 || i >= m_networks.size())
         return;
+    if (i == m_selectedNetwork) {
+        // Re-tapping the already-selected row means "join": the listing
+        // preselects row zero, so without this an open network that lands
+        // in the default slot could never be connected at all.
+        const QVariantMap n = networkAt(i);
+        if (!n.value(QStringLiteral("secured")).toBool() &&
+            !n.value(QStringLiteral("active")).toBool())
+            connectSelected(QString());
+        return;
+    }
     m_selectedNetwork = i;
     m_connectError.clear();
     emit selectedNetworkChanged();
