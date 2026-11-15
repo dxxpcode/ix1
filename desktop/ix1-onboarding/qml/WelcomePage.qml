@@ -102,52 +102,109 @@ Item {
                 transform: Translate { y: (1 - welcomePage.staged(3)) * 8 }
             }
 
-            // The road ahead — the same row language as the disk list.
+            // The road ahead — a designed map of the spine: glyph nodes
+            // on a step thread, number chips trailing, an emerald
+            // destination, and copy that reflects real state.
             Rectangle {
+                id: roadCard
                 Layout.topMargin: 34
                 Layout.fillWidth: true
-                height: 2 * 62
+                height: 2 * 64 + 1
                 radius: 14
                 color: Theme.card
                 border.width: 1
-                border.color: Theme.border
+                border.color: "#26262b"
                 opacity: welcomePage.staged(4)
                 transform: Translate { y: (1 - welcomePage.staged(4)) * 8 }
+
+                // Lit inner top edge — the log-panel elevation cue.
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.left: parent.left
+                    anchors.right: parent.right
+                    anchors.topMargin: 1
+                    anchors.leftMargin: 16
+                    anchors.rightMargin: 16
+                    height: 1
+                    color: "#29292f"
+                }
+
+                // Step thread — a hairline rail tying the glyph nodes
+                // together between the row centers.
+                Rectangle {
+                    x: 18 + 15
+                    y: 32
+                    width: 1
+                    height: 64
+                    color: "#26262b"
+                }
+
+                readonly property bool online: backend.connectedSsid !== ""
 
                 Column {
                     width: parent.width
                     Repeater {
                         model: [
                             { n: "02", t: "Connect to wi-fi",
-                              d: "pick a network, or skip — it takes seconds" },
+                              d: roadCard.online
+                                  ? "connected to " + backend.connectedSsid
+                                  : "pick a network, or skip — it takes seconds",
+                              dest: false },
                             { n: "03", t: "You're in",
-                              d: "the desktop, ready — start exploring" },
+                              d: roadCard.online
+                                  ? "online, and the desktop's ready — start exploring"
+                                  : "the desktop, ready — start exploring",
+                              dest: true },
                         ]
                         delegate: Item {
                             width: parent.width
-                            height: 62
-                            // Hairline divider between rows.
+                            height: 64
+                            // Hairline divider, clear of the glyph rail.
                             Rectangle {
                                 visible: index > 0
                                 anchors.top: parent.top
                                 anchors.left: parent.left
                                 anchors.right: parent.right
-                                anchors.leftMargin: 18
-                                anchors.rightMargin: 18
+                                anchors.leftMargin: 66
+                                anchors.rightMargin: 16
                                 height: 1
                                 color: "#1c1c1f"
                             }
                             RowLayout {
                                 anchors.fill: parent
                                 anchors.leftMargin: 18
-                                anchors.rightMargin: 20
+                                anchors.rightMargin: 16
                                 spacing: 14
-                                Text {
-                                    text: modelData.n
-                                    color: Theme.textDim
-                                    font.family: Theme.fontMono
-                                    font.pixelSize: 11
-                                    font.letterSpacing: 1.6
+                                // Glyph node — emerald-tinted at the
+                                // destination, where a drawn check takes
+                                // the icon's place as it stages in.
+                                Rectangle {
+                                    Layout.preferredWidth: 30
+                                    Layout.preferredHeight: 30
+                                    radius: 9
+                                    color: modelData.dest ? "#0b1d14" : "#101013"
+                                    border.width: 1
+                                    border.color: modelData.dest ? "#15563c" : "#242429"
+                                    Image {
+                                        visible: !modelData.dest
+                                        anchors.centerIn: parent
+                                        source: "qrc:/Ix1Onboarding/assets/icons/wifi.svg"
+                                        width: 16
+                                        height: 16
+                                        sourceSize: Qt.size(32, 32)
+                                        opacity: 0.85
+                                        smooth: true
+                                        mipmap: true
+                                    }
+                                    CheckMark {
+                                        visible: modelData.dest
+                                        anchors.centerIn: parent
+                                        width: 16
+                                        height: 16
+                                        strokeWidth: 2.0
+                                        progress: welcomePage.staged(4)
+                                        checkColor: Theme.success
+                                    }
                                 }
                                 Column {
                                     spacing: 3
@@ -160,12 +217,33 @@ Item {
                                     }
                                     Text {
                                         text: modelData.d
-                                        color: Theme.textMuted
+                                        color: modelData.dest && roadCard.online
+                                               ? Theme.success : Theme.textMuted
                                         font.family: Theme.fontSans
                                         font.pixelSize: 12
                                     }
                                 }
                                 Item { Layout.fillWidth: true }
+                                // Step chip — the mono numeral as a token,
+                                // same language as the row tags.
+                                Rectangle {
+                                    implicitWidth: num.implicitWidth + 14
+                                    implicitHeight: 18
+                                    radius: 9
+                                    color: "#0e0e11"
+                                    border.width: 1
+                                    border.color: modelData.dest ? "#15563c" : "#242429"
+                                    Text {
+                                        id: num
+                                        anchors.centerIn: parent
+                                        text: modelData.n
+                                        color: modelData.dest ? Theme.success
+                                                              : Theme.textDim
+                                        font.family: Theme.fontMono
+                                        font.pixelSize: 9
+                                        font.letterSpacing: 1.4
+                                    }
+                                }
                             }
                         }
                     }
