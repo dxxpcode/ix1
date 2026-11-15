@@ -8,6 +8,9 @@
 #include <QJsonObject>
 #include <QRegularExpression>
 #include <QSettings>
+#include <QTextStream>
+
+#include <fcntl.h>
 
 // The installer runs as root in the live environment.
 
@@ -45,6 +48,15 @@ Backend::Backend(QObject *parent) : QObject(parent)
         conf.value(QStringLiteral("install/target"), QStringLiteral("10.0.2.2:5000/ix1-os:dev"))
             .toString().toUtf8());
     enumerateDisks();
+}
+
+static QVariantMap logEntry(const QString &kind, const QString &text, int ts)
+{
+    QVariantMap e;
+    e[QStringLiteral("ts")] = ts;
+    e[QStringLiteral("kind")] = kind;
+    e[QStringLiteral("text")] = text;
+    return e;
 }
 
 // True when the device or any descendant holds a live-boot mount.
@@ -116,18 +128,18 @@ void Backend::enumerateDisks()
             emit installingChanged();
             m_installElapsed = 41;
             emit installElapsedChanged();
-            m_logLines = {QStringLiteral("→ preparing disk"),
-                          QStringLiteral("→ deploying image"),
-                          QStringLiteral("fetching layer 14 of 51")};
+            m_logLines = {logEntry(QStringLiteral("ok"), QStringLiteral("preparing disk"), 3),
+                          logEntry(QStringLiteral("step"), QStringLiteral("deploying image"), 9),
+                          logEntry(QStringLiteral("sub"), QStringLiteral("fetching layer 14 of 51"), 39)};
             emit logLinesChanged();
             setProgress(demoPct.toInt(), QStringLiteral("deploying image — layer 14 of 51"));
         } else if (qEnvironmentVariableIsSet("IX1_DEMO_DONE")) {
             m_installElapsed = 42;
             emit installElapsedChanged();
-            m_logLines = {QStringLiteral("→ preparing disk"),
-                          QStringLiteral("→ deploying image"),
-                          QStringLiteral("→ provisioning user"),
-                          QStringLiteral("installation complete")};
+            m_logLines = {logEntry(QStringLiteral("ok"), QStringLiteral("preparing disk"), 3),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("deploying image"), 9),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("provisioning user"), 38),
+                          logEntry(QStringLiteral("ok"), QStringLiteral("installation complete"), 42)};
             emit logLinesChanged();
             setProgress(100, QStringLiteral("ix1 installed."));
             m_done = true;
@@ -258,18 +270,55 @@ void Backend::setProgress(int pct, const QString &text)
     }
 }
 
+void Backend::appendEntry(const QString &kind, const QString &line)
+{
+    const int ts = m_installTimer.isValid()
+        ? int(m_installTimer.elapsed() / 1000) : m_installElapsed;
+    m_logLines.append(logEntry(kind, line, ts));
+    if (m_logFile.isOpen()) {
+        QTextStream s(&m_logFile);
+        s << '[' << (ts / 60 < 10 ? "0" : "") << ts / 60 << ':'
+          << (ts % 60 < 10 ? "0" : "") << ts % 60 << "] "
+          << line << '\n';
+        s.flush();
+    }
+    emit logLinesChanged();
+}
+
+// Marks the most recent still-running step — sub-lines may sit between
+// it and the end of the list.
+static void resolveLastStep(QVariantList &lines, const QString &kind)
+{
+    for (int i = lines.size() - 1; i >= 0; --i) {
+        QVariantMap e = lines[i].toMap();
+        if (e.value(QStringLiteral("kind")).toString() == QLatin1String("step")) {
+            e[QStringLiteral("kind")] = kind;
+            lines[i] = e;
+            return;
+        }
+    }
+}
+
 void Backend::appendLog(const QString &line, bool active)
 {
-    if (!m_logLines.isEmpty() && m_logLines.last().startsWith(QLatin1String("→")))
-        m_logLines.last() = QStringLiteral("✓ ") + m_logLines.last().mid(2);
-    m_logLines.append((active ? QStringLiteral("→ ") : QStringLiteral("✓ ")) + line);
-    emit logLinesChanged();
+    // The running step's arrow resolves to a check when the next begins.
+    resolveLastStep(m_logLines, QStringLiteral("ok"));
+    appendEntry(active ? QStringLiteral("step") : QStringLiteral("ok"), line);
+}
+
+void Backend::appendSub(const QString &line)
+{
+    appendEntry(QStringLiteral("sub"), line);
 }
 
 void Backend::fail(const QString &msg)
 {
-    appendLog(QStringLiteral("failed: ") + msg, false);
-    m_logLines.last() = QStringLiteral("✗ ") + m_logLines.last().mid(2);
+    // The step that was running is the one that failed — mark it, then
+    // attach the detail and the transcript path as indented sub-lines.
+    resolveLastStep(m_logLines, QStringLiteral("err"));
+    appendEntry(QStringLiteral("err"), QStringLiteral("failed: ") + msg);
+    if (m_logFile.isOpen())
+        appendSub(QStringLiteral("log saved to /tmp/ix1-install.log"));
     m_error = msg;
     emit errorChanged();
     m_installing = false;
@@ -328,10 +377,12 @@ bool Backend::provisionUser(const QString &sysroot)
     // exists with the right owner and SELinux label on first boot.
     {
         QFile f(deploy + QStringLiteral("/usr/lib/tmpfiles.d/ix1-install-user.conf"));
-        if (f.open(QIODevice::WriteOnly | QIODevice::Text))
+        if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
             f.write(QByteArray("d /home/") + m_userName.toUtf8() +
                     QByteArray(" 0700 ") + m_userName.toUtf8() +
                     QByteArray(" ") + m_userName.toUtf8() + QByteArray(" -\n"));
+            appendSub(QStringLiteral("home directory rule written"));
+        }
     }
     if (!runStep(QStringLiteral("setting password"), 96, QStringLiteral("chpasswd"),
                  {QStringLiteral("-R"), deploy}, nullptr,
@@ -359,6 +410,17 @@ void Backend::startInstall()
     m_installElapsed = 0;
     emit installElapsedChanged();
     m_installTimer.start();
+
+    // Transcript — every event lands here for post-mortem bug reports.
+    // O_NOFOLLOW: running as root, a planted symlink must not redirect
+    // the truncate into a root-owned target.
+    m_logFile.setFileName(QStringLiteral("/tmp/ix1-install.log"));
+    const int logFd = ::open(m_logFile.fileName().toLocal8Bit().constData(),
+                             O_WRONLY | O_CREAT | O_TRUNC | O_NOFOLLOW | O_CLOEXEC,
+                             0644);
+    if (logFd >= 0)
+        (void)m_logFile.open(logFd, QIODevice::WriteOnly | QIODevice::Text,
+                             QFileDevice::AutoCloseHandle);
 
     const QString disk = m_disks[m_selectedDisk].toMap()
                              .value(QStringLiteral("name")).toString();
@@ -452,6 +514,7 @@ void Backend::startInstall()
             if (f.open(QIODevice::WriteOnly | QIODevice::Text)) {
                 f.write(QByteArray("ix1root UUID=") + uuid.toUtf8() +
                         QByteArray(" none luks,discard\n"));
+                appendSub(QStringLiteral("crypttab written"));
             }
         }
 

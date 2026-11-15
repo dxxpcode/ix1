@@ -330,19 +330,142 @@ Item {
                     height: 1
                     color: "#1c1c1f"
                 }
-                Repeater {
-                    model: backend.logLines.slice(Math.max(0, backend.logLines.length - 6))
-                    Text {
-                        readonly property bool newest: index === backend.logLines.slice(Math.max(0, backend.logLines.length - 6)).length - 1
-                        text: modelData
-                        color: modelData.startsWith("✗") ? Theme.danger
-                             : newest || modelData.startsWith("→") ? Theme.textPrimary
-                             : Theme.textDim
-                        font.family: Theme.fontMono
-                        font.pixelSize: 12
-                        opacity: 0
-                        NumberAnimation on opacity { to: 1; duration: 260; running: true }
+                // Scrollback — shows the last ~6 lines, auto-follows new
+                // events, pauses follow when the user scrolls up.
+                ListView {
+                    id: logView
+                    width: logCol.width
+                    height: Math.min(count, 6) * 22
+                    clip: true
+                    model: backend.logLines
+                    boundsBehavior: Flickable.StopAtBounds
+                    property bool follow: true
+                    onCountChanged: if (follow) positionViewAtEnd()
+                    onAtYEndChanged: follow = atYEnd
+
+                    delegate: Item {
+                        id: ln
+                        width: logView.width
+                        height: 22
+                        readonly property string kind: modelData.kind || "info"
+                        readonly property bool latest: index === backend.logLines.length - 1
+                        readonly property bool sub: kind === "sub"
+
+                        // New-line flash — a soft wash on the arriving row.
+                        property real flash: latest ? 0.14 : 0
+                        NumberAnimation on flash {
+                            running: ln.flash > 0
+                            to: 0; duration: 1100; easing.type: Easing.OutCubic
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: 5
+                            opacity: ln.flash
+                            color: ln.kind === "err" ? Theme.danger : Theme.success
+                        }
+
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: 4
+                            spacing: 10
+                            // Elapsed timestamp — dim mono, transcript style.
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 34
+                                text: ln.sub ? "" : deployPage.fmtElapsed(modelData.ts || 0)
+                                color: Theme.textDim
+                                font.family: Theme.fontMono
+                                font.pixelSize: 10
+                            }
+                            // Severity mark — drawn, not a glyph. The slot
+                            // stays occupied on sub lines so detail text
+                            // aligns under the step text column.
+                            Item {
+                                width: 12; height: 12
+                                anchors.verticalCenter: parent.verticalCenter
+                                CheckMark {
+                                    visible: ln.kind === "ok"
+                                    anchors.centerIn: parent
+                                    width: 11; height: 11
+                                    strokeWidth: 1.7
+                                    progress: 1
+                                }
+                                Canvas {
+                                    visible: ln.kind === "err"
+                                    anchors.fill: parent
+                                    onPaint: {
+                                        const ctx = getContext("2d")
+                                        ctx.clearRect(0, 0, width, height)
+                                        ctx.strokeStyle = "#dc2626"
+                                        ctx.lineWidth = 1.6
+                                        ctx.lineCap = "round"
+                                        ctx.beginPath()
+                                        ctx.moveTo(3, 3); ctx.lineTo(9, 9)
+                                        ctx.moveTo(9, 3); ctx.lineTo(3, 9)
+                                        ctx.stroke()
+                                    }
+                                }
+                                Rectangle {
+                                    visible: ln.kind === "step"
+                                    anchors.centerIn: parent
+                                    width: 6; height: 6; radius: 3
+                                    color: Theme.amber
+                                    SequentialAnimation on opacity {
+                                        running: ln.kind === "step"
+                                        loops: Animation.Infinite
+                                        NumberAnimation { to: 0.3; duration: 700; easing.type: Easing.InOutSine }
+                                        NumberAnimation { to: 1.0; duration: 700; easing.type: Easing.InOutSine }
+                                    }
+                                }
+                                Rectangle {
+                                    visible: ln.kind === "info"
+                                    anchors.centerIn: parent
+                                    width: 4; height: 4; radius: 2
+                                    color: "#333338"
+                                }
+                            }
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.text
+                                color: ln.kind === "err" ? Theme.danger
+                                     : ln.sub ? Theme.textDim
+                                     : ln.kind === "step" ? Theme.textPrimary
+                                     : Theme.textSecondary
+                                font.family: Theme.fontMono
+                                font.pixelSize: 12
+                                elide: Text.ElideRight
+                                width: parent.width - 92
+                            }
+                        }
                     }
+                }
+            }
+            // Jump-to-latest pill — appears once scrolled away from the end.
+            Rectangle {
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.rightMargin: 10
+                anchors.bottomMargin: 10
+                z: 2
+                visible: backend.logLines.length > 6 && !logView.atYEnd
+                height: 22
+                width: pillTxt.implicitWidth + 18
+                radius: 11
+                color: "#16161a"
+                border.width: 1
+                border.color: "#2c2c31"
+                Text {
+                    id: pillTxt
+                    anchors.centerIn: parent
+                    text: "latest ↓"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontMono
+                    font.pixelSize: 10
+                }
+                MouseArea {
+                    anchors.fill: parent
+                    cursorShape: Qt.PointingHandCursor
+                    onClicked: logView.positionViewAtEnd()
                 }
             }
         }
