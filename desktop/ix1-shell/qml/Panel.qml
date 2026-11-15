@@ -17,16 +17,36 @@ Window {
 
     readonly property color unlit: Theme.dark ? "#3A3D46" : "#C7CCD6"
     readonly property color lit: Theme.textSecondary
+    property bool volOpen: false
 
-    Component.onCompleted: Theme.mode = backend.theme
+    // The inline volume pill closes whenever Quick Settings opens.
+    Connections {
+        target: backend
+        function onQuickSettingsOpenChanged() {
+            if (backend.quickSettingsOpen) { root.volOpen = false }
+        }
+    }
+
+    Timer {
+        id: volIdleClose
+        interval: 4000
+        onTriggered: root.volOpen = false
+    }
+
+    Component.onCompleted: {
+        Theme.mode = backend.theme
+        if (demoVol) { root.volOpen = true }
+    }
     Connections {
         target: backend
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
+    // macOS-style transparent menu bar: the wallpaper shows straight
+    // through; only the hairline separates the bar from the desktop.
     Rectangle {
         anchors.fill: parent
-        color: Theme.glass
+        color: "transparent"
 
         Rectangle {
             anchors.left: parent.left
@@ -184,17 +204,27 @@ Window {
             }
         }
 
-        // Volume: speaker + waves by level, then the percentage.
+        // Volume: click grows a slider inline in the bar (macOS-style
+        // expanding controls) instead of opening Quick Settings.
         Rectangle {
-            width: 26
+            id: volZone
+            width: root.volOpen ? 132 : 26
             height: 26
             radius: 13
-            color: volArea.containsMouse ? Theme.surface3 : "transparent"
+            color: root.volOpen ? Theme.glassHover
+                   : (volArea.containsMouse ? Theme.surface3 : "transparent")
             anchors.verticalCenter: parent.verticalCenter
+            clip: true
+
+            Behavior on width {
+                NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+            }
 
             Canvas {
                 id: volGlyph
-                anchors.centerIn: parent
+                anchors.left: parent.left
+                anchors.leftMargin: 5
+                anchors.verticalCenter: parent.verticalCenter
                 width: 16
                 height: 12
                 onPaint: {
@@ -222,20 +252,95 @@ Window {
                     }
                 }
             }
+            // Mini slider + live %, revealed while the pill is open.
+            Item {
+                anchors.left: parent.left
+                anchors.leftMargin: 27
+                anchors.right: parent.right
+                anchors.rightMargin: 8
+                anchors.verticalCenter: parent.verticalCenter
+                height: 14
+                opacity: root.volOpen ? 1 : 0
+                visible: opacity > 0
+
+                Behavior on opacity { NumberAnimation { duration: 140 } }
+
+                Rectangle {
+                    id: volTrack
+                    anchors.left: parent.left
+                    anchors.right: volPct.left
+                    anchors.rightMargin: 6
+                    anchors.verticalCenter: parent.verticalCenter
+                    height: 3
+                    radius: 1.5
+                    color: Theme.surface3
+
+                    Rectangle {
+                        width: volTrack.width * Math.max(0, backend.volume) / 150
+                        height: parent.height
+                        radius: 1.5
+                        color: Theme.accent
+                    }
+                }
+                Rectangle {
+                    x: volTrack.x + volTrack.width * Math.max(0, backend.volume) / 150 - 5
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 10
+                    height: 10
+                    radius: 5
+                    color: Theme.surface1
+                    border.color: Theme.hairline
+                    border.width: 1
+                }
+                Text {
+                    id: volPct
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: 26
+                    text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 11
+                }
+                MouseArea {
+                    x: volTrack.x
+                    width: volTrack.width
+                    height: parent.height
+                    anchors.verticalCenter: parent.verticalCenter
+                    onPressed: function(mouse) { setVol(mouse.x) }
+                    onPositionChanged: function(mouse) { if (pressed) setVol(mouse.x) }
+                    onWheel: function(wheel) {
+                        backend.setVolume(Math.max(0, Math.min(150,
+                            backend.volume + (wheel.angleDelta.y > 0 ? 5 : -5))))
+                        volIdleClose.restart()
+                    }
+                    function setVol(x) {
+                        backend.setVolume(Math.round(Math.max(0,
+                            Math.min(1, x / volTrack.width)) * 150))
+                        volIdleClose.restart()
+                    }
+                }
+            }
             Connections {
                 target: backend
                 function onVolumeChanged() { volGlyph.requestPaint() }
             }
             MouseArea {
                 id: volArea
-                anchors.fill: parent
+                x: 0
+                width: 26
+                height: parent.height
                 hoverEnabled: true
                 cursorShape: Qt.PointingHandCursor
-                onClicked: backend.openQuickSettings("sound")
+                onClicked: {
+                    root.volOpen = !root.volOpen
+                    if (root.volOpen) { volIdleClose.restart() }
+                }
             }
         }
 
         Text {
+            visible: !root.volOpen
             text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
             color: Theme.textSecondary
             font.family: Theme.fontFamily

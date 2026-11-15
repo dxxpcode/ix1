@@ -20,7 +20,10 @@ QtObject {
     readonly property color glassHover: dark ? Qt.rgba(0.14, 0.15, 0.18, 0.72)
                                              : Qt.rgba(0.92, 0.94, 0.97, 0.72)
 
-    readonly property string fontFamily: "Inter"
+    // Geist Medium is the product's single typeface — the installer,
+    // onboarding and website all render it. Registered in main.cpp from qrc.
+    readonly property string fontFamily: "Geist Medium"
+    readonly property int radiusSmall: 8
     readonly property int radius: 12
     readonly property int radiusLarge: 16
 }

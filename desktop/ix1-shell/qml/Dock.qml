@@ -13,6 +13,9 @@ Window {
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
     height: 92
+    // Anchors size the window under the layer shell; set it explicitly so
+    // offscreen (headless render) grabs show the dock too.
+    width: 1920
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
@@ -27,7 +30,7 @@ Window {
         anchors.bottomMargin: 12
         width: dockRow.implicitWidth + 20
         height: dockRow.implicitHeight + 20
-        radius: 18
+        radius: Theme.radiusLarge
         color: Theme.glass
         border.color: Theme.hairline
         border.width: 1
@@ -57,6 +60,10 @@ Window {
                     required property string desktopFile
                     required property int index
 
+                    // Taskbar-style running indicator (KWin reports the
+                    // open app ids to the backend over the session bus).
+                    readonly property bool running: backend.isRunning(desktopFile)
+
                     readonly property real centerX: dockRow.x + x + width / 2
                     readonly property real mag: {
                         if (dockTrack.hoverX < 0) return 1.0
@@ -81,6 +88,17 @@ Window {
                         height: 44
                         desktopFileName: desktopFile
                         appTitle: name
+                    }
+
+                    Rectangle {
+                        visible: parent.running
+                        anchors.bottom: parent.bottom
+                        anchors.bottomMargin: 2
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        width: 4
+                        height: 4
+                        radius: 2
+                        color: Theme.accent
                     }
 
                     MouseArea {

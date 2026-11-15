@@ -55,6 +55,8 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/bars.png
         qml/assets/icons/grid.png
         qml/assets/icons/store.png
+        qml/assets/geist-500.ttf
+        qml/assets/geistmono-500.ttf
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)

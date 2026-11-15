@@ -223,7 +223,7 @@ Window {
                                 anchors.centerIn: parent
                                 width: 22
                                 height: 22
-                                radius: 11
+                                radius: width / 2
                                 color: Theme.accent
                             }
                             Text {

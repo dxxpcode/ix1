@@ -1,4 +1,5 @@
 #include <QDir>
+#include <QFontDatabase>
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
@@ -12,6 +13,14 @@ int main(int argc, char *argv[])
     QGuiApplication app(argc, argv);
     QGuiApplication::setApplicationName(QStringLiteral("ix1-shell"));
     QGuiApplication::setOrganizationName(QStringLiteral("ix1"));
+
+    // Bundled Geist faces, loaded from qrc so the image needs no font
+    // packages. Only the Medium (500) faces ship — same as the installer
+    // and website: one typographic voice across the product.
+    for (const char *f : {"geist-500.ttf", "geistmono-500.ttf"}) {
+        QFontDatabase::addApplicationFont(
+            QStringLiteral("qrc:/Ix1Shell/qml/assets/%1").arg(QLatin1String(f)));
+    }
 
     ShellBackend backend;
 
@@ -31,6 +40,9 @@ int main(int argc, char *argv[])
     for (const QString &root : roots) {
         auto *engine = new QQmlApplicationEngine(&app);
         engine->rootContext()->setContextProperty(QStringLiteral("backend"), &backend);
+        // Headless-render flag: opens the panel's inline volume pill.
+        engine->rootContext()->setContextProperty(
+            QStringLiteral("demoVol"), qEnvironmentVariableIsSet("IX1_SHOW_VOL"));
         QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed,
                          &app, [&engine, &root]() {
                              qWarning().noquote() << "ix1-shell: failed to create"

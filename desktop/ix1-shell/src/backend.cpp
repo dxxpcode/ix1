@@ -206,6 +206,7 @@ ShellBackend::ShellBackend(QObject *parent)
         m_batteryPct = 82;
         m_volume = 45;
         m_activeApp = QStringLiteral("Firefox");
+        m_runningApps = { QStringLiteral("firefox") };
         if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
             m_calOpen = true;
         }
@@ -458,6 +459,27 @@ void ShellBackend::setActiveWindow(const QString &appId)
         m_activeApp = name;
         emit activeAppChanged();
     }
+}
+
+void ShellBackend::setRunningApps(const QString &joined)
+{
+    QStringList next;
+    const QStringList ids = joined.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    for (const QString &id : ids) {
+        if (!next.contains(id, Qt::CaseInsensitive)) {
+            next.append(id);
+        }
+    }
+    if (next != m_runningApps) {
+        m_runningApps = next;
+        emit runningAppsChanged();
+    }
+}
+
+bool ShellBackend::isRunning(const QString &desktopFile) const
+{
+    const QString id = QFileInfo(desktopFile).completeBaseName();
+    return m_runningApps.contains(id, Qt::CaseInsensitive);
 }
 
 void ShellBackend::toggleWifi()

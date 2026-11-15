@@ -149,7 +149,7 @@ Window {
                             anchors.horizontalCenter: parent.horizontalCenter
                             width: 64
                             height: 64
-                            radius: 16
+                            radius: Theme.radiusLarge
                             scale: appArea.containsMouse ? 1.06 : 1.0
                             color: appArea.containsMouse ? Theme.glassHover : "transparent"
 
