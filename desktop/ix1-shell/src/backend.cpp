@@ -855,7 +855,10 @@ void ShellBackend::setOutputDevice(int id)
     }
     QProcess::startDetached(QStringLiteral("wpctl"),
                             { QStringLiteral("set-default"), QString::number(id) });
-    QTimer::singleShot(400, this, &ShellBackend::refreshOutputDevices);
+    QTimer::singleShot(400, this, [this]() {
+        refreshOutputDevices();
+        refreshVolume();
+    });
 }
 
 void ShellBackend::sendTestNotification()
