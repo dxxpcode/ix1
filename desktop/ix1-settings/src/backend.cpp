@@ -180,35 +180,34 @@ void SettingsBackend::refreshWallpapers()
     if (qEnvironmentVariableIsSet("IX1_DEMO")) {
         return;
     }
-    QStringList dirs;
-    for (const QString &base : QStandardPaths::standardLocations(QStandardPaths::AppDataLocation)) {
-        const QString wdir = base + QStringLiteral("/wallpapers");
-        if (QFileInfo(wdir).isDir()) {
-            dirs << wdir;
-        }
-    }
-    // The image puts the shipped set here; AppDataLocation covers it too but
-    // list it explicitly so builds outside the image still find them.
-    const QString systemDir = QStringLiteral("/usr/share/ix1/wallpapers");
-    if (QFileInfo(systemDir).isDir() && !dirs.contains(systemDir)) {
-        dirs.prepend(systemDir);
-    }
+    // Shipped set first, then the user's own drops in
+    // ~/.local/share/ix1/wallpapers (GenericDataLocation, not this app's
+    // AppDataLocation, which would be .../ix1/ix1-settings).
+    const QStringList dirs = {
+        QStringLiteral("/usr/share/ix1/wallpapers"),
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+            + QStringLiteral("/ix1/wallpapers"),
+    };
 
     QVariantList list;
     QStringList seen;
     for (const QString &dirPath : dirs) {
         const QDir dir(dirPath);
+        if (!dir.exists()) {
+            continue;
+        }
         const auto files = dir.entryInfoList({ QStringLiteral("*.png"), QStringLiteral("*.jpg"),
                                                QStringLiteral("*.jpeg") },
                                              QDir::Files, QDir::Name);
         for (const QFileInfo &fi : files) {
-            if (seen.contains(fi.completeBaseName())) {
+            const QString path = fi.canonicalFilePath();
+            if (seen.contains(path)) {
                 continue;
             }
-            seen << fi.completeBaseName();
+            seen << path;
             list << QVariantMap{
                 { QStringLiteral("name"), fi.completeBaseName() },
-                { QStringLiteral("path"), fi.absoluteFilePath() },
+                { QStringLiteral("path"), path },
             };
         }
     }
