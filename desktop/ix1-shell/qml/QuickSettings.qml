@@ -493,12 +493,20 @@ Window {
                             spacing: 2
 
                             delegate: Rectangle {
+                                id: netRow
                                 required property var modelData
+                                // Secured networks without a saved profile need
+                                // a password — click expands an inline field.
+                                property bool pwOpen: false
                                 width: ListView.view.width
-                                height: 34
+                                height: pwOpen ? 66 : 34
                                 radius: 8
+                                clip: true
                                 color: netArea.containsMouse ? Theme.surface3
                                       : (modelData.inUse ? Theme.glassHover : "transparent")
+                                Behavior on height {
+                                    NumberAnimation { duration: 140; easing.type: Easing.OutCubic }
+                                }
 
                                 Canvas {
                                     anchors.left: parent.left
@@ -592,12 +600,67 @@ Window {
                                     }
                                 }
 
+                                // Password field, shown when the row expands.
+                                Rectangle {
+                                    anchors.left: parent.left
+                                    anchors.right: parent.right
+                                    anchors.leftMargin: 30
+                                    anchors.rightMargin: 10
+                                    anchors.top: parent.top
+                                    anchors.topMargin: 36
+                                    height: 26
+                                    radius: 6
+                                    color: Theme.surface1
+                                    border.color: pwField.activeFocus ? Theme.accent : Theme.hairline
+                                    border.width: 1
+
+                                    TextInput {
+                                        id: pwField
+                                        anchors.fill: parent
+                                        anchors.leftMargin: 8
+                                        anchors.rightMargin: 8
+                                        verticalAlignment: Text.AlignVCenter
+                                        color: Theme.textPrimary
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 12
+                                        echoMode: TextInput.Password
+                                        selectByMouse: true
+                                        Text {
+                                            anchors.left: parent.left
+                                            anchors.verticalCenter: parent.verticalCenter
+                                            visible: !pwField.text && !pwField.activeFocus
+                                            text: "Password"
+                                            color: Theme.textSecondary
+                                            font.family: Theme.fontFamily
+                                            font.pixelSize: 12
+                                        }
+                                        onAccepted: {
+                                            backend.connectWifi(modelData.ssid, text)
+                                            netRow.pwOpen = false
+                                            text = ""
+                                        }
+                                    }
+                                }
+
                                 MouseArea {
                                     id: netArea
                                     anchors.fill: parent
+                                    anchors.bottomMargin: netRow.pwOpen ? 30 : 0
                                     hoverEnabled: true
                                     cursorShape: Qt.PointingHandCursor
-                                    onClicked: backend.connectWifi(modelData.ssid)
+                                    onClicked: {
+                                        if (modelData.inUse) {
+                                            return
+                                        }
+                                        if (modelData.secure) {
+                                            netRow.pwOpen = !netRow.pwOpen
+                                            if (netRow.pwOpen) {
+                                                pwField.forceActiveFocus()
+                                            }
+                                        } else {
+                                            backend.connectWifi(modelData.ssid, "")
+                                        }
+                                    }
                                 }
                             }
                         }
