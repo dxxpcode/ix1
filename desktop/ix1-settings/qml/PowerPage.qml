@@ -10,7 +10,10 @@ Flickable {
 
     readonly property bool charging: backend.batteryStatus === "Charging"
     readonly property bool full: backend.batteryStatus === "Full"
-    readonly property bool low: backend.batteryPct >= 0 && backend.batteryPct <= 20 && !charging
+    // AC connected but held (charge limit / threshold).
+    readonly property bool held: backend.batteryStatus === "Not charging"
+    readonly property bool low: backend.batteryPct >= 0 && backend.batteryPct <= 20
+        && !charging && !held && !full
     readonly property var lockMins: [0, 1, 2, 5, 10, 15, 30]
     readonly property var suspendMins: [0, 10, 20, 30, 45, 60]
     function minutesLabel(m) { return m === 0 ? "Never" : m === 1 ? "1 minute" : m + " minutes" }
@@ -88,6 +91,7 @@ Flickable {
                 }
                 Text {
                     text: page.charging ? "Charging" : page.full ? "Fully charged"
+                        : page.held ? "Plugged in, not charging"
                         : page.low ? "Low battery — plug in soon" : "On battery"
                     color: page.low ? "#E5484D" : Theme.textSecondary
                     font.family: Theme.fontFamily
