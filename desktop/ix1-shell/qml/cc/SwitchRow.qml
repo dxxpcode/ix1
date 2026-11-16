@@ -37,7 +37,6 @@ Item {
         name: row.glyph
         strength: row.glyphStrength
         color: row.trailing === "pill" ? Theme.accent : Theme.textPrimary
-        dimColor: Theme.hairline
     }
 
     Text {
@@ -64,7 +63,7 @@ Item {
         anchors.topMargin: 11
         width: 10
         height: 12
-        name: "padlock"
+        name: "lock"
         color: Theme.textSecondary
     }
     Glyph {

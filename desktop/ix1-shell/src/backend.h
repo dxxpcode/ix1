@@ -60,6 +60,8 @@ class ShellBackend : public QObject
     Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
     Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
     Q_PROPERTY(bool dnd READ dnd NOTIFY dndChanged)
+    Q_PROPERTY(bool bluetoothEnabled READ bluetoothEnabled NOTIFY bluetoothEnabledChanged)
+    Q_PROPERTY(QVariantList outputDevices READ outputDevices NOTIFY outputDevicesChanged)
     Q_PROPERTY(QString activeApp READ activeApp NOTIFY activeAppChanged)
     Q_PROPERTY(QStringList runningApps READ runningApps NOTIFY runningAppsChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
@@ -82,6 +84,8 @@ public:
     int batteryPct() const { return m_batteryPct; }
     int brightness() const { return m_brightness; }
     bool dnd() const { return m_dnd; }
+    bool bluetoothEnabled() const { return m_bluetoothEnabled; }
+    QVariantList outputDevices() const { return m_outputDevices; }
     QString activeApp() const { return m_activeApp; }
     QStringList runningApps() const { return m_runningApps; }
     bool launcherOpen() const { return m_launcherOpen; }
@@ -97,6 +101,8 @@ public:
     Q_INVOKABLE void connectWifi(const QString &ssid, const QString &password = QString());
     Q_INVOKABLE void toggleTheme();
     Q_INVOKABLE void setDnd(bool on);
+    Q_INVOKABLE void toggleBluetooth();
+    Q_INVOKABLE void setOutputDevice(int id);
     Q_INVOKABLE void setBrightness(int percent);
     Q_INVOKABLE void powerAction(const QString &action);
     Q_INVOKABLE void sendTestNotification();
@@ -127,6 +133,8 @@ signals:
     void batteryPctChanged();
     void brightnessChanged();
     void dndChanged();
+    void bluetoothEnabledChanged();
+    void outputDevicesChanged();
     void activeAppChanged();
     void runningAppsChanged();
     void launcherOpenChanged();
@@ -150,6 +158,8 @@ private:
     void refreshWifi();
     void refreshBattery();
     void refreshBrightness();
+    void refreshBluetooth();
+    void refreshOutputDevices();
     QString appNameForId(const QString &appId) const;
     QStringList parseDesktopExec(const QString &exec, const QString &name) const;
     void loadTheme();
@@ -170,6 +180,9 @@ private:
     int m_brightnessMax = 0;
     QString m_brightnessDevice;
     bool m_dnd = false;
+    bool m_bluetoothEnabled = false;
+    bool m_hasBluetooth = false;
+    QVariantList m_outputDevices;
     QString m_activeApp;
     QStringList m_runningApps;
     bool m_launcherOpen = false;

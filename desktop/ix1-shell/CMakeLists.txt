@@ -46,6 +46,9 @@ qt_add_qml_module(ix1-shell
         qml/cc/CapsuleSlider.qml
         qml/cc/SheetTile.qml
         qml/cc/Glyph.qml
+        qml/cc/KnobSlider.qml
+        qml/cc/PowerCircle.qml
+        qml/cc/DropdownPill.qml
         qml/Calendar.qml
         qml/Notifications.qml
         qml/LockScreen.qml
@@ -64,6 +67,40 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/bars.png
         qml/assets/icons/grid.png
         qml/assets/icons/store.png
+        qml/assets/icons-lucide/wifi.svg
+        qml/assets/icons-lucide-dark/wifi.svg
+        qml/assets/icons-lucide/bluetooth.svg
+        qml/assets/icons-lucide-dark/bluetooth.svg
+        qml/assets/icons-lucide/moon.svg
+        qml/assets/icons-lucide-dark/moon.svg
+        qml/assets/icons-lucide/moon-star.svg
+        qml/assets/icons-lucide-dark/moon-star.svg
+        qml/assets/icons-lucide/sun.svg
+        qml/assets/icons-lucide-dark/sun.svg
+        qml/assets/icons-lucide/sun-medium.svg
+        qml/assets/icons-lucide-dark/sun-medium.svg
+        qml/assets/icons-lucide/volume-2.svg
+        qml/assets/icons-lucide-dark/volume-2.svg
+        qml/assets/icons-lucide/lock.svg
+        qml/assets/icons-lucide-dark/lock.svg
+        qml/assets/icons-lucide/power.svg
+        qml/assets/icons-lucide-dark/power.svg
+        qml/assets/icons-lucide/refresh-cw.svg
+        qml/assets/icons-lucide-dark/refresh-cw.svg
+        qml/assets/icons-lucide/headphones.svg
+        qml/assets/icons-lucide-dark/headphones.svg
+        qml/assets/icons-lucide/sliders-horizontal.svg
+        qml/assets/icons-lucide-dark/sliders-horizontal.svg
+        qml/assets/icons-lucide/chevron-right.svg
+        qml/assets/icons-lucide-dark/chevron-right.svg
+        qml/assets/icons-lucide/chevron-down.svg
+        qml/assets/icons-lucide-dark/chevron-down.svg
+        qml/assets/icons-lucide/settings.svg
+        qml/assets/icons-lucide-dark/settings.svg
+        qml/assets/icons-lucide/check.svg
+        qml/assets/icons-lucide-dark/check.svg
+        qml/assets/icons-lucide/signal.svg
+        qml/assets/icons-lucide-dark/signal.svg
         qml/assets/geist-500.ttf
         qml/assets/geistmono-500.ttf
 )

@@ -8,6 +8,7 @@
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QTimer>
@@ -217,6 +218,8 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshWifi();
         refreshBattery();
         refreshBrightness();
+        refreshBluetooth();
+        refreshOutputDevices();
     });
 
     // Signal and battery drift while the desktop sits idle.
@@ -225,6 +228,7 @@ ShellBackend::ShellBackend(QObject *parent)
     connect(m_pollTimer, &QTimer::timeout, this, [this]() {
         refreshWifi();
         refreshBattery();
+        refreshOutputDevices();
     });
     m_pollTimer->start();
 
@@ -252,6 +256,16 @@ ShellBackend::ShellBackend(QObject *parent)
         };
         m_activeApp = QStringLiteral("Firefox");
         m_runningApps = { QStringLiteral("firefox") };
+        m_bluetoothEnabled = true;
+        m_hasBluetooth = true;
+        m_outputDevices = {
+            QVariantMap{ { QStringLiteral("id"), 42 },
+                         { QStringLiteral("name"), QStringLiteral("Headphones") },
+                         { QStringLiteral("active"), true } },
+            QVariantMap{ { QStringLiteral("id"), 43 },
+                         { QStringLiteral("name"), QStringLiteral("Speakers") },
+                         { QStringLiteral("active"), false } },
+        };
         if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
             m_calOpen = true;
         }
@@ -732,6 +746,108 @@ void ShellBackend::powerAction(const QString &action)
     } else if (action == QLatin1String("logout")) {
         QTimer::singleShot(0, qApp, &QCoreApplication::quit);
     }
+}
+
+void ShellBackend::refreshBluetooth()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    QProcess p;
+    p.start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
+    if (!p.waitForFinished(1500)) {
+        return;
+    }
+    const QString out = QString::fromUtf8(p.readAllStandardOutput());
+    if (out.isEmpty()) {
+        m_hasBluetooth = false;
+        if (m_bluetoothEnabled) {
+            m_bluetoothEnabled = false;
+            emit bluetoothEnabledChanged();
+        }
+        return;
+    }
+    m_hasBluetooth = true;
+    const bool on = out.contains(QStringLiteral("Powered: yes"));
+    if (on != m_bluetoothEnabled) {
+        m_bluetoothEnabled = on;
+        emit bluetoothEnabledChanged();
+    }
+}
+
+void ShellBackend::toggleBluetooth()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        m_bluetoothEnabled = !m_bluetoothEnabled;
+        emit bluetoothEnabledChanged();
+        return;
+    }
+    QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                            { QStringLiteral("power"),
+                              m_bluetoothEnabled ? QStringLiteral("off")
+                                                 : QStringLiteral("on") });
+    QTimer::singleShot(500, this, &ShellBackend::refreshBluetooth);
+}
+
+void ShellBackend::refreshOutputDevices()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    QProcess p;
+    p.start(QStringLiteral("wpctl"), { QStringLiteral("status") });
+    if (!p.waitForFinished(1500)) {
+        return;
+    }
+    const QStringList lines = QString::fromUtf8(p.readAllStandardOutput()).split(QLatin1Char('\n'));
+    bool inSinks = false;
+    QVariantList devices;
+    const QRegularExpression row(QStringLiteral("^\\s*([*]?)\\s*(\\d+)\\.\\s+(.*)$"));
+    for (const QString &line : lines) {
+        if (line.contains(QLatin1String("Sinks:"))) {
+            inSinks = true;
+            continue;
+        }
+        if (inSinks && (line.contains(QLatin1String("Sources:"))
+                        || line.contains(QLatin1String("Devices:")))) {
+            break;
+        }
+        if (!inSinks) {
+            continue;
+        }
+        const QRegularExpressionMatch m = row.match(line);
+        if (!m.hasMatch()) {
+            continue;
+        }
+        QString name = m.captured(3).trimmed();
+        const int bracket = name.indexOf(QLatin1String(" [vol:"));
+        if (bracket > 0) {
+            name = name.left(bracket).trimmed();
+        }
+        devices.append(QVariantMap{ { QStringLiteral("id"), m.captured(2).toInt() },
+                                    { QStringLiteral("name"), name },
+                                    { QStringLiteral("active"), m.captured(1) == QLatin1String("*") } });
+    }
+    if (devices != m_outputDevices) {
+        m_outputDevices = devices;
+        emit outputDevicesChanged();
+    }
+}
+
+void ShellBackend::setOutputDevice(int id)
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        for (int i = 0; i < m_outputDevices.size(); ++i) {
+            QVariantMap d = m_outputDevices[i].toMap();
+            d[QStringLiteral("active")] = d[QStringLiteral("id")].toInt() == id;
+            m_outputDevices[i] = d;
+        }
+        emit outputDevicesChanged();
+        return;
+    }
+    QProcess::startDetached(QStringLiteral("wpctl"),
+                            { QStringLiteral("set-default"), QString::number(id) });
+    QTimer::singleShot(400, this, &ShellBackend::refreshOutputDevices);
 }
 
 void ShellBackend::sendTestNotification()
