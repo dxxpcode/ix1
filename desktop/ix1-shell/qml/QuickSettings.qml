@@ -26,6 +26,9 @@ Window {
         | LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
+    // The Wi-Fi password field needs real key events — without this the
+    // surface never gets keyboard focus on Wayland.
+    LayerShellQt.Window.keyboardInteractivity: LayerShellQt.Window.KeyboardInteractivityOnDemand
     // Anchors size the window under the layer shell; set it explicitly so
     // offscreen (headless render) grabs work too.
     width: 1920
@@ -892,16 +895,19 @@ Window {
                                         function onVolumeChanged() { requestPaint() }
                                     }
                                 }
-                                Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 38
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-                                    color: "#FFFFFF"
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                }
+                            }
+                            // Readout pinned to the capsule's right edge —
+                            // visible even at mute, when the fill is a sliver.
+                            Text {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
+                                color: volTrack.width * Math.max(0, backend.volume) / 150
+                                       > volTrack.width - 46 ? "#FFFFFF" : Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
                             }
                             MouseArea {
                                 id: volArea
@@ -967,16 +973,18 @@ Window {
                                         }
                                     }
                                 }
-                                Text {
-                                    anchors.left: parent.left
-                                    anchors.leftMargin: 38
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
-                                    color: "#FFFFFF"
-                                    font.family: Theme.fontFamily
-                                    font.pixelSize: 12
-                                    font.weight: Font.DemiBold
-                                }
+                            }
+                            Text {
+                                anchors.right: parent.right
+                                anchors.rightMargin: 14
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
+                                color: backend.brightness >= 0
+                                       && brightTrack.width * backend.brightness / 100
+                                          > brightTrack.width - 46 ? "#FFFFFF" : Theme.textSecondary
+                                font.family: Theme.fontFamily
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
                             }
                             MouseArea {
                                 id: brightArea
@@ -991,16 +999,7 @@ Window {
                                     backend.setBrightness(v)
                                 }
                             }
-                            Text {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                visible: backend.brightness < 0
-                                text: "N/A"
-                                color: Theme.textSecondary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                            }
+
                         }
                     }
                 }
