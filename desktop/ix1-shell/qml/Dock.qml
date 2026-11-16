@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Shapes
 import QtQuick.Window
 import org.kde.layershell as LayerShellQt
 import Ix1Shell 1.0
@@ -12,7 +13,7 @@ Window {
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    height: 92
+    height: 120
     // Anchors size the window under the layer shell; set it explicitly so
     // offscreen (headless render) grabs show the dock too.
     width: 1920
@@ -27,7 +28,7 @@ Window {
         id: dock
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 12
+        anchors.bottomMargin: 40
         width: dockRow.implicitWidth + 20
         height: dockRow.implicitHeight + 20
         radius: Theme.radiusLarge
@@ -92,7 +93,56 @@ Window {
                         NumberAnimation { duration: 110; easing.type: Easing.OutQuad }
                     }
 
+                    // Soft coloured reflection pooled on the "floor" under the
+                    // dock; brighter under running apps.
+                    Shape {
+                        id: pool
+                        readonly property real w: 76
+                        readonly property real a: (Theme.dark ? 1 : 0.55) * (parent.running ? 1.25 : 0.8)
+                        width: w
+                        height: w
+                        x: (parent.width - w) / 2
+                        y: parent.height + 11
+                        transform: Scale { yScale: 0.7 }
+                        preferredRendererType: Shape.CurveRenderer
+                        ShapePath {
+                            strokeWidth: -1
+                            fillGradient: RadialGradient {
+                                centerX: pool.w / 2; centerY: 0
+                                focalX: pool.w / 2; focalY: 0
+                                centerRadius: pool.w / 2
+                                GradientStop { position: 0.0; color: Qt.alpha(icon.tint, 0.55 * pool.a) }
+                                GradientStop { position: 0.45; color: Qt.alpha(icon.tint, 0.2 * pool.a) }
+                                GradientStop { position: 1.0; color: Qt.alpha(icon.tint, 0) }
+                            }
+                            PathRectangle { width: pool.w; height: pool.w }
+                        }
+                    }
+
+                    Shape {
+                        id: hot
+                        visible: parent.running
+                        readonly property real w: 56
+                        width: w
+                        height: w
+                        x: (parent.width - w) / 2
+                        y: parent.height + 11
+                        transform: Scale { yScale: 0.5 }
+                        ShapePath {
+                            strokeWidth: -1
+                            fillGradient: RadialGradient {
+                                centerX: hot.w / 2; centerY: 0
+                                focalX: hot.w / 2; focalY: 0
+                                centerRadius: hot.w / 2
+                                GradientStop { position: 0.0; color: Qt.alpha("#5AB8FF", Theme.dark ? 0.75 : 0.4) }
+                                GradientStop { position: 1.0; color: Qt.alpha("#5AB8FF", 0) }
+                            }
+                            PathRectangle { width: hot.w; height: hot.w }
+                        }
+                    }
+
                     AppIcon {
+                        id: icon
                         anchors.centerIn: parent
                         width: 44
                         height: 44
@@ -100,15 +150,39 @@ Window {
                         appTitle: name
                     }
 
-                    Rectangle {
+                    Item {
                         visible: parent.running
                         anchors.bottom: parent.bottom
-                        anchors.bottomMargin: 2
+                        anchors.bottomMargin: -1
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 4
-                        height: 4
-                        radius: 2
-                        color: Theme.accent
+                        width: 18
+                        height: 5
+
+                        Shape {
+                            id: halo
+                            readonly property real w: 40
+                            width: w
+                            height: w
+                            x: (parent.width - w) / 2
+                            y: parent.height / 2 - w * 0.2
+                            transform: Scale { yScale: 0.4 }
+                            ShapePath {
+                                strokeWidth: -1
+                                fillGradient: RadialGradient {
+                                    centerX: halo.w / 2; centerY: halo.w / 2
+                                    focalX: halo.w / 2; focalY: halo.w / 2
+                                    centerRadius: halo.w / 2
+                                    GradientStop { position: 0.0; color: Qt.alpha("#74F8FD", 0.45) }
+                                    GradientStop { position: 1.0; color: Qt.alpha("#74F8FD", 0) }
+                                }
+                                PathRectangle { width: halo.w; height: halo.w }
+                            }
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: height / 2
+                            color: "#74F8FD"
+                        }
                     }
 
                     MouseArea {

@@ -7,6 +7,13 @@ Image {
 
     property string desktopFileName: ""
     property string appTitle: ""
+    // Dominant tile colour, used for the dock reflection.
+    readonly property color tint: ({
+        "browser": "#1E6FFF", "files": "#2F64D8", "bars": "#18A866",
+        "editor": "#6E4CF0", "terminal": "#3A4766", "settings": "#4A5672",
+        "store": "#5B4CF0", "grid": "#12A89E", "monitor": "#D83A5C",
+        "pulse": "#F08A24"
+    })[iconName()]
 
     function iconName() {
         const hay = (root.desktopFileName + " " + root.appTitle).toLowerCase();
