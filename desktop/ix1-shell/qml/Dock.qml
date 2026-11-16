@@ -18,6 +18,11 @@ Window {
     // offscreen (headless render) grabs show the dock too.
     width: 1920
 
+    // Input region (applied by main.cpp): only the dock itself takes
+    // clicks; the transparent strip and the reflection pass them through.
+    readonly property rect inputRect:
+        Qt.rect(dock.x, 0, dock.width, dock.y + dock.height + 14)
+
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
         target: backend
