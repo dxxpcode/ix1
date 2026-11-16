@@ -3,7 +3,9 @@
 #include <QGuiApplication>
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
+#include <QMetaProperty>
 #include <QQuickWindow>
+#include <QRegion>
 #include <QTimer>
 
 #include "backend.h"
@@ -58,6 +60,25 @@ int main(int argc, char *argv[])
             return 2;
         }
         engines.append(engine);
+
+        // A root window may declare `inputRect` to limit where it takes
+        // input; everything outside it passes through to what is below.
+        for (QObject *o : engine->rootObjects()) {
+            auto *w = qobject_cast<QQuickWindow *>(o);
+            const int idx = o->metaObject()->indexOfProperty("inputRect");
+            if (!w || idx < 0 || QGuiApplication::platformName() == QLatin1String("offscreen")) {
+                continue;
+            }
+            auto *apply = new QTimer(w);
+            apply->setSingleShot(true);
+            QObject::connect(apply, &QTimer::timeout, w, [w, o]() {
+                w->setMask(QRegion(o->property("inputRect").toRectF().toAlignedRect()));
+            });
+            QObject::connect(o, o->metaObject()->property(idx).notifySignal(), apply,
+                             apply->metaObject()->method(
+                                 apply->metaObject()->indexOfSlot("start()")));
+            apply->start();
+        }
     }
 
     // Headless renders: IX1_SHOT_DIR saves one PNG per root window and
