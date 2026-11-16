@@ -37,6 +37,7 @@ Window {
     property string category: "All"
     // Highlight: 0..recentShown.length-1 is the Recent row, then the grid.
     property int sel: 0
+    property int selStyle: 1
 
     readonly property var groups: {
         const present = {}
@@ -71,6 +72,7 @@ Window {
                 if (kv[0] === "q") searchInput.text = kv[1]
                 else if (kv[0] === "cat") category = kv[1]
                 else if (kv[0] === "sel") sel = parseInt(kv[1])
+                else if (kv[0] === "v") selStyle = parseInt(kv[1])
             }
         }
     }
@@ -568,7 +570,19 @@ Window {
             Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
             Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
 
+            // Variant 1 — a whisper of fill with a crisp accent ring.
             Rectangle {
+                visible: root.selStyle === 1
+                anchors.fill: parent
+                radius: 18
+                color: Theme.dark ? Qt.rgba(1, 1, 1, 0.05) : Qt.rgba(1, 1, 1, 0.55)
+                border.width: 1
+                border.color: Theme.dark ? Qt.rgba(0.55, 0.75, 1, 0.75) : Qt.rgba(0.2, 0.39, 0.91, 0.55)
+            }
+
+            // Variant 2 — a deep accent-tinted plate.
+            Rectangle {
+                visible: root.selStyle === 2
                 anchors.fill: parent
                 anchors.topMargin: 3
                 anchors.margins: -1
@@ -576,17 +590,18 @@ Window {
                 color: Qt.rgba(0, 0, 0, Theme.dark ? 0.22 : 0.06)
             }
             Rectangle {
-                id: plateFill
+                visible: root.selStyle === 2
                 anchors.fill: parent
                 radius: 18
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.62, 0.74, 1, 0.16) : Qt.rgba(1, 1, 1, 0.95) }
-                    GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.45, 0.58, 0.95, 0.07) : Qt.rgba(0.94, 0.96, 1, 0.85) }
+                    GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.44, 0.58, 0.93, 0.42) : Qt.rgba(0.7, 0.78, 0.96, 0.95) }
+                    GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.33, 0.45, 0.78, 0.34) : Qt.rgba(0.6, 0.7, 0.93, 0.9) }
                 }
                 border.width: 1
-                border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.20) : Qt.rgba(0.2, 0.39, 0.91, 0.16)
+                border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.45) : Qt.rgba(0.2, 0.39, 0.91, 0.3)
             }
             Rectangle {
+                visible: root.selStyle === 2
                 anchors.top: parent.top
                 anchors.topMargin: 1
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -595,11 +610,15 @@ Window {
                 gradient: Gradient {
                     orientation: Gradient.Horizontal
                     GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 0.5; color: Theme.dark ? Qt.rgba(0.85, 0.92, 1, 0.45) : "#FFFFFF" }
+                    GradientStop { position: 0.5; color: Theme.dark ? Qt.rgba(0.9, 0.94, 1, 0.8) : "#FFFFFF" }
                     GradientStop { position: 1.0; color: "transparent" }
                 }
             }
+
+            // Variant 3 — no plate: the icon floats over its own glow with an
+            // accent underline.
             Shape {
+                visible: root.selStyle === 3
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: 4
                 width: 96
@@ -610,17 +629,18 @@ Window {
                     fillGradient: RadialGradient {
                         centerX: 48; centerY: 42; centerRadius: 46
                         focalX: 48; focalY: 42
-                        GradientStop { position: 0.0; color: Qt.alpha(tileIcon.tint, Theme.dark ? 0.42 : 0.22) }
+                        GradientStop { position: 0.0; color: Qt.alpha(tileIcon.tint, Theme.dark ? 0.5 : 0.28) }
                         GradientStop { position: 1.0; color: Qt.alpha(tileIcon.tint, 0) }
                     }
                     PathAngleArc { centerX: 48; centerY: 42; radiusX: 46; radiusY: 38; startAngle: 0; sweepAngle: 360 }
                 }
             }
             Rectangle {
+                visible: root.selStyle === 3
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 5
                 anchors.horizontalCenter: parent.horizontalCenter
-                width: 16
+                width: 18
                 height: 3
                 radius: 1.5
                 color: Theme.dark ? "#74F8FD" : Theme.accent
@@ -649,7 +669,8 @@ Window {
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             text: tile.app ? tile.app.name : ""
-            color: tile.selected ? Theme.textPrimary
+            color: tile.selected
+                 ? (root.selStyle === 1 ? Theme.accent : Theme.textPrimary)
                  : Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.78)
             font.family: Theme.fontFamily
             font.pixelSize: 12
