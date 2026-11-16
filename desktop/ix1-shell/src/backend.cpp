@@ -2,13 +2,17 @@
 
 #include <QCoreApplication>
 #include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCall>
 #include <QDir>
 #include <QFile>
 #include <QFileInfo>
 #include <QProcess>
+#include <QRegularExpression>
 #include <QStandardPaths>
 #include <QTextStream>
 #include <QTimer>
+#include <QVariantMap>
 
 #include <KIdleTime>
 
@@ -24,6 +28,26 @@
 namespace {
 
 constexpr int kIdleLockMs = 5 * 60 * 1000;
+
+// nmcli -t separates fields with ':' and escapes a literal ':' as '\\:'.
+QStringList splitNmcliRow(const QString &row)
+{
+    QStringList fields;
+    QString cur;
+    for (int i = 0; i < row.size(); ++i) {
+        const QChar c = row.at(i);
+        if (c == QLatin1Char('\\') && i + 1 < row.size()) {
+            cur += row.at(++i);
+        } else if (c == QLatin1Char(':')) {
+            fields << cur;
+            cur.clear();
+        } else {
+            cur += c;
+        }
+    }
+    fields << cur;
+    return fields;
+}
 
 QStringList desktopEntryPaths()
 {
@@ -171,7 +195,12 @@ ShellBackend::ShellBackend(QObject *parent)
     }
 
     connect(m_notifications, &NotificationServer::notificationAdded,
-            this, &ShellBackend::notificationAdded);
+            this, [this](const QString &appName, const QString &summary,
+                         const QString &body, uint id) {
+                if (!m_dnd) {
+                    emit notificationAdded(appName, summary, body, id);
+                }
+            });
     connect(m_notifications, &NotificationServer::notificationClosed,
             this, &ShellBackend::notificationClosed);
 
@@ -188,6 +217,9 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshVolume();
         refreshWifi();
         refreshBattery();
+        refreshBrightness();
+        refreshBluetooth();
+        refreshOutputDevices();
     });
 
     // Signal and battery drift while the desktop sits idle.
@@ -196,6 +228,8 @@ ShellBackend::ShellBackend(QObject *parent)
     connect(m_pollTimer, &QTimer::timeout, this, [this]() {
         refreshWifi();
         refreshBattery();
+        refreshOutputDevices();
+        refreshBluetooth();
     });
     m_pollTimer->start();
 
@@ -205,8 +239,34 @@ ShellBackend::ShellBackend(QObject *parent)
         m_wifiSignal = 78;
         m_batteryPct = 82;
         m_volume = 45;
+        m_brightness = 68;
+        m_wifiSsid = QStringLiteral("ix1-home");
+        m_wifiNetworks = {
+            QVariantMap{ { QStringLiteral("ssid"), QStringLiteral("ix1-home") },
+                         { QStringLiteral("signal"), 78 },
+                         { QStringLiteral("secure"), true },
+                         { QStringLiteral("inUse"), true } },
+            QVariantMap{ { QStringLiteral("ssid"), QStringLiteral("coffeehouse-5g") },
+                         { QStringLiteral("signal"), 62 },
+                         { QStringLiteral("secure"), true },
+                         { QStringLiteral("inUse"), false } },
+            QVariantMap{ { QStringLiteral("ssid"), QStringLiteral("xfinitywifi") },
+                         { QStringLiteral("signal"), 38 },
+                         { QStringLiteral("secure"), false },
+                         { QStringLiteral("inUse"), false } },
+        };
         m_activeApp = QStringLiteral("Firefox");
         m_runningApps = { QStringLiteral("firefox") };
+        m_bluetoothEnabled = true;
+        m_hasBluetooth = true;
+        m_outputDevices = {
+            QVariantMap{ { QStringLiteral("id"), 42 },
+                         { QStringLiteral("name"), QStringLiteral("Headphones") },
+                         { QStringLiteral("active"), true } },
+            QVariantMap{ { QStringLiteral("id"), 43 },
+                         { QStringLiteral("name"), QStringLiteral("Speakers") },
+                         { QStringLiteral("active"), false } },
+        };
         if (qEnvironmentVariableIsSet("IX1_SHOW_CAL")) {
             m_calOpen = true;
         }
@@ -278,6 +338,14 @@ void ShellBackend::loadTheme()
     QTextStream in(&file);
     while (!in.atEnd()) {
         const QString line = in.readLine().trimmed();
+        if (line.startsWith(QLatin1String("dnd="))) {
+            const bool on = line.mid(4).trimmed() == QLatin1String("true");
+            if (on != m_dnd) {
+                m_dnd = on;
+                emit dndChanged();
+            }
+            continue;
+        }
         if (!line.startsWith(QLatin1String("theme="))) {
             continue;
         }
@@ -287,6 +355,37 @@ void ShellBackend::loadTheme()
             emit themeChanged();
         }
     }
+}
+
+void ShellBackend::writeSettings()
+{
+    const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
+                         + QStringLiteral("/ix1/settings.conf");
+    QFile file(path);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        return;
+    }
+    QTextStream out(&file);
+    out << "theme=" << m_theme << '\n';
+    out << "dnd=" << (m_dnd ? "true" : "false") << '\n';
+}
+
+void ShellBackend::toggleTheme()
+{
+    m_theme = (m_theme == QLatin1String("graphite"))
+        ? QStringLiteral("porcelain") : QStringLiteral("graphite");
+    writeSettings();
+    emit themeChanged();
+}
+
+void ShellBackend::setDnd(bool on)
+{
+    if (m_dnd == on) {
+        return;
+    }
+    m_dnd = on;
+    writeSettings();
+    emit dndChanged();
 }
 
 QStringList ShellBackend::parseDesktopExec(const QString &exec, const QString &name) const
@@ -357,6 +456,11 @@ void ShellBackend::launchApp(const QString &desktopFile)
 
 void ShellBackend::refreshVolume()
 {
+    // IX1_DEMO seeds fixed values for headless renders; real
+    // hardware probes would overwrite them.
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
     QProcess p;
     p.start(QStringLiteral("wpctl"), { QStringLiteral("get-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@") });
     if (p.waitForFinished(2000)) {
@@ -384,6 +488,11 @@ void ShellBackend::setVolume(int percent)
 
 void ShellBackend::refreshWifi()
 {
+    // IX1_DEMO seeds fixed values for headless renders; real
+    // hardware probes would overwrite them.
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
     QProcess p;
     p.start(QStringLiteral("nmcli"), { QStringLiteral("-t"), QStringLiteral("-f"), QStringLiteral("WIFI"),
                                         QStringLiteral("radio") });
@@ -397,24 +506,69 @@ void ShellBackend::refreshWifi()
     }
 
     int signal = -1;
+    QString ssid;
+    QVariantList networks;
     bool got = !m_wifiEnabled;  // disabled radio is a definitive -1
     if (m_wifiEnabled) {
         QProcess s;
         s.start(QStringLiteral("nmcli"),
                 { QStringLiteral("-t"), QStringLiteral("-f"),
-                  QStringLiteral("IN-USE,SIGNAL"), QStringLiteral("dev"),
+                  QStringLiteral("IN-USE,SSID,SIGNAL,SECURITY"), QStringLiteral("dev"),
                   QStringLiteral("wifi") });
         if (s.waitForFinished(3000)) {
             got = true;
             const QStringList rows = QString::fromLocal8Bit(s.readAllStandardOutput())
                                          .split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+            QMap<QString, QVariantMap> dedup;
             for (const QString &row : rows) {
-                // The AP in use is marked "*:<signal>".
-                if (row.startsWith(QLatin1Char('*'))) {
-                    signal = qBound(0, row.section(QLatin1Char(':'), -1).toInt(), 100);
-                    break;
+                // IN-USE,SSID,SIGNAL,SECURITY — AP in use marked "*".
+                const QStringList f = splitNmcliRow(row);
+                if (f.size() < 4) {
+                    continue;
                 }
+                const bool inUse = f.at(0) == QLatin1Char('*');
+                const QString name = f.at(1);
+                const int sig = qBound(0, f.at(2).toInt(), 100);
+                const bool secure = f.at(3) != QLatin1String("--")
+                                    && !f.at(3).isEmpty();
+                if (inUse) {
+                    signal = sig;
+                    ssid = name;
+                }
+                if (name.isEmpty()) {
+                    continue;  // hidden APs carry no SSID field
+                }
+                QVariantMap entry{
+                    { QStringLiteral("ssid"), name },
+                    { QStringLiteral("signal"), sig },
+                    { QStringLiteral("secure"), secure },
+                    { QStringLiteral("inUse"), inUse },
+                };
+                if (dedup.contains(name)) {
+                    const QVariantMap prev = dedup.value(name);
+                    if (prev.value(QStringLiteral("signal")).toInt() >= sig) {
+                        entry = prev;
+                    }
+                    entry[QStringLiteral("inUse")] =
+                        inUse || prev.value(QStringLiteral("inUse")).toBool();
+                }
+                dedup.insert(name, entry);
             }
+            networks.clear();
+            networks.reserve(dedup.size());
+            for (const QVariantMap &entry : dedup.values()) {
+                networks.append(QVariant(entry));
+            }
+            std::sort(networks.begin(), networks.end(),
+                      [](const QVariant &a, const QVariant &b) {
+                          const QVariantMap ma = a.toMap(), mb = b.toMap();
+                          if (ma.value(QStringLiteral("inUse")).toBool()
+                              != mb.value(QStringLiteral("inUse")).toBool()) {
+                              return ma.value(QStringLiteral("inUse")).toBool();
+                          }
+                          return ma.value(QStringLiteral("signal")).toInt()
+                                 > mb.value(QStringLiteral("signal")).toInt();
+                      });
         }
     }
     // A failed nmcli call keeps the last reading; a successful one with
@@ -426,10 +580,99 @@ void ShellBackend::refreshWifi()
         m_wifiSignal = signal;
         emit wifiSignalChanged();
     }
+    if (ssid != m_wifiSsid) {
+        m_wifiSsid = ssid;
+        emit wifiSsidChanged();
+    }
+    if (networks != m_wifiNetworks) {
+        m_wifiNetworks = networks;
+        emit wifiNetworksChanged();
+    }
+}
+
+void ShellBackend::connectWifi(const QString &ssid, const QString &password)
+{
+    if (ssid.isEmpty() || (ssid == m_wifiSsid && password.isEmpty())) {
+        return;
+    }
+    QStringList args{ QStringLiteral("dev"), QStringLiteral("wifi"),
+                      QStringLiteral("connect"), ssid };
+    if (!password.isEmpty()) {
+        // Saved profiles work without a password; a fresh secured AP needs one.
+        args << QStringLiteral("password") << password;
+    }
+    QProcess::startDetached(QStringLiteral("nmcli"), args);
+    QTimer::singleShot(2500, this, &ShellBackend::refreshWifi);
+}
+
+void ShellBackend::refreshBrightness()
+{
+    // IX1_DEMO seeds fixed values for headless renders; real
+    // hardware probes would overwrite them.
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    const QDir dir(QStringLiteral("/sys/class/backlight"));
+    const QStringList devs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    if (devs.isEmpty()) {
+        m_brightnessDevice.clear();
+        if (m_brightness != -1) {
+            m_brightness = -1;
+            emit brightnessChanged();
+        }
+        return;
+    }
+    m_brightnessDevice = devs.constFirst();
+    QFile bf(dir.filePath(m_brightnessDevice + QStringLiteral("/brightness")));
+    QFile mf(dir.filePath(m_brightnessDevice + QStringLiteral("/max_brightness")));
+    if (!bf.open(QIODevice::ReadOnly | QIODevice::Text)
+        || !mf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        return;
+    }
+    const int max = QString::fromLocal8Bit(mf.readAll()).trimmed().toInt();
+    const int cur = QString::fromLocal8Bit(bf.readAll()).trimmed().toInt();
+    if (max <= 0) {
+        return;
+    }
+    m_brightnessMax = max;
+    const int pct = qBound(0, qRound(cur * 100.0 / max), 100);
+    if (pct != m_brightness) {
+        m_brightness = pct;
+        emit brightnessChanged();
+    }
+}
+
+void ShellBackend::setBrightness(int percent)
+{
+    if (m_brightnessDevice.isEmpty()) {
+        return;
+    }
+    const int pct = qBound(1, percent, 100);
+    // logind's SetBrightness takes a RAW brightness value, not a percent —
+    // scale against the device's max (its owner may set its own backlight).
+    const quint32 raw = static_cast<quint32>(qBound(1, qRound(pct * m_brightnessMax / 100.0),
+                                                    m_brightnessMax));
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.login1"),
+        QStringLiteral("/org/freedesktop/login1/session/auto"),
+        QStringLiteral("org.freedesktop.login1.Session"),
+        QStringLiteral("SetBrightness"));
+    msg << QStringLiteral("backlight") << m_brightnessDevice << raw;
+    QDBusConnection::systemBus().asyncCall(msg);
+    if (pct != m_brightness) {
+        m_brightness = pct;
+        emit brightnessChanged();
+    }
+    QTimer::singleShot(400, this, &ShellBackend::refreshBrightness);
 }
 
 void ShellBackend::refreshBattery()
 {
+    // IX1_DEMO seeds fixed values for headless renders; real
+    // hardware probes would overwrite them.
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
     const QDir power(QStringLiteral("/sys/class/power_supply"));
     const QStringList bats = power.entryList({ QStringLiteral("BAT*") }, QDir::Dirs | QDir::NoDotAndDotDot);
     if (bats.isEmpty()) {
@@ -509,6 +752,113 @@ void ShellBackend::powerAction(const QString &action)
     } else if (action == QLatin1String("logout")) {
         QTimer::singleShot(0, qApp, &QCoreApplication::quit);
     }
+}
+
+void ShellBackend::refreshBluetooth()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    QProcess p;
+    p.start(QStringLiteral("bluetoothctl"), { QStringLiteral("show") });
+    if (!p.waitForFinished(1500)) {
+        return;
+    }
+    const QString out = QString::fromUtf8(p.readAllStandardOutput());
+    if (out.isEmpty()) {
+        m_hasBluetooth = false;
+        if (m_bluetoothEnabled) {
+            m_bluetoothEnabled = false;
+            emit bluetoothEnabledChanged();
+        }
+        return;
+    }
+    m_hasBluetooth = true;
+    const bool on = out.contains(QStringLiteral("Powered: yes"));
+    if (on != m_bluetoothEnabled) {
+        m_bluetoothEnabled = on;
+        emit bluetoothEnabledChanged();
+    }
+}
+
+void ShellBackend::toggleBluetooth()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        m_bluetoothEnabled = !m_bluetoothEnabled;
+        emit bluetoothEnabledChanged();
+        return;
+    }
+    QProcess::startDetached(QStringLiteral("bluetoothctl"),
+                            { QStringLiteral("power"),
+                              m_bluetoothEnabled ? QStringLiteral("off")
+                                                 : QStringLiteral("on") });
+    QTimer::singleShot(500, this, &ShellBackend::refreshBluetooth);
+}
+
+void ShellBackend::refreshOutputDevices()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    QProcess p;
+    p.start(QStringLiteral("wpctl"), { QStringLiteral("status") });
+    if (!p.waitForFinished(1500)) {
+        return;
+    }
+    const QStringList lines = QString::fromUtf8(p.readAllStandardOutput()).split(QLatin1Char('\n'));
+    bool inSinks = false;
+    QVariantList devices;
+    // Unanchored: wpctl status prefixes rows with box-drawing tree
+    // characters (│, ├, ─), so the id column is not at line start.
+    const QRegularExpression row(QStringLiteral("([*]?)\\s*(\\d+)\\.\\s+(\\S.*)$"));
+    for (const QString &line : lines) {
+        if (line.contains(QLatin1String("Sinks:"))) {
+            inSinks = true;
+            continue;
+        }
+        if (inSinks && (line.contains(QLatin1String("Sources:"))
+                        || line.contains(QLatin1String("Devices:")))) {
+            break;
+        }
+        if (!inSinks) {
+            continue;
+        }
+        const QRegularExpressionMatch m = row.match(line);
+        if (!m.hasMatch()) {
+            continue;
+        }
+        QString name = m.captured(3).trimmed();
+        const int bracket = name.indexOf(QLatin1String(" [vol:"));
+        if (bracket > 0) {
+            name = name.left(bracket).trimmed();
+        }
+        devices.append(QVariantMap{ { QStringLiteral("id"), m.captured(2).toInt() },
+                                    { QStringLiteral("name"), name },
+                                    { QStringLiteral("active"), m.captured(1) == QLatin1String("*") } });
+    }
+    if (devices != m_outputDevices) {
+        m_outputDevices = devices;
+        emit outputDevicesChanged();
+    }
+}
+
+void ShellBackend::setOutputDevice(int id)
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        for (int i = 0; i < m_outputDevices.size(); ++i) {
+            QVariantMap d = m_outputDevices[i].toMap();
+            d[QStringLiteral("active")] = d[QStringLiteral("id")].toInt() == id;
+            m_outputDevices[i] = d;
+        }
+        emit outputDevicesChanged();
+        return;
+    }
+    QProcess::startDetached(QStringLiteral("wpctl"),
+                            { QStringLiteral("set-default"), QString::number(id) });
+    QTimer::singleShot(400, this, [this]() {
+        refreshOutputDevices();
+        refreshVolume();
+    });
 }
 
 void ShellBackend::sendTestNotification()

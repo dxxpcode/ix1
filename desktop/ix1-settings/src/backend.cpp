@@ -76,8 +76,31 @@ void SettingsBackend::loadConfig()
 
 void SettingsBackend::saveConfig() const
 {
-    writeFile(configDir() + QStringLiteral("/settings.conf"),
-              QStringLiteral("theme=%1\n").arg(m_theme));
+    // settings.conf is shared — the shell persists keys like dnd= there.
+    // Rewrite only the theme= line, preserving everything else.
+    const QString path = configDir() + QStringLiteral("/settings.conf");
+    QStringList lines;
+    bool wroteTheme = false;
+    QFile f(path);
+    if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&f);
+        while (!in.atEnd()) {
+            const QString line = in.readLine().trimmed();
+            if (line.isEmpty()) {
+                continue;
+            }
+            if (line.startsWith(QLatin1String("theme="))) {
+                lines << QStringLiteral("theme=%1").arg(m_theme);
+                wroteTheme = true;
+            } else {
+                lines << line;
+            }
+        }
+    }
+    if (!wroteTheme) {
+        lines.prepend(QStringLiteral("theme=%1").arg(m_theme));
+    }
+    writeFile(path, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
 }
 
 void SettingsBackend::setTheme(const QString &theme)

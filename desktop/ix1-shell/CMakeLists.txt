@@ -24,7 +24,7 @@ target_link_libraries(ix1-shell PRIVATE
     pam
 )
 
-set_source_files_properties(qml/Theme.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
+set_source_files_properties(qml/Theme.qml qml/cc/CcStyle.qml PROPERTIES QT_QML_SINGLETON_TYPE TRUE)
 
 qt_add_qml_module(ix1-shell
     URI Ix1Shell
@@ -37,6 +37,14 @@ qt_add_qml_module(ix1-shell
         qml/Dock.qml
         qml/Launcher.qml
         qml/QuickSettings.qml
+        qml/cc/CcStyle.qml
+        qml/cc/CcIcon.qml
+        qml/cc/CcTile.qml
+        qml/cc/CcSlider.qml
+        qml/cc/CcCircleButton.qml
+        qml/cc/CcListRow.qml
+        qml/cc/CcExpander.qml
+        qml/cc/CcDevicePicker.qml
         qml/Calendar.qml
         qml/Notifications.qml
         qml/LockScreen.qml
@@ -57,6 +65,9 @@ qt_add_qml_module(ix1-shell
         qml/assets/icons/store.png
         qml/assets/geist-500.ttf
         qml/assets/geistmono-500.ttf
+        qml/assets/fonts/NotoSans-Regular.ttf
+        qml/assets/fonts/NotoSans-Medium.ttf
+        qml/assets/fonts/NotoSans-SemiBold.ttf
 )
 
 install(TARGETS ix1-shell RUNTIME DESTINATION bin)

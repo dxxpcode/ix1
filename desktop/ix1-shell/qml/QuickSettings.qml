@@ -1,20 +1,33 @@
 import QtQuick
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 import org.kde.layershell as LayerShellQt
 import Ix1Shell 1.0
 
+// Control Center — a floating card under the top bar: header, 2x2 toggle
+// tiles, volume/brightness panes, output device, power row, More Settings.
 Window {
     id: root
     visible: backend.quickSettingsOpen
     color: "transparent"
+
+    // Which expander is open: "wifi" | "appearance" | "". IX1_SHOW_NET
+    // opens the Wi-Fi list for renders.
+    property string expanded: (typeof demoNet !== "undefined" && demoNet) ? "wifi" : ""
+
+    function toggleExpanded(name) { expanded = expanded === name ? "" : name }
+    function openSettings() {
+        backend.launchApp("/usr/share/applications/ix1-settings.desktop")
+        backend.closeQuickSettings()
+    }
 
     LayerShellQt.Window.layer: LayerShellQt.Window.LayerOverlay
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorTop
         | LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    // Anchors size the window under the layer shell; set it explicitly so
-    // offscreen (headless render) grabs work too.
+    // The Wi-Fi password field needs real key events on Wayland.
+    LayerShellQt.Window.keyboardInteractivity: LayerShellQt.Window.KeyboardInteractivityOnDemand
     width: 1920
     height: 1080
 
@@ -32,309 +45,373 @@ Window {
     Item {
         anchors.fill: parent
 
-        // Clicking anywhere outside the card dismisses the panel. The tray
-        // toggle is covered by this overlay while open, so this is the way out.
+        // Click outside the card dismisses.
         MouseArea {
             anchors.fill: parent
             onClicked: backend.closeQuickSettings()
         }
 
-        Rectangle {
-            id: card
+        Item {
+            id: shell
             anchors.top: parent.top
-            anchors.topMargin: 40
+            anchors.topMargin: 42
             anchors.right: parent.right
-            anchors.rightMargin: 12
-            width: 312
-            height: contentCol.implicitHeight + 24
-            radius: Theme.radius
-            color: Theme.glass
-            border.color: Theme.hairline
-            border.width: 1
+            anchors.rightMargin: 10
+            width: 400
+            height: Math.min(content.implicitHeight, parent.height - 60)
+            opacity: 0
 
-            Component.onCompleted: enterAnim.restart()
-            onVisibleChanged: { if (visible) enterAnim.restart() }
-
+            Component.onCompleted: enter.restart()
             ParallelAnimation {
-                id: enterAnim
-                NumberAnimation {
-                    target: card
-                    property: "opacity"
-                    from: 0
-                    to: 1
-                    duration: 140
+                id: enter
+                NumberAnimation { target: shell; property: "opacity"; from: 0; to: 1; duration: 160 }
+                NumberAnimation { target: shell; property: "anchors.topMargin"; from: 48; to: 42; duration: 200; easing.type: Easing.OutCubic }
+            }
+
+            DropShadow {
+                anchors.fill: card
+                source: card
+                radius: 28
+                samples: 41
+                verticalOffset: 12
+                color: Qt.rgba(0, 0, 0, CcStyle.dark ? 0.45 : 0.16)
+            }
+
+            Rectangle {
+                id: card
+                anchors.fill: parent
+                radius: CcStyle.radiusCard
+                color: CcStyle.card
+                border.width: 1
+                border.color: CcStyle.cardBorder
+            }
+
+            // Notch pointing up at the panel tray; covers the card's top border.
+            Canvas {
+                id: notch
+                anchors.bottom: card.top
+                anchors.bottomMargin: -1
+                anchors.right: card.right
+                anchors.rightMargin: 29
+                width: 26
+                height: 10
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.reset()
+                    ctx.fillStyle = CcStyle.card
+                    ctx.beginPath()
+                    ctx.moveTo(0, height)
+                    ctx.lineTo(width / 2 - 2, 1.2)
+                    ctx.quadraticCurveTo(width / 2, 0, width / 2 + 2, 1.2)
+                    ctx.lineTo(width, height)
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.strokeStyle = CcStyle.cardBorder
+                    ctx.lineWidth = 1
+                    ctx.beginPath()
+                    ctx.moveTo(0, height - 0.5)
+                    ctx.lineTo(width / 2 - 2, 1.2)
+                    ctx.quadraticCurveTo(width / 2, 0, width / 2 + 2, 1.2)
+                    ctx.lineTo(width, height - 0.5)
+                    ctx.stroke()
                 }
-                NumberAnimation {
-                    target: card
-                    property: "anchors.topMargin"
-                    from: 30
-                    to: 40
-                    duration: 200
-                    easing.type: Easing.OutCubic
+                Connections {
+                    target: Theme
+                    function onModeChanged() { notch.requestPaint() }
                 }
             }
 
-            MouseArea { anchors.fill: parent; onClicked: {} }
+            Flickable {
+                anchors.fill: parent
+                contentHeight: content.implicitHeight
+                interactive: contentHeight > height
+                clip: true
+                boundsBehavior: Flickable.StopAtBounds
 
-            Column {
-                id: contentCol
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.top: parent.top
-                anchors.margins: 12
-                spacing: 10
+                Column {
+                    id: content
+                    x: 16
+                    width: parent.width - 32
+                    topPadding: 21
 
-                Text {
-                    text: "Quick Settings"
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
-                }
-
-                // Wi-Fi
-                Item {
-                    width: parent.width
-                    height: 34
-
-                    // Flash when the tray's wifi zone targeted this row.
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: -6
-                        radius: Theme.radiusSmall
-                        color: Theme.accent
-                        opacity: backend.qsSection === "wifi" ? 0.15 : 0
-                        Behavior on opacity { NumberAnimation { duration: 350 } }
-                    }
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Wi-Fi"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 40
-                        height: 22
-                        radius: 11
-                        color: backend.wifiEnabled ? Theme.accent : Theme.surface3
-
-                        Behavior on color {
-                            ColorAnimation { duration: 160 }
-                        }
-
-                        Rectangle {
-                            x: backend.wifiEnabled ? 20 : 2
-                            width: 18
-                            height: 18
-                            radius: 9
-                            color: "#FFFFFF"
-                            anchors.verticalCenter: parent.verticalCenter
-
-                            Behavior on x {
-                                NumberAnimation { duration: 160; easing.type: Easing.OutQuad }
-                            }
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            onClicked: backend.toggleWifi()
-                        }
-                    }
-                }
-
-                // Volume
-                Item {
-                    width: parent.width
-                    height: volCol.implicitHeight
-
-                    Rectangle {
-                        anchors.fill: parent
-                        anchors.margins: -6
-                        radius: Theme.radiusSmall
-                        color: Theme.accent
-                        opacity: backend.qsSection === "sound" ? 0.15 : 0
-                        Behavior on opacity { NumberAnimation { duration: 350 } }
-                    }
-
-                    Column {
-                        id: volCol
-                        width: parent.width
-                        spacing: 4
-
-                    Text {
-                        text: "Volume"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
+                    // ---- Header --------------------------------------------
                     Item {
                         width: parent.width
-                        height: 22
+                        height: 45
 
-                        Rectangle {
-                            id: volTrack
+                        Image {
+                            id: logo
+                            x: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            width: parent.width
-                            height: 4
-                            radius: 2
-                            color: Theme.surface3
-
-                            Rectangle {
-                                width: volTrack.width * Math.max(0, backend.volume) / 150
-                                height: parent.height
-                                radius: 2
-                                color: Theme.accent
-                            }
+                            width: 38
+                            height: 38
+                            source: CcStyle.dark ? "assets/logo-dark.png" : "assets/logo-light.png"
+                            sourceSize: Qt.size(152, 152)
+                            fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
-                        Rectangle {
-                            x: volTrack.width * Math.max(0, backend.volume) / 150 - 7
+                        Column {
+                            x: 65
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 14
-                            height: 14
-                            radius: 7
-                            color: Theme.surface1
-                            border.color: Theme.hairline
-                            border.width: 1
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onPressed: function(mouse) { updateVol(mouse.x) }
-                            onPositionChanged: function(mouse) { if (pressed) updateVol(mouse.x) }
-                            function updateVol(x) {
-                                const v = Math.round(Math.max(0, Math.min(1, x / volTrack.width)) * 150)
-                                backend.setVolume(v)
-                            }
-                        }
-                    }
-                    Text {
-                        text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-                        color: Theme.textSecondary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                    }
-                    }
-                }
-
-                // Brightness (unsupported on this hardware path yet)
-                Item {
-                    width: parent.width
-                    height: 34
-                    opacity: 0.45
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Brightness"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Text {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "N/A"
-                        color: Theme.textSecondary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 11
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.hairline
-                }
-
-                // Test notification (dev/verification aid)
-                Item {
-                    width: parent.width
-                    height: 34
-
-                    Text {
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: "Send test notification"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                    }
-                    Rectangle {
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: 60
-                        height: 26
-                        radius: Theme.radiusSmall
-                        color: sendArea.containsMouse ? Theme.surface3 : Theme.surface2
-                        border.color: Theme.hairline
-                        border.width: 1
-
-                        Text {
-                            anchors.centerIn: parent
-                            text: "Send"
-                            color: Theme.textPrimary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 12
-                        }
-                        MouseArea {
-                            id: sendArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            onClicked: backend.sendTestNotification()
-                        }
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: 1
-                    color: Theme.hairline
-                }
-
-                // Power
-                Grid {
-                    width: parent.width
-                    columns: 2
-                    columnSpacing: 8
-                    rowSpacing: 8
-
-                    Repeater {
-                        model: [
-                            { label: "Lock", action: "lock" },
-                            { label: "Suspend", action: "suspend" },
-                            { label: "Restart", action: "reboot" },
-                            { label: "Power Off", action: "poweroff" }
-                        ]
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: (parent.width - 8) / 2
-                            height: 34
-                            radius: Theme.radiusSmall
-                            color: powerArea.containsMouse ? Theme.surface3 : Theme.surface2
-
+                            spacing: 0
                             Text {
-                                anchors.centerIn: parent
-                                text: modelData.label
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
+                                text: "Control Center"
+                                color: CcStyle.text
+                                font.family: CcStyle.font
+                                font.pixelSize: 17
+                                font.weight: Font.Medium
+                            }
+                            Text {
+                                text: "Quick settings and controls"
+                                color: CcStyle.textMuted
+                                font.family: CcStyle.font
+                                font.pixelSize: 13
+                            }
+                        }
+                        CcCircleButton {
+                            anchors.right: parent.right
+                            anchors.verticalCenter: parent.verticalCenter
+                            diameter: 45
+                            icon: "gear"
+                            iconSize: 28
+                            onClicked: root.openSettings()
+                        }
+                    }
+
+                    Item { width: 1; height: 19 }
+
+                    // ---- Tiles ---------------------------------------------
+                    Grid {
+                        id: tiles
+                        width: parent.width
+                        columns: 2
+                        columnSpacing: 11
+                        rowSpacing: 13
+                        readonly property real cell: (width - columnSpacing) / 2
+
+                        CcTile {
+                            width: tiles.cell
+                            icon: "wifi"
+                            iconSize: 42
+                            iconWeight: 2.3
+                            title: "Wi-Fi"
+                            subtitle: !backend.wifiEnabled ? "Off"
+                                      : (backend.wifiSsid ? "Connected" : "On")
+                            active: backend.wifiEnabled
+                            flashing: backend.qsSection === "wifi"
+                            onToggled: backend.toggleWifi()
+                            onChevronClicked: root.toggleExpanded("wifi")
+                        }
+                        CcTile {
+                            width: tiles.cell
+                            icon: "bluetooth"
+                            title: "Bluetooth"
+                            subtitle: backend.bluetoothEnabled ? "On" : "Off"
+                            active: false
+                            onToggled: backend.toggleBluetooth()
+                            onChevronClicked: root.openSettings()
+                        }
+                        CcTile {
+                            width: tiles.cell
+                            icon: "moon"
+                            title: "Focus"
+                            subtitle: backend.dnd ? "On" : "Off"
+                            active: backend.dnd
+                            onToggled: backend.setDnd(!backend.dnd)
+                            onChevronClicked: root.openSettings()
+                        }
+                        CcTile {
+                            width: tiles.cell
+                            icon: "sun"
+                            title: "Appearance"
+                            subtitle: backend.theme === "graphite" ? "Dark" : "Light"
+                            onToggled: backend.toggleTheme()
+                            onChevronClicked: root.toggleExpanded("appearance")
+                        }
+                    }
+
+                    // ---- Wi-Fi networks ------------------------------------
+                    Item {
+                        width: parent.width
+                        height: wifiList.height > 0 ? wifiList.height + 13 : 0
+                        CcExpander {
+                            id: wifiList
+                            y: 13
+                            open: root.expanded === "wifi"
+
+                            Repeater {
+                                model: backend.wifiNetworks
+                                delegate: CcListRow {
+                                    required property var modelData
+                                    width: parent.width
+                                    icon: "wifi"
+                                    iconOpacity: modelData.inUse ? 1 : 0.4 + 0.6 * modelData.signal / 100
+                                    label: modelData.ssid
+                                    trailing: modelData.inUse ? "connected"
+                                            : (modelData.secure ? "lock" : "")
+                                    needsPassword: modelData.secure && !modelData.inUse
+                                    onActivated: backend.connectWifi(modelData.ssid, "")
+                                    onJoined: function(pw) { backend.connectWifi(modelData.ssid, pw) }
+                                }
+                            }
+                            Text {
+                                visible: backend.wifiNetworks.length === 0
+                                x: 10
+                                height: 38
+                                verticalAlignment: Text.AlignVCenter
+                                text: backend.wifiEnabled ? "No networks found" : "Wi-Fi is off"
+                                color: CcStyle.textMuted
+                                font.family: CcStyle.font
                                 font.pixelSize: 12
                             }
-                            MouseArea {
-                                id: powerArea
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                onClicked: {
-                                    if (modelData.action === "lock") {
-                                        backend.lock()
-                                    } else {
-                                        backend.powerAction(modelData.action)
+                        }
+                    }
+
+                    // ---- Appearance ----------------------------------------
+                    Item {
+                        width: parent.width
+                        height: themeList.height > 0 ? themeList.height + 13 : 0
+                        CcExpander {
+                            id: themeList
+                            y: 13
+                            open: root.expanded === "appearance"
+
+                            Repeater {
+                                model: [
+                                    { "id": "graphite", "label": "Dark", "icon": "moon" },
+                                    { "id": "porcelain", "label": "Light", "icon": "sun" },
+                                ]
+                                delegate: CcListRow {
+                                    required property var modelData
+                                    width: parent.width
+                                    icon: modelData.icon
+                                    label: modelData.label
+                                    trailing: backend.theme === modelData.id ? "check" : ""
+                                    onActivated: {
+                                        if (backend.theme !== modelData.id) {
+                                            backend.toggleTheme()
+                                        }
                                     }
                                 }
                             }
+                        }
+                    }
+
+                    Item { width: 1; height: 14 }
+
+                    // ---- Sliders -------------------------------------------
+                    CcSlider {
+                        width: parent.width
+                        icon: backend.volume === 0 ? "volume-off" : "volume"
+                        min: 0
+                        max: 150
+                        value: backend.volume
+                        available: backend.volume >= 0
+                        onMoved: function(v) { backend.setVolume(v) }
+                    }
+                    Item { width: 1; height: 8 }
+                    CcSlider {
+                        width: parent.width
+                        icon: "brightness"
+                        min: 0
+                        max: 100
+                        value: backend.brightness
+                        available: backend.brightness >= 0
+                        onMoved: function(v) { backend.setBrightness(v) }
+                    }
+
+                    Item { width: 1; height: 14 }
+                    Rectangle { width: parent.width; height: 1; color: CcStyle.divider }
+                    Item { width: 1; height: 15 }
+
+                    // ---- Output device -------------------------------------
+                    CcDevicePicker {
+                        width: parent.width
+                        model: backend.outputDevices
+                        onSelected: function(item) { backend.setOutputDevice(item.id) }
+                    }
+
+                    Item { width: 1; height: 19 }
+
+                    // ---- Power ---------------------------------------------
+                    Row {
+                        width: parent.width
+                        Repeater {
+                            model: [
+                                { "icon": "lock-fill", "label": "Lock", "action": "lock" },
+                                { "icon": "moon", "label": "Suspend", "action": "suspend" },
+                                { "icon": "restart", "label": "Restart", "action": "reboot" },
+                                { "icon": "power", "label": "Power Off", "action": "poweroff" },
+                            ]
+                            delegate: Item {
+                                required property var modelData
+                                width: parent.width / 4
+                                height: power.implicitHeight
+                                CcCircleButton {
+                                    id: power
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: parent.width
+                                    icon: modelData.icon
+                                    label: modelData.label
+                                    onClicked: {
+                                        if (modelData.action === "lock") {
+                                            backend.lock()
+                                        } else {
+                                            backend.powerAction(modelData.action)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Item { width: 1; height: 13 }
+                    Rectangle { width: parent.width; height: 1; color: CcStyle.divider }
+
+                    // ---- More Settings -------------------------------------
+                    Item {
+                        width: parent.width
+                        height: 49
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.topMargin: 4
+                            anchors.bottomMargin: 4
+                            radius: 10
+                            color: moreArea.containsMouse ? CcStyle.rowHover : "transparent"
+                        }
+                        CcIcon {
+                            x: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 21
+                            height: 21
+                            name: "sliders"
+                            weight: 1.7
+                            color: CcStyle.text
+                        }
+                        Text {
+                            x: 46
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "More Settings"
+                            color: CcStyle.text
+                            font.family: CcStyle.font
+                            font.pixelSize: 12
+                        }
+                        CcIcon {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 17
+                            height: 17
+                            name: "chevron-right"
+                            color: CcStyle.text
+                        }
+                        MouseArea {
+                            id: moreArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.openSettings()
                         }
                     }
                 }
