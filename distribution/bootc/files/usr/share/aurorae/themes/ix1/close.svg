@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Traffic-light close button: 12px dot, glyph appears on hover.
+     Sprite sheet: each state is a <state>-center group at its own x. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="12" viewBox="0 0 80 12">
+  <g id="active-center">
+    <circle cx="6" cy="6" r="6" fill="#FF5F57"/>
+    <circle cx="6" cy="6" r="6" fill="none" stroke="#C23A33" stroke-opacity="0.6" stroke-width="0.75"/>
+  </g>
+  <g id="hover-center" transform="translate(16,0)">
+    <circle cx="6" cy="6" r="6" fill="#FF5F57"/>
+    <circle cx="6" cy="6" r="6" fill="none" stroke="#C23A33" stroke-opacity="0.6" stroke-width="0.75"/>
+    <path d="M3.8,3.8 L8.2,8.2 M8.2,3.8 L3.8,8.2" stroke="#5C0D0A" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+  </g>
+  <g id="pressed-center" transform="translate(32,0)">
+    <circle cx="6" cy="6" r="6" fill="#D9443B"/>
+    <path d="M3.8,3.8 L8.2,8.2 M8.2,3.8 L3.8,8.2" stroke="#4A0908" stroke-width="1.1" stroke-linecap="round" fill="none"/>
+  </g>
+  <g id="inactive-center" transform="translate(48,0)">
+    <circle cx="6" cy="6" r="6" fill="#4A4E57"/>
+    <circle cx="6" cy="6" r="6" fill="none" stroke="#3A3E46" stroke-width="0.75"/>
+  </g>
+  <g id="deactivated-center" transform="translate(64,0)">
+    <circle cx="6" cy="6" r="6" fill="#4A4E57" fill-opacity="0.6"/>
+  </g>
+</svg>

@@ -1,0 +1,147 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- ix1 window decoration: 34px frosted titlebar, 10px rounded corners,
+     borderless sides, gradient soft shadow. Elements are named FrameSvg
+     tiles: <prefix>-<side> for each state. -->
+<svg xmlns="http://www.w3.org/2000/svg" width="760" height="140" viewBox="0 0 760 140">
+  <defs>
+    <linearGradient id="shT" x1="0" y1="0" x2="0" y2="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="shB" x1="0" y1="84" x2="0" y2="120" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <linearGradient id="shL" x1="620" y1="0" x2="656" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.35"/>
+    </linearGradient>
+    <linearGradient id="shR" x1="704" y1="0" x2="740" y2="0" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </linearGradient>
+    <radialGradient id="shTL" cx="656" cy="36" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shTR" cx="704" cy="36" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shBL" cx="656" cy="84" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="shBR" cx="704" cy="84" r="36" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#000000" stop-opacity="0.42"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0"/>
+    </radialGradient>
+  </defs>
+
+  <!-- ============ ACTIVE (glass, frosted) ============ -->
+  <g id="decoration-topleft">
+    <path d="M0,10 A10,10 0 0,1 10,0 L14,0 L14,34 L0,34 Z" fill="#17181C" fill-opacity="0.78"/>
+    <rect x="0" y="33" width="14" height="1" fill="#FFFFFF" fill-opacity="0.08"/>
+  </g>
+  <g id="decoration-top">
+    <rect x="14" y="0" width="132" height="34" fill="#17181C" fill-opacity="0.78"/>
+    <rect x="14" y="33" width="132" height="1" fill="#FFFFFF" fill-opacity="0.08"/>
+  </g>
+  <g id="decoration-topright">
+    <path d="M146,0 L150,0 A10,10 0 0,1 160,10 L160,34 L146,34 Z" fill="#17181C" fill-opacity="0.78"/>
+    <rect x="146" y="33" width="14" height="1" fill="#FFFFFF" fill-opacity="0.08"/>
+  </g>
+  <g id="decoration-left">
+    <rect x="0" y="34" width="2" height="44" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+  <g id="decoration-center">
+    <rect x="2" y="34" width="156" height="44" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+  <g id="decoration-right">
+    <rect x="158" y="34" width="2" height="44" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+  <g id="decoration-bottom">
+    <rect x="2" y="78" width="156" height="2" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+  <g id="decoration-bottomleft">
+    <path d="M0,78 L14,78 L14,90 L10,90 A10,10 0 0,1 0,80 Z" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+  <g id="decoration-bottomright">
+    <path d="M146,78 L160,78 L160,80 A10,10 0 0,1 150,90 L146,90 Z" fill="#17181C" fill-opacity="0.78"/>
+  </g>
+
+  <!-- ============ INACTIVE (dimmer glass) ============ -->
+  <g id="decoration-inactive-topleft">
+    <path d="M180,10 A10,10 0 0,1 190,0 L194,0 L194,34 L180,34 Z" fill="#17181C" fill-opacity="0.62"/>
+    <rect x="180" y="33" width="14" height="1" fill="#FFFFFF" fill-opacity="0.05"/>
+  </g>
+  <g id="decoration-inactive-top">
+    <rect x="194" y="0" width="132" height="34" fill="#17181C" fill-opacity="0.62"/>
+    <rect x="194" y="33" width="132" height="1" fill="#FFFFFF" fill-opacity="0.05"/>
+  </g>
+  <g id="decoration-inactive-topright">
+    <path d="M332,0 A10,10 0 0,1 340,10 L340,34 L326,34 L326,0 Z" fill="#17181C" fill-opacity="0.62"/>
+    <rect x="326" y="33" width="14" height="1" fill="#FFFFFF" fill-opacity="0.05"/>
+  </g>
+  <g id="decoration-inactive-left">
+    <rect x="180" y="34" width="2" height="44" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+  <g id="decoration-inactive-center">
+    <rect x="182" y="34" width="156" height="44" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+  <g id="decoration-inactive-right">
+    <rect x="338" y="34" width="2" height="44" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+  <g id="decoration-inactive-bottom">
+    <rect x="182" y="78" width="156" height="2" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+  <g id="decoration-inactive-bottomleft">
+    <path d="M180,78 L194,78 L194,90 L190,90 A10,10 0 0,1 180,80 Z" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+  <g id="decoration-inactive-bottomright">
+    <path d="M326,78 L340,78 L340,80 A10,10 0 0,1 330,90 L326,90 Z" fill="#17181C" fill-opacity="0.62"/>
+  </g>
+
+  <!-- ============ MAXIMIZED CENTER ============ -->
+  <rect id="decoration-maximized-center" x="360" y="0" width="20" height="20" fill="#17181C" fill-opacity="0.78"/>
+
+  <!-- ============ BLUR MASK (window shape, opaque) ============ -->
+  <g id="mask-topleft">
+    <path d="M400,10 A10,10 0 0,1 410,0 L414,0 L414,34 L400,34 Z" fill="#000000"/>
+  </g>
+  <g id="mask-top">
+    <rect x="414" y="0" width="132" height="34" fill="#000000"/>
+  </g>
+  <g id="mask-topright">
+    <path d="M552,0 A10,10 0 0,1 560,10 L560,34 L546,34 L546,0 Z" fill="#000000"/>
+  </g>
+  <g id="mask-left">
+    <rect x="400" y="34" width="2" height="44" fill="#000000"/>
+  </g>
+  <g id="mask-center">
+    <rect x="402" y="34" width="156" height="44" fill="#000000"/>
+  </g>
+  <g id="mask-right">
+    <rect x="558" y="34" width="2" height="44" fill="#000000"/>
+  </g>
+  <g id="mask-bottom">
+    <rect x="402" y="78" width="156" height="2" fill="#000000"/>
+  </g>
+  <g id="mask-bottomleft">
+    <path d="M400,78 L414,78 L414,90 L410,90 A10,10 0 0,1 400,80 Z" fill="#000000"/>
+  </g>
+  <g id="mask-bottomright">
+    <path d="M546,78 L560,78 L560,80 A10,10 0 0,1 550,90 L546,90 Z" fill="#000000"/>
+  </g>
+
+  <!-- ============ SHADOW (gradient, no filter) ============ -->
+  <rect id="shadow-topleft" x="620" y="0" width="36" height="36" fill="url(#shTL)"/>
+  <rect id="shadow-top" x="656" y="0" width="48" height="36" fill="url(#shT)"/>
+  <rect id="shadow-topright" x="704" y="0" width="36" height="36" fill="url(#shTR)"/>
+  <rect id="shadow-left" x="620" y="36" width="36" height="48" fill="url(#shL)"/>
+  <rect id="shadow-center" x="656" y="36" width="48" height="48" fill="#000000" fill-opacity="0"/>
+  <rect id="shadow-right" x="704" y="36" width="36" height="48" fill="url(#shR)"/>
+  <rect id="shadow-bottomleft" x="620" y="84" width="36" height="36" fill="url(#shBL)"/>
+  <rect id="shadow-bottom" x="656" y="84" width="48" height="36" fill="url(#shB)"/>
+  <rect id="shadow-bottomright" x="704" y="84" width="36" height="36" fill="url(#shBR)"/>
+</svg>

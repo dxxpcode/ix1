@@ -1,0 +1,23 @@
+{
+    "KPackageStructure": "aurorae",
+    "KPlugin": {
+        "Authors": [
+            {
+                "Email": "nextdeveloper@mail.com",
+                "Name": "dxxpcode"
+            }
+        ],
+        "Category": "Plasma 6 Window Decorations",
+        "ServiceTypes": [
+            "aurorae"
+        ],
+        "EnabledByDefault": true,
+        "Name": "ix1",
+        "Description": "ix1 window decorations — frosted titlebar, traffic lights, rounded corners",
+        "Id": "ix1",
+        "License": "MIT",
+        "Version": "1.0",
+        "X-KDE-PluginInfo-blur": true,
+        "X-KPackage-Dependencies": []
+    }
+}

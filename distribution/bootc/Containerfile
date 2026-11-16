@@ -116,6 +116,9 @@ COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
 COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop \
      /usr/share/applications/ix1-software-center.desktop
 
+# ix1 window chrome: Aurorae SVG theme (selected in /etc/xdg/kwinrc).
+COPY distribution/bootc/files/usr/share/aurorae /usr/share/aurorae
+
 # ---- M7: signed updates and recovery ----------------------------------------
 # Containers policy: pulls of the ix1 image from the update registry must
 # carry a valid ix1 sigstore signature (verified against the baked-in public
@@ -141,6 +144,7 @@ RUN chmod 755 /usr/libexec/ix1-update
 # as a KWin dependency and its greeter aborts in this image, so disable its
 # automatic locking (idle/resume) — the ix1 lock surface is the only one.
 COPY distribution/bootc/files/etc/xdg/kscreenlockerrc /etc/xdg/kscreenlockerrc
+COPY distribution/bootc/files/etc/xdg/kwinrc /etc/xdg/kwinrc
 # The deployment root is an overlay (composefs) on bootc; remounting it per
 # fstab fails and leaves every boot 'degraded'. The initrd already mounts it
 # read-only, so the remount is a no-op — tolerate the failure.
