@@ -20,6 +20,7 @@ public:
         ExecRole,
         DesktopFileRole,
         CategoriesRole,
+        GroupRole,
     };
 
     explicit AppModel(QObject *parent = nullptr);
@@ -40,6 +41,7 @@ private:
         QString exec;
         QString desktopFile;
         QString categories;
+        QString group;
     };
     QList<Entry> m_entries;
 };
@@ -50,6 +52,10 @@ class ShellBackend : public QObject
     // The KWin focus script calls methods on this interface name.
     Q_CLASSINFO("D-Bus Interface", "org.ix1.Shell")
     Q_PROPERTY(AppModel *apps READ apps CONSTANT)
+    // Launcher data: every app as { name, desktopFile, group }, sorted by
+    // name, and the last launched apps (most recent first).
+    Q_PROPERTY(QVariantList launcherApps READ launcherApps NOTIFY launcherAppsChanged)
+    Q_PROPERTY(QVariantList recentApps READ recentApps NOTIFY recentAppsChanged)
     Q_PROPERTY(QString userName READ userName CONSTANT)
     Q_PROPERTY(QString theme READ theme NOTIFY themeChanged)
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
@@ -101,6 +107,8 @@ public:
     bool calendarOpen() const { return m_calOpen; }
     bool locked() const { return m_locked; }
     QString wallpaper() const { return m_wallpaper; }
+    QVariantList launcherApps() const;
+    QVariantList recentApps() const;
 
     Q_INVOKABLE void launchApp(const QString &desktopFile);
     Q_INVOKABLE void launchExec(const QString &exec);
@@ -148,6 +156,8 @@ signals:
     void activeAppChanged();
     void runningAppsChanged();
     void dockAppsChanged();
+    void launcherAppsChanged();
+    void recentAppsChanged();
     void launcherOpenChanged();
     void quickSettingsOpenChanged();
     void qsSectionChanged();
@@ -177,6 +187,8 @@ private:
     void writeSettings();
     void rebuildDock();
     void armIdleTimeouts();
+    void noteLaunched(const QString &desktopFile);
+    static QString recentsPath();
 
     AppModel m_apps;
     NotificationServer *m_notifications = nullptr;
@@ -219,5 +231,6 @@ private:
     int m_idleLockMin = 5;
     int m_idleSuspendMin = 0;
     QString m_wallpaper;
+    QStringList m_recent;
     QTimer *m_pollTimer = nullptr;
 };

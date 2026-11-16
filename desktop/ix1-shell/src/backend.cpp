@@ -79,6 +79,43 @@ struct DesktopEntry {
     bool valid = false;
 };
 
+// Maps freedesktop Categories= onto the launcher's groups. Order matters:
+// a terminal is tagged System too but belongs with Development.
+QString launcherGroup(const QString &categories)
+{
+    const QStringList c = categories.split(QLatin1Char(';'), Qt::SkipEmptyParts);
+    const auto any = [&c](std::initializer_list<const char *> keys) {
+        for (const char *k : keys) {
+            if (c.contains(QLatin1String(k))) {
+                return true;
+            }
+        }
+        return false;
+    };
+    if (any({ "WebBrowser", "Network", "Email", "Chat", "InstantMessaging" })) {
+        return QStringLiteral("Internet");
+    }
+    if (any({ "Development", "IDE", "TerminalEmulator", "TextEditor" })) {
+        return QStringLiteral("Development");
+    }
+    if (any({ "Office", "Calendar", "WordProcessor", "Spreadsheet" })) {
+        return QStringLiteral("Productivity");
+    }
+    if (any({ "AudioVideo", "Audio", "Video", "Graphics", "Player" })) {
+        return QStringLiteral("Media");
+    }
+    if (any({ "Game" })) {
+        return QStringLiteral("Games");
+    }
+    if (any({ "FileManager", "Utility", "Accessibility" })) {
+        return QStringLiteral("Utilities");
+    }
+    if (any({ "System", "Settings", "Monitor", "PackageManager" })) {
+        return QStringLiteral("System");
+    }
+    return QStringLiteral("Other");
+}
+
 DesktopEntry parseDesktopFile(const QString &path)
 {
     DesktopEntry entry;
@@ -148,6 +185,7 @@ QVariant AppModel::data(const QModelIndex &index, int role) const
     case ExecRole: return e.exec;
     case DesktopFileRole: return e.desktopFile;
     case CategoriesRole: return e.categories;
+    case GroupRole: return e.group;
     default: return {};
     }
 }
@@ -159,6 +197,7 @@ QHash<int, QByteArray> AppModel::roleNames() const
         { ExecRole, "exec" },
         { DesktopFileRole, "desktopFile" },
         { CategoriesRole, "categories" },
+        { GroupRole, "group" },
     };
 }
 
@@ -172,7 +211,7 @@ void AppModel::reload()
         if (!e.valid) {
             continue;
         }
-        m_entries.append({ e.name, e.exec, path, e.categories });
+        m_entries.append({ e.name, e.exec, path, e.categories, launcherGroup(e.categories) });
     }
     std::sort(m_entries.begin(), m_entries.end(), [](const Entry &a, const Entry &b) {
         return a.name.compare(b.name, Qt::CaseInsensitive) < 0;
@@ -205,6 +244,16 @@ ShellBackend::ShellBackend(QObject *parent)
 
     m_apps.reload();
     rebuildDock();
+    connect(&m_apps, &AppModel::countChanged, this, [this]() {
+        emit launcherAppsChanged();
+        emit recentAppsChanged();
+    });
+    {
+        QFile rf(recentsPath());
+        if (rf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            m_recent = QString::fromUtf8(rf.readAll()).split(QLatin1Char('\n'), Qt::SkipEmptyParts);
+        }
+    }
 
     // Session-bus endpoint the KWin focus script calls to report the
     // active window's app id (see kwin/active-window.js).
@@ -276,6 +325,16 @@ ShellBackend::ShellBackend(QObject *parent)
         }
         if (qEnvironmentVariableIsSet("IX1_SHOW_LAUNCH")) {
             m_launcherOpen = true;
+        }
+        m_recent.clear();
+        for (const char *id : { "firefox", "org.kde.konsole", "org.kde.kate", "ix1-settings",
+                                "org.kde.dolphin" }) {
+            for (const QVariant &v : launcherApps()) {
+                const QString file = v.toMap().value(QStringLiteral("desktopFile")).toString();
+                if (QFileInfo(file).completeBaseName() == QLatin1String(id)) {
+                    m_recent << file;
+                }
+            }
         }
         // A demo toast so headless renders show the notification material.
         // Deferred: the emit must land after the QML engines connect.
@@ -525,9 +584,63 @@ void ShellBackend::launchApp(const QString &desktopFile)
         const QModelIndex idx = m_apps.index(i, 0);
         if (m_apps.data(idx, AppModel::DesktopFileRole).toString() == desktopFile) {
             launchExec(m_apps.data(idx, AppModel::ExecRole).toString());
+            noteLaunched(desktopFile);
             return;
         }
     }
+}
+
+QString ShellBackend::recentsPath()
+{
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+                        + QStringLiteral("/ix1");
+    QDir().mkpath(dir);
+    return dir + QStringLiteral("/recent-apps");
+}
+
+void ShellBackend::noteLaunched(const QString &desktopFile)
+{
+    constexpr int kMaxRecent = 8;
+    m_recent.removeAll(desktopFile);
+    m_recent.prepend(desktopFile);
+    while (m_recent.size() > kMaxRecent) {
+        m_recent.removeLast();
+    }
+    QFile f(recentsPath());
+    if (f.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
+        f.write(m_recent.join(QLatin1Char('\n')).toUtf8() + '\n');
+    }
+    emit recentAppsChanged();
+}
+
+QVariantList ShellBackend::launcherApps() const
+{
+    QVariantList list;
+    for (int i = 0; i < m_apps.rowCount(); ++i) {
+        const QModelIndex idx = m_apps.index(i, 0);
+        list << QVariantMap{
+            { QStringLiteral("name"), m_apps.data(idx, AppModel::NameRole) },
+            { QStringLiteral("desktopFile"), m_apps.data(idx, AppModel::DesktopFileRole) },
+            { QStringLiteral("group"), m_apps.data(idx, AppModel::GroupRole) },
+        };
+    }
+    return list;
+}
+
+QVariantList ShellBackend::recentApps() const
+{
+    // Only apps still installed; order follows m_recent.
+    QVariantList list;
+    const QVariantList all = launcherApps();
+    for (const QString &file : m_recent) {
+        for (const QVariant &v : all) {
+            if (v.toMap().value(QStringLiteral("desktopFile")).toString() == file) {
+                list << v;
+                break;
+            }
+        }
+    }
+    return list;
 }
 
 void ShellBackend::refreshVolume()

@@ -74,6 +74,9 @@ int main(int argc, char *argv[])
         // "tip" or "menu": shows the dock's hover tooltip / pin menu.
         engine->rootContext()->setContextProperty(
             QStringLiteral("demoDock"), qEnvironmentVariable("IX1_SHOW_DOCK"));
+        // "q:<text>,cat:<group>,sel:<n>": launcher search/category/highlight.
+        engine->rootContext()->setContextProperty(
+            QStringLiteral("demoLaunch"), qEnvironmentVariable("IX1_LAUNCH_DEMO"));
         QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed,
                          &app, [&engine, &root]() {
                              qWarning().noquote() << "ix1-shell: failed to create"
