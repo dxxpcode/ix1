@@ -4,11 +4,35 @@
 #include <QQmlApplicationEngine>
 #include <QQmlContext>
 #include <QMetaProperty>
+#include <QPainterPath>
 #include <QQuickWindow>
 #include <QRegion>
 #include <QTimer>
 
+#include <KWindowEffects>
+
+#include <functional>
+
 #include "backend.h"
+
+namespace {
+
+// Runs `apply` now and again (coalesced) whenever `o.prop` notifies.
+void watchProperty(QObject *o, QQuickWindow *w, const char *prop, std::function<void()> apply)
+{
+    const int idx = o->metaObject()->indexOfProperty(prop);
+    if (idx < 0) {
+        return;
+    }
+    auto *t = new QTimer(w);
+    t->setSingleShot(true);
+    QObject::connect(t, &QTimer::timeout, w, std::move(apply));
+    QObject::connect(o, o->metaObject()->property(idx).notifySignal(), t,
+                     t->metaObject()->method(t->metaObject()->indexOfSlot("start()")));
+    t->start();
+}
+
+} // namespace
 
 int main(int argc, char *argv[])
 {
@@ -47,6 +71,9 @@ int main(int argc, char *argv[])
             QStringLiteral("demoVol"), qEnvironmentVariableIsSet("IX1_SHOW_VOL"));
         engine->rootContext()->setContextProperty(
             QStringLiteral("demoNet"), qEnvironmentVariableIsSet("IX1_SHOW_NET"));
+        // "tip" or "menu": shows the dock's hover tooltip / pin menu.
+        engine->rootContext()->setContextProperty(
+            QStringLiteral("demoDock"), qEnvironmentVariable("IX1_SHOW_DOCK"));
         QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed,
                          &app, [&engine, &root]() {
                              qWarning().noquote() << "ix1-shell: failed to create"
@@ -61,23 +88,27 @@ int main(int argc, char *argv[])
         }
         engines.append(engine);
 
-        // A root window may declare `inputRect` to limit where it takes
-        // input; everything outside it passes through to what is below.
-        for (QObject *o : engine->rootObjects()) {
-            auto *w = qobject_cast<QQuickWindow *>(o);
-            const int idx = o->metaObject()->indexOfProperty("inputRect");
-            if (!w || idx < 0 || QGuiApplication::platformName() == QLatin1String("offscreen")) {
-                continue;
+        // Root windows may declare `inputRect` (where they take input;
+        // everything else passes through) and `blurRect`/`blurRadius` (the
+        // rounded area KWin blurs behind). Neither exists offscreen.
+        if (QGuiApplication::platformName() != QLatin1String("offscreen")) {
+            for (QObject *o : engine->rootObjects()) {
+                auto *w = qobject_cast<QQuickWindow *>(o);
+                if (!w) {
+                    continue;
+                }
+                watchProperty(o, w, "inputRect", [w, o]() {
+                    w->setMask(QRegion(o->property("inputRect").toRectF().toAlignedRect()));
+                });
+                watchProperty(o, w, "blurRect", [w, o]() {
+                    const QRectF r = o->property("blurRect").toRectF();
+                    const qreal radius = o->property("blurRadius").toReal();
+                    QPainterPath path;
+                    path.addRoundedRect(r, radius, radius);
+                    KWindowEffects::enableBlurBehind(
+                        w, true, QRegion(path.toFillPolygon().toPolygon()));
+                });
             }
-            auto *apply = new QTimer(w);
-            apply->setSingleShot(true);
-            QObject::connect(apply, &QTimer::timeout, w, [w, o]() {
-                w->setMask(QRegion(o->property("inputRect").toRectF().toAlignedRect()));
-            });
-            QObject::connect(o, o->metaObject()->property(idx).notifySignal(), apply,
-                             apply->metaObject()->method(
-                                 apply->metaObject()->indexOfSlot("start()")));
-            apply->start();
         }
     }
 

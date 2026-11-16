@@ -13,15 +13,32 @@ Window {
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    height: 120
+    // 44px headroom for the tooltip / pin menu, the dock, 55px of floor
+    // for the reflection.
+    height: 175
     // Anchors size the window under the layer shell; set it explicitly so
     // offscreen (headless render) grabs show the dock too.
     width: 1920
 
-    // Input region (applied by main.cpp): only the dock itself takes
-    // clicks; the transparent strip and the reflection pass them through.
-    readonly property rect inputRect:
-        Qt.rect(dock.x, 0, dock.width, dock.y + dock.height + 14)
+    // Applied by main.cpp. Only the dock (and an open pin menu) takes
+    // clicks; KWin blurs behind the dock's rounded card.
+    readonly property rect inputRect: {
+        const top = menu.visible ? menu.y : dock.y
+        return Qt.rect(dock.x, top, dock.width, dock.y + dock.height + 14 - top)
+    }
+    readonly property rect blurRect: Qt.rect(dock.x, dock.y, dock.width, dock.height)
+    readonly property real blurRadius: dock.radius
+
+    // Hovered cell (drives the tooltip) and the cell whose pin menu is open.
+    property Item hoverCell: null
+    property Item menuCell: null
+
+    function cellCenterX(cell) {
+        return cell.mapToItem(root.contentItem, cell.width / 2, 0).x
+    }
+    function clampToDock(x, w) {
+        return Math.max(dock.x, Math.min(dock.x + dock.width - w, x))
+    }
 
     Component.onCompleted: Theme.mode = backend.theme
     Connections {
@@ -29,11 +46,29 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
+    Timer {
+        id: tipDelay
+        interval: 450
+        onTriggered: tip.shown = root.hoverCell !== null
+    }
+    onHoverCellChanged: {
+        tip.shown = false
+        if (hoverCell) {
+            tip.cell = hoverCell
+            tipDelay.restart()
+        } else {
+            tipDelay.stop()
+        }
+        if (menuCell && hoverCell && hoverCell !== menuCell) {
+            menuCell = null
+        }
+    }
+
     Rectangle {
         id: dock
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.bottom: parent.bottom
-        anchors.bottomMargin: 40
+        anchors.bottomMargin: 55
         width: dockRow.implicitWidth + 20
         height: dockRow.implicitHeight + 20
         radius: Theme.radiusLarge
@@ -41,17 +76,7 @@ Window {
         border.color: Theme.hairline
         border.width: 1
 
-        // Dock-wide pointer x for magnification. Icon buttons are on top of
-        // this tracker, so each forwards its own hover position here.
-        MouseArea {
-            id: dockTrack
-            anchors.fill: parent
-            anchors.bottomMargin: -14
-            hoverEnabled: true
-            property real hoverX: -1
-            onPositionChanged: function (mouse) { hoverX = mouse.x }
-            onExited: hoverX = -1
-        }
+        HoverHandler { id: dockHover }
 
         Row {
             id: dockRow
@@ -59,43 +84,37 @@ Window {
             spacing: 6
 
             Repeater {
-                model: backend.apps
+                model: backend.dockApps
 
-                delegate: Rectangle {
-                    required property string name
-                    required property string desktopFile
+                delegate: Item {
+                    id: cell
+                    required property var modelData
                     required property int index
+                    readonly property string label: modelData.name
+                    readonly property string appId: modelData.appId
+                    readonly property bool pinned: modelData.pinned
+                    readonly property bool hovered: area.containsMouse
+                        || (demoDock !== "" && index === 1)
 
-                    // Taskbar-style running indicator (KWin reports the
-                    // open app ids to the backend over the session bus).
-                    // Bind to the runningApps property so it re-evaluates
-                    // when the open set changes — an isRunning() call
-                    // would not subscribe to runningAppsChanged.
-                    readonly property string appId:
-                        desktopFile.replace(/^.*\//, "")
-                                   .replace(/\.desktop$/, "")
-                                   .toLowerCase()
+                    // KWin reports open app ids to the backend; bind to the
+                    // property so this re-evaluates when the open set changes.
                     readonly property bool running:
                         backend.runningApps.map(function (id) {
                             return id.toLowerCase()
-                        }).indexOf(appId) >= 0
-
-                    readonly property real centerX: dockRow.x + x + width / 2
-                    readonly property real mag: {
-                        if (dockTrack.hoverX < 0) return 1.0
-                        const d = Math.abs(dockTrack.hoverX - centerX)
-                        return 1 + 0.35 * Math.max(0, 1 - d / 120)
-                    }
+                        }).indexOf(appId.toLowerCase()) >= 0
 
                     width: 56
                     height: 56
-                    radius: 16
-                    scale: mag * (dockButtonArea.pressed ? 0.9 : 1)
-                    transformOrigin: Item.Bottom
-                    color: dockButtonArea.containsMouse ? Theme.glassHover : "transparent"
 
-                    Behavior on scale {
-                        NumberAnimation { duration: 110; easing.type: Easing.OutQuad }
+                    Component.onCompleted: {
+                        if (demoDock !== "" && index === 1) {
+                            if (demoDock === "menu") {
+                                root.menuCell = cell
+                            } else {
+                                root.hoverCell = cell
+                                tip.shown = true
+                            }
+                        }
                     }
 
                     // Soft coloured reflection pooled on the "floor" under the
@@ -103,12 +122,12 @@ Window {
                     Shape {
                         id: pool
                         readonly property real w: 76
-                        readonly property real a: (Theme.dark ? 1 : 0.55) * (parent.running ? 1.25 : 0.8)
+                        readonly property real a: (Theme.dark ? 1 : 0.55) * (cell.running ? 1.25 : 0.8)
                         width: w
                         height: w
                         x: (parent.width - w) / 2
                         y: parent.height + 11
-                        transform: Scale { yScale: 0.7 }
+                        transform: Scale { yScale: 0.72 }
                         preferredRendererType: Shape.CurveRenderer
                         ShapePath {
                             strokeWidth: -1
@@ -126,13 +145,13 @@ Window {
 
                     Shape {
                         id: hot
-                        visible: parent.running
+                        visible: cell.running
                         readonly property real w: 56
                         width: w
                         height: w
                         x: (parent.width - w) / 2
                         y: parent.height + 11
-                        transform: Scale { yScale: 0.5 }
+                        transform: Scale { yScale: 0.55 }
                         ShapePath {
                             strokeWidth: -1
                             fillGradient: RadialGradient {
@@ -146,17 +165,24 @@ Window {
                         }
                     }
 
+                    // Hover lifts the icon slightly; press squeezes it.
                     AppIcon {
                         id: icon
-                        anchors.centerIn: parent
+                        anchors.horizontalCenter: parent.horizontalCenter
+                        anchors.verticalCenter: parent.verticalCenter
+                        anchors.verticalCenterOffset: cell.hovered && !area.pressed ? -2 : 0
                         width: 44
                         height: 44
-                        desktopFileName: desktopFile
-                        appTitle: name
+                        desktopFileName: cell.modelData.desktopFile
+                        appTitle: cell.label
+                        transformOrigin: Item.Bottom
+                        scale: area.pressed ? 0.9 : (cell.hovered ? 1.06 : 1)
+                        Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                        Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
                     }
 
                     Item {
-                        visible: parent.running
+                        visible: cell.running
                         anchors.bottom: parent.bottom
                         anchors.bottomMargin: -1
                         anchors.horizontalCenter: parent.horizontalCenter
@@ -191,17 +217,163 @@ Window {
                     }
 
                     MouseArea {
-                        id: dockButtonArea
+                        id: area
                         anchors.fill: parent
                         hoverEnabled: true
-                        onPositionChanged: function (mouse) {
-                            dockTrack.hoverX = centerX - width / 2 + mouse.x
+                        acceptedButtons: Qt.LeftButton | Qt.RightButton
+                        onContainsMouseChanged: {
+                            if (containsMouse) {
+                                root.hoverCell = cell
+                            } else if (root.hoverCell === cell) {
+                                root.hoverCell = null
+                            }
                         }
-                        onExited: dockTrack.hoverX = -1
-                        onClicked: backend.launchApp(desktopFile)
+                        onClicked: function (mouse) {
+                            if (mouse.button === Qt.RightButton) {
+                                root.menuCell = root.menuCell === cell ? null : cell
+                                tip.shown = false
+                                return
+                            }
+                            root.menuCell = null
+                            backend.launchApp(cell.modelData.desktopFile)
+                        }
+                    }
+                }
+            }
+
+            // Divider + app launcher, as in the concept.
+            Item {
+                width: 13
+                height: 56
+                Rectangle {
+                    anchors.centerIn: parent
+                    width: 1
+                    height: 36
+                    color: Theme.dark ? Qt.rgba(1, 1, 1, 0.14) : Qt.rgba(0.05, 0.07, 0.12, 0.14)
+                }
+            }
+
+            Item {
+                id: launcherCell
+                readonly property string label: "Apps"
+                readonly property bool hovered: launcherArea.containsMouse
+                width: 56
+                height: 56
+
+                Grid {
+                    anchors.centerIn: parent
+                    anchors.verticalCenterOffset: launcherCell.hovered && !launcherArea.pressed ? -2 : 0
+                    columns: 3
+                    spacing: 5
+                    transformOrigin: Item.Bottom
+                    scale: launcherArea.pressed ? 0.9 : (launcherCell.hovered ? 1.06 : 1)
+                    Behavior on scale { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Behavior on anchors.verticalCenterOffset { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+                    Repeater {
+                        model: 9
+                        Rectangle {
+                            width: 6
+                            height: 6
+                            radius: 3
+                            color: Theme.dark ? "#E6EAF2" : "#3A4252"
+                        }
+                    }
+                }
+
+                MouseArea {
+                    id: launcherArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onContainsMouseChanged: {
+                        if (containsMouse) {
+                            root.hoverCell = launcherCell
+                        } else if (root.hoverCell === launcherCell) {
+                            root.hoverCell = null
+                        }
+                    }
+                    onClicked: {
+                        root.menuCell = null
+                        backend.toggleLauncher()
                     }
                 }
             }
         }
+    }
+
+    // App-name tooltip above the hovered icon.
+    Rectangle {
+        id: tip
+        property bool shown: false
+        property Item cell: null
+        readonly property bool active: shown && cell !== null && root.menuCell === null
+        visible: opacity > 0
+        opacity: active ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 120 } }
+        width: tipText.implicitWidth + 24
+        height: 26
+        radius: 13
+        x: cell ? root.clampToDock(root.cellCenterX(cell) - width / 2, width) : 0
+        y: dock.y - height - 8 + (active ? 0 : 3)
+        Behavior on y { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
+        color: Theme.dark ? Qt.rgba(0.08, 0.09, 0.12, 0.94) : Qt.rgba(1, 1, 1, 0.96)
+        border.color: Theme.hairline
+        border.width: 1
+
+        Text {
+            id: tipText
+            anchors.centerIn: parent
+            text: tip.cell ? tip.cell.label : ""
+            color: Theme.textPrimary
+            font.family: Theme.fontFamily
+            font.pixelSize: 12
+        }
+    }
+
+    // Right-click pin menu.
+    Rectangle {
+        id: menu
+        visible: root.menuCell !== null
+        readonly property bool pinned: root.menuCell ? root.menuCell.pinned : false
+        width: menuText.implicitWidth + 28
+        height: 32
+        radius: 10
+        x: root.menuCell ? root.clampToDock(root.cellCenterX(root.menuCell) - width / 2, width) : 0
+        y: dock.y - height - 8
+        color: Theme.dark ? Qt.rgba(0.08, 0.09, 0.12, 0.96) : Qt.rgba(1, 1, 1, 0.98)
+        border.color: Theme.hairline
+        border.width: 1
+
+        Rectangle {
+            anchors.fill: parent
+            anchors.margins: 3
+            radius: 7
+            color: menuArea.containsMouse ? Theme.glassHover : "transparent"
+        }
+        Text {
+            id: menuText
+            anchors.centerIn: parent
+            text: menu.pinned ? "Remove from Dock" : "Keep in Dock"
+            color: Theme.textPrimary
+            font.family: Theme.fontFamily
+            font.pixelSize: 13
+        }
+        MouseArea {
+            id: menuArea
+            anchors.fill: parent
+            hoverEnabled: true
+            onClicked: {
+                const c = root.menuCell
+                root.menuCell = null
+                backend.setPinned(c.appId, !c.pinned)
+            }
+        }
+    }
+
+    // Close the pin menu once the pointer has left both dock and menu.
+    Timer {
+        running: root.menuCell !== null && demoDock === ""
+            && !dockHover.hovered && !menuArea.containsMouse
+        interval: 900
+        onTriggered: root.menuCell = null
     }
 }
