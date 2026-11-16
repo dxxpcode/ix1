@@ -38,6 +38,14 @@ qt_add_qml_module(ix1-shell
         qml/Launcher.qml
         qml/QuickSettings.qml
         qml/Squircle.qml
+        qml/cc/StatusLine.qml
+        qml/cc/SheetSection.qml
+        qml/cc/SwitchRow.qml
+        qml/cc/GlyphButton.qml
+        qml/cc/SegmentedControl.qml
+        qml/cc/CapsuleSlider.qml
+        qml/cc/SheetTile.qml
+        qml/cc/Glyph.qml
         qml/Calendar.qml
         qml/Notifications.qml
         qml/LockScreen.qml
