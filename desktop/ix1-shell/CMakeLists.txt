@@ -37,6 +37,7 @@ qt_add_qml_module(ix1-shell
         qml/Dock.qml
         qml/Launcher.qml
         qml/QuickSettings.qml
+        qml/Squircle.qml
         qml/Calendar.qml
         qml/Notifications.qml
         qml/LockScreen.qml

@@ -13,12 +13,13 @@ Window {
     // IX1_SHOW_NET demo env opens it for renders.
     property bool wifiExpanded: typeof demoNet !== "undefined" && demoNet
 
-    // Soft accent wash for tiles in their active state — reads as a lit
-    // control rather than a colored icon on a gray card.
-    readonly property color accentWash: Theme.dark
-        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
-        : Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
-    readonly property color accentLine: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.45)
+    // Solid accent for active controls — iOS-style decisive fills.
+    // The dark theme's accent is a light blue; deepen it so white
+    // glyphs and text read on it.
+    readonly property color accentSolid: Theme.dark
+        ? Qt.darker(Theme.accent, 1.35) : Theme.accent
+    readonly property color accentSolidHot: Theme.dark
+        ? Qt.darker(Theme.accent, 1.5) : Qt.darker(Theme.accent, 1.12)
 
     LayerShellQt.Window.layer: LayerShellQt.Window.LayerOverlay
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorTop
@@ -43,6 +44,27 @@ Window {
 
     Item {
         anchors.fill: parent
+
+        // Frosted backdrop — the desktop wallpaper pushed through a blur
+        // and a scrim, so the card floats on glass like macOS Tahoe.
+        Image {
+            id: frostedWallpaper
+            anchors.fill: parent
+            source: Theme.dark ? "assets/wallpaper-graphite.png"
+                               : "assets/wallpaper-porcelain.png"
+            visible: false
+        }
+        FastBlur {
+            anchors.fill: parent
+            source: frostedWallpaper
+            radius: 48
+            opacity: 0
+            NumberAnimation on opacity { to: 1; duration: 260; running: true }
+        }
+        Rectangle {
+            anchors.fill: parent
+            color: Theme.dark ? Qt.rgba(0, 0, 0, 0.22) : Qt.rgba(1, 1, 1, 0.25)
+        }
 
         // Clicking anywhere outside the card dismisses the panel. The tray
         // toggle is covered by this overlay while open, so this is the way out.
@@ -155,22 +177,26 @@ Window {
                     rowSpacing: 8
 
                     // Wi-Fi tile: body toggles the radio; chevron expands the
-                    // network list. Flash when the tray's wifi zone targeted it.
-                    Rectangle {
+                    // network list. Solid accent when on — an iOS-style lit
+                    // control. Flash when the tray's wifi zone targeted it.
+                    Item {
                         id: wifiTile
                         width: (parent.width - 8) / 2
-                        height: 56
-                        radius: Theme.radiusSmall
-                        color: wifiArea.containsMouse
-                            ? (backend.wifiEnabled ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.dark ? 0.30 : 0.18) : Theme.surface3)
-                            : (backend.wifiEnabled ? root.accentWash : Theme.surface2)
-                        border.color: backend.qsSection === "wifi"
-                            ? Theme.accent
-                            : (backend.wifiEnabled ? root.accentLine : Theme.hairline)
-                        border.width: 1
+                        height: 60
 
-                        Behavior on color { ColorAnimation { duration: 180 } }
-                        Behavior on border.color { ColorAnimation { duration: 350 } }
+                        Squircle {
+                            anchors.fill: parent
+                            n: 5.5
+                            color: wifiArea.containsMouse
+                                ? (backend.wifiEnabled ? root.accentSolidHot : Theme.surface3)
+                                : (backend.wifiEnabled ? root.accentSolid : Theme.surface2)
+                            borderColor: backend.qsSection === "wifi"
+                                ? "#FFFFFF" : (backend.wifiEnabled ? "transparent" : Theme.hairline)
+                            borderWidth: backend.wifiEnabled ? 0 : 1
+
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                            Behavior on borderColor { ColorAnimation { duration: 350 } }
+                        }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -178,8 +204,9 @@ Window {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 34
                             height: 34
-                            radius: 10
-                            color: backend.wifiEnabled ? Theme.accent : Theme.surface3
+                            radius: 17
+                            color: backend.wifiEnabled
+                                ? Qt.rgba(1, 1, 1, 0.24) : Theme.surface3
 
                             Canvas {
                                 anchors.centerIn: parent
@@ -224,16 +251,18 @@ Window {
                             spacing: 1
                             Text {
                                 text: "Wi-Fi"
-                                color: Theme.textPrimary
+                                color: backend.wifiEnabled ? "#FFFFFF" : Theme.textPrimary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
                             Text {
                                 text: !backend.wifiEnabled ? "Off"
                                       : (backend.wifiSsid || "Not connected")
-                                color: Theme.textSecondary
+                                color: backend.wifiEnabled
+                                    ? Qt.rgba(1, 1, 1, 0.75) : Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
@@ -245,10 +274,11 @@ Window {
                         Text {
                             id: wifiChev
                             anchors.right: parent.right
-                            anchors.rightMargin: 8
+                            anchors.rightMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
                             text: "›"
-                            color: Theme.textSecondary
+                            color: backend.wifiEnabled
+                                ? Qt.rgba(1, 1, 1, 0.75) : Theme.textSecondary
                             font.family: Theme.fontFamily
                             font.pixelSize: 14
                             rotation: root.wifiExpanded ? 90 : 0
@@ -274,18 +304,22 @@ Window {
                         }
                     }
 
-                    // Do Not Disturb tile.
-                    Rectangle {
+                    // Focus tile — solid accent while Do Not Disturb runs.
+                    Item {
                         width: (parent.width - 8) / 2
-                        height: 56
-                        radius: Theme.radiusSmall
-                        color: dndArea.containsMouse
-                            ? (backend.dnd ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.dark ? 0.30 : 0.18) : Theme.surface3)
-                            : (backend.dnd ? root.accentWash : Theme.surface2)
-                        border.color: backend.dnd ? root.accentLine : Theme.hairline
-                        border.width: 1
+                        height: 60
 
-                        Behavior on color { ColorAnimation { duration: 180 } }
+                        Squircle {
+                            anchors.fill: parent
+                            n: 5.5
+                            color: dndArea.containsMouse
+                                ? (backend.dnd ? root.accentSolidHot : Theme.surface3)
+                                : (backend.dnd ? root.accentSolid : Theme.surface2)
+                            borderColor: backend.dnd ? "transparent" : Theme.hairline
+                            borderWidth: backend.dnd ? 0 : 1
+
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                        }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -293,8 +327,9 @@ Window {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 34
                             height: 34
-                            radius: 10
-                            color: backend.dnd ? Theme.accent : Theme.surface3
+                            radius: 17
+                            color: backend.dnd
+                                ? Qt.rgba(1, 1, 1, 0.24) : Theme.surface3
 
                             Canvas {
                                 anchors.centerIn: parent
@@ -329,15 +364,17 @@ Window {
                             spacing: 1
                             Text {
                                 text: "Focus"
-                                color: Theme.textPrimary
+                                color: backend.dnd ? "#FFFFFF" : Theme.textPrimary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
                             Text {
                                 text: backend.dnd ? "On" : "Do Not Disturb"
-                                color: Theme.textSecondary
+                                color: backend.dnd
+                                    ? Qt.rgba(1, 1, 1, 0.75) : Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 10
                                 elide: Text.ElideRight
@@ -354,90 +391,116 @@ Window {
                         }
                     }
 
-                    // Appearance tile: graphite ⇄ porcelain.
-                    Rectangle {
+                    // Appearance: a segmented Graphite | Porcelain switcher
+                    // with a sliding thumb — a real control, not a toggle tile.
+                    Item {
                         width: (parent.width - 8) / 2
-                        height: 56
-                        radius: Theme.radiusSmall
-                        color: appArea.containsMouse ? Theme.surface3 : Theme.surface2
-                        border.color: Theme.hairline
-                        border.width: 1
+                        height: 60
 
-                        Behavior on color { ColorAnimation { duration: 180 } }
-
-                        Rectangle {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            width: 34
-                            height: 34
-                            radius: 10
-                            color: Theme.surface3
-
-                            Canvas {
-                                anchors.centerIn: parent
-                                width: 15
-                                height: 15
-                                onPaint: {
-                                    const ctx = getContext("2d")
-                                    ctx.reset()
-                                    ctx.strokeStyle = Theme.textSecondary
-                                    ctx.lineWidth = 1.4
-                                    ctx.beginPath()
-                                    ctx.arc(7.5, 7.5, 5.6, 0, Math.PI * 2)
-                                    ctx.stroke()
-                                    ctx.fillStyle = Theme.textSecondary
-                                    ctx.beginPath()
-                                    ctx.arc(7.5, 7.5, 5.6, -Math.PI / 2, Math.PI / 2)
-                                    ctx.fill()
-                                }
-                            }
+                        Squircle {
+                            anchors.fill: parent
+                            n: 5.5
+                            color: Theme.surface2
+                            borderColor: Theme.hairline
+                            borderWidth: 1
                         }
 
                         Column {
                             anchors.left: parent.left
-                            anchors.leftMargin: 52
                             anchors.right: parent.right
-                            anchors.rightMargin: 8
+                            anchors.leftMargin: 10
+                            anchors.rightMargin: 10
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
+                            spacing: 6
+
                             Text {
                                 text: "Appearance"
                                 color: Theme.textPrimary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                elide: Text.ElideRight
-                                width: parent.width
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
                             }
-                            Text {
-                                text: backend.theme === "graphite" ? "Graphite" : "Porcelain"
-                                color: Theme.textSecondary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 10
-                                elide: Text.ElideRight
-                                width: parent.width
-                            }
-                        }
 
-                        MouseArea {
-                            id: appArea
-                            anchors.fill: parent
-                            hoverEnabled: true
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: backend.toggleTheme()
+                            // Segmented track.
+                            Item {
+                                width: parent.width
+                                height: 26
+
+                                Squircle {
+                                    anchors.fill: parent
+                                    n: 8
+                                    color: Theme.surface3
+                                }
+
+                                // Sliding thumb.
+                                Squircle {
+                                    y: 3
+                                    x: backend.theme === "graphite" ? 3 : parent.width / 2 + 1
+                                    width: parent.width / 2 - 4
+                                    height: 20
+                                    n: 8
+                                    color: root.accentSolid
+
+                                    Behavior on x {
+                                        NumberAnimation { duration: 160; easing.type: Easing.OutCubic }
+                                    }
+                                }
+
+                                Text {
+                                    anchors.left: parent.left
+                                    width: parent.width / 2
+                                    height: parent.height
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: "Graphite"
+                                    color: backend.theme === "graphite"
+                                        ? "#FFFFFF" : Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 10
+                                    font.weight: Font.DemiBold
+                                }
+                                Text {
+                                    anchors.right: parent.right
+                                    width: parent.width / 2
+                                    height: parent.height
+                                    horizontalAlignment: Text.AlignHCenter
+                                    verticalAlignment: Text.AlignVCenter
+                                    text: "Porcelain"
+                                    color: backend.theme === "porcelain"
+                                        ? "#FFFFFF" : Theme.textSecondary
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 10
+                                    font.weight: Font.DemiBold
+                                }
+
+                                MouseArea {
+                                    anchors.fill: parent
+                                    cursorShape: Qt.PointingHandCursor
+                                    onClicked: function(mouse) {
+                                        const want = mouse.x < width / 2 ? "graphite" : "porcelain"
+                                        if (want !== backend.theme) {
+                                            backend.toggleTheme()
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
 
                     // Settings shortcut tile.
-                    Rectangle {
+                    Item {
                         width: (parent.width - 8) / 2
-                        height: 56
-                        radius: Theme.radiusSmall
-                        color: setArea.containsMouse ? Theme.surface3 : Theme.surface2
-                        border.color: Theme.hairline
-                        border.width: 1
+                        height: 60
 
-                        Behavior on color { ColorAnimation { duration: 180 } }
+                        Squircle {
+                            anchors.fill: parent
+                            n: 5.5
+                            color: setArea.containsMouse ? Theme.surface3 : Theme.surface2
+                            borderColor: Theme.hairline
+                            borderWidth: 1
+
+                            Behavior on color { ColorAnimation { duration: 180 } }
+                        }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -445,7 +508,7 @@ Window {
                             anchors.verticalCenter: parent.verticalCenter
                             width: 34
                             height: 34
-                            radius: 10
+                            radius: 17
                             color: Theme.surface3
 
                             Canvas {
@@ -483,7 +546,8 @@ Window {
                                 text: "Settings"
                                 color: Theme.textPrimary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                font.pixelSize: 13
+                                font.weight: Font.DemiBold
                                 elide: Text.ElideRight
                                 width: parent.width
                             }
@@ -610,7 +674,7 @@ Window {
                                 Text {
                                     anchors.left: parent.left
                                     anchors.leftMargin: 30
-                                    anchors.right: netLock.visible ? netLock.left : netCheck.left
+                                    anchors.right: netLock.visible ? netLock.left : netPill.left
                                     anchors.rightMargin: 6
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: modelData.ssid
@@ -623,8 +687,8 @@ Window {
                                 // Padlock for secured networks.
                                 Canvas {
                                     id: netLock
-                                    visible: modelData.secure
-                                    anchors.right: netCheck.left
+                                    visible: modelData.secure && !modelData.inUse
+                                    anchors.right: netPill.left
                                     anchors.rightMargin: 6
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 10
@@ -644,27 +708,27 @@ Window {
                                     }
                                 }
 
-                                // Check on the connected network.
-                                Canvas {
-                                    id: netCheck
+                                // "Connected" pill on the active network —
+                                // the iOS Settings list treatment.
+                                Rectangle {
+                                    id: netPill
                                     visible: modelData.inUse
                                     anchors.right: parent.right
-                                    anchors.rightMargin: 10
+                                    anchors.rightMargin: 8
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 12
-                                    height: 10
-                                    onPaint: {
-                                        const ctx = getContext("2d")
-                                        ctx.reset()
-                                        ctx.strokeStyle = Theme.accent
-                                        ctx.lineWidth = 1.6
-                                        ctx.lineCap = "round"
-                                        ctx.lineJoin = "round"
-                                        ctx.beginPath()
-                                        ctx.moveTo(1, 5)
-                                        ctx.lineTo(4.5, 8.5)
-                                        ctx.lineTo(11, 1.5)
-                                        ctx.stroke()
+                                    width: connText.implicitWidth + 12
+                                    height: 18
+                                    radius: 9
+                                    color: Theme.accent
+
+                                    Text {
+                                        id: connText
+                                        anchors.centerIn: parent
+                                        text: "Connected"
+                                        color: "#FFFFFF"
+                                        font.family: Theme.fontFamily
+                                        font.pixelSize: 9
+                                        font.weight: Font.DemiBold
                                     }
                                 }
 
@@ -766,228 +830,176 @@ Window {
                         anchors.margins: 10
                         spacing: 12
 
-                        // Volume slider.
+                        // Volume: iOS-style fill slider — the capsule IS
+                        // the control; glyph and % live inside the fill.
                         Item {
                             width: parent.width
-                            height: 30
+                            height: 36
 
-                            Canvas {
-                                id: speakerGlyph
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 16
-                                height: 14
-                                // The glyph tints accent while the user is
-                                // dragging the slider.
-                                property bool engaged: volArea.pressed
-                                onEngagedChanged: requestPaint()
-                                onPaint: {
-                                    const ctx = getContext("2d")
-                                    ctx.reset()
-                                    const glyphColor = engaged ? Theme.accent : Theme.textSecondary
-                                    ctx.fillStyle = glyphColor
-                                    ctx.beginPath()
-                                    ctx.moveTo(1, 5)
-                                    ctx.lineTo(4, 5)
-                                    ctx.lineTo(7.5, 1.5)
-                                    ctx.lineTo(7.5, 12.5)
-                                    ctx.lineTo(4, 9)
-                                    ctx.lineTo(1, 9)
-                                    ctx.closePath()
-                                    ctx.fill()
-                                    ctx.strokeStyle = glyphColor
-                                    ctx.lineWidth = 1.2
-                                    ctx.lineCap = "round"
-                                    if (backend.volume > 0) {
-                                        ctx.beginPath()
-                                        ctx.arc(8, 7, 3, -Math.PI * 0.35, Math.PI * 0.35)
-                                        ctx.stroke()
-                                    }
-                                    if (backend.volume > 60) {
-                                        ctx.beginPath()
-                                        ctx.arc(8, 7, 5.4, -Math.PI * 0.35, Math.PI * 0.35)
-                                        ctx.stroke()
-                                    }
-                                }
-                                Connections {
-                                    target: backend
-                                    function onVolumeChanged() { speakerGlyph.requestPaint() }
-                                }
+                            Squircle {
+                                id: volTrack
+                                anchors.fill: parent
+                                n: 9
+                                color: Theme.surface3
                             }
-
                             Item {
-                                anchors.left: speakerGlyph.right
-                                anchors.leftMargin: 10
-                                anchors.right: volPctText.left
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: 22
+                                width: Math.max(36, volTrack.width * Math.max(0, backend.volume) / 150)
+                                height: parent.height
+                                clip: true
 
-                                Rectangle {
-                                    id: volTrack
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width
-                                    height: 6
-                                    radius: 3
-                                    color: Theme.surface3
-
-                                    Rectangle {
-                                        id: volFill
-                                        width: volTrack.width * Math.max(0, backend.volume) / 150
-                                        height: parent.height
-                                        radius: 3
-                                        color: Theme.accent
-
-                                        // Brighter leading edge — the fill
-                                        // reads as light, not paint.
-                                        Rectangle {
-                                            anchors.right: parent.right
-                                            width: 3
-                                            height: parent.height
-                                            radius: 1.5
-                                            color: Qt.rgba(1, 1, 1, 0.5)
-                                            visible: volFill.width > 8
-                                        }
-                                    }
+                                Squircle {
+                                    width: volTrack.width
+                                    height: parent.height
+                                    n: 9
+                                    color: volArea.pressed ? root.accentSolidHot : root.accentSolid
                                 }
-                                Rectangle {
-                                    x: volTrack.width * Math.max(0, backend.volume) / 150 - 8
+
+                                Canvas {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 13
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 16
-                                    height: 16
-                                    radius: 8
-                                    color: Theme.surface1
-                                    border.color: volArea.pressed ? Theme.accent : Theme.hairline
-                                    border.width: 1
-                                }
-                                MouseArea {
-                                    id: volArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onPressed: function(mouse) { updateVol(mouse.x) }
-                                    onPositionChanged: function(mouse) { if (pressed) updateVol(mouse.x) }
-                                    function updateVol(x) {
-                                        const v = Math.round(Math.max(0, Math.min(1, x / volTrack.width)) * 150)
-                                        backend.setVolume(v)
+                                    height: 14
+                                    onPaint: {
+                                        const ctx = getContext("2d")
+                                        ctx.reset()
+                                        ctx.fillStyle = "#FFFFFF"
+                                        ctx.beginPath()
+                                        ctx.moveTo(1, 5)
+                                        ctx.lineTo(4, 5)
+                                        ctx.lineTo(7.5, 1.5)
+                                        ctx.lineTo(7.5, 12.5)
+                                        ctx.lineTo(4, 9)
+                                        ctx.lineTo(1, 9)
+                                        ctx.closePath()
+                                        ctx.fill()
+                                        ctx.strokeStyle = "#FFFFFF"
+                                        ctx.lineWidth = 1.2
+                                        ctx.lineCap = "round"
+                                        if (backend.volume > 0) {
+                                            ctx.beginPath()
+                                            ctx.arc(8, 7, 3, -Math.PI * 0.35, Math.PI * 0.35)
+                                            ctx.stroke()
+                                        }
+                                        if (backend.volume > 60) {
+                                            ctx.beginPath()
+                                            ctx.arc(8, 7, 5.4, -Math.PI * 0.35, Math.PI * 0.35)
+                                            ctx.stroke()
+                                        }
+                                    }
+                                    Connections {
+                                        target: backend
+                                        function onVolumeChanged() { requestPaint() }
                                     }
                                 }
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 38
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
+                                    color: "#FFFFFF"
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
                             }
-                            Text {
-                                id: volPctText
-                                anchors.right: parent.right
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 34
-                                horizontalAlignment: Text.AlignRight
-                                text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-                                color: Theme.textSecondary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
-                                font.weight: Font.DemiBold
+                            MouseArea {
+                                id: volArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
+                                onPressed: function(mouse) { updateVol(mouse.x) }
+                                onPositionChanged: function(mouse) { if (pressed) updateVol(mouse.x) }
+                                function updateVol(x) {
+                                    const v = Math.round(Math.max(0, Math.min(1, x / volTrack.width)) * 150)
+                                    backend.setVolume(v)
+                                }
                             }
                         }
 
-                        // Brightness slider (N/A on hardware without backlight).
+                        // Brightness: same fill pattern. N/A on hardware
+                        // without a backlight.
                         Item {
                             width: parent.width
-                            height: 30
+                            height: 36
                             opacity: backend.brightness >= 0 ? 1 : 0.45
 
-                            Canvas {
-                                id: sunGlyph
-                                anchors.left: parent.left
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 16
-                                height: 16
-                                property bool engaged: brightArea.pressed
-                                onEngagedChanged: requestPaint()
-                                onPaint: {
-                                    const ctx = getContext("2d")
-                                    ctx.reset()
-                                    const glyphColor = engaged ? Theme.accent : Theme.textSecondary
-                                    ctx.strokeStyle = glyphColor
-                                    ctx.fillStyle = glyphColor
-                                    ctx.lineWidth = 1.3
-                                    ctx.beginPath()
-                                    ctx.arc(8, 8, 3.4, 0, Math.PI * 2)
-                                    ctx.fill()
-                                    ctx.lineCap = "round"
-                                    for (let i = 0; i < 8; ++i) {
-                                        const a = i * Math.PI / 4
-                                        ctx.beginPath()
-                                        ctx.moveTo(8 + Math.cos(a) * 5.4, 8 + Math.sin(a) * 5.4)
-                                        ctx.lineTo(8 + Math.cos(a) * 7.2, 8 + Math.sin(a) * 7.2)
-                                        ctx.stroke()
-                                    }
-                                }
+                            Squircle {
+                                id: brightTrack
+                                anchors.fill: parent
+                                n: 9
+                                color: Theme.surface3
                             }
-
                             Item {
-                                anchors.left: sunGlyph.right
-                                anchors.leftMargin: 10
-                                anchors.right: brightPctText.left
-                                anchors.rightMargin: 8
-                                anchors.verticalCenter: parent.verticalCenter
-                                height: 22
-                                visible: backend.brightness >= 0
+                                width: Math.max(36, brightTrack.width * Math.max(0, backend.brightness) / 100)
+                                height: parent.height
+                                clip: true
 
-                                Rectangle {
-                                    id: brightTrack
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    width: parent.width
-                                    height: 6
-                                    radius: 3
-                                    color: Theme.surface3
-
-                                    Rectangle {
-                                        id: brightFill
-                                        width: brightTrack.width * Math.max(0, backend.brightness) / 100
-                                        height: parent.height
-                                        radius: 3
-                                        color: Theme.accent
-
-                                        Rectangle {
-                                            anchors.right: parent.right
-                                            width: 3
-                                            height: parent.height
-                                            radius: 1.5
-                                            color: Qt.rgba(1, 1, 1, 0.5)
-                                            visible: brightFill.width > 8
-                                        }
-                                    }
+                                Squircle {
+                                    width: brightTrack.width
+                                    height: parent.height
+                                    n: 9
+                                    color: brightArea.pressed ? root.accentSolidHot : root.accentSolid
                                 }
-                                Rectangle {
-                                    x: brightTrack.width * Math.max(0, backend.brightness) / 100 - 8
+
+                                Canvas {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 13
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: 16
                                     height: 16
-                                    radius: 8
-                                    color: Theme.surface1
-                                    border.color: brightArea.pressed ? Theme.accent : Theme.hairline
-                                    border.width: 1
-                                }
-                                MouseArea {
-                                    id: brightArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onPressed: function(mouse) { updateBright(mouse.x) }
-                                    onPositionChanged: function(mouse) { if (pressed) updateBright(mouse.x) }
-                                    function updateBright(x) {
-                                        const v = Math.round(Math.max(0, Math.min(1, x / brightTrack.width)) * 100)
-                                        backend.setBrightness(v)
+                                    onPaint: {
+                                        const ctx = getContext("2d")
+                                        ctx.reset()
+                                        ctx.strokeStyle = "#FFFFFF"
+                                        ctx.fillStyle = "#FFFFFF"
+                                        ctx.lineWidth = 1.3
+                                        ctx.beginPath()
+                                        ctx.arc(8, 8, 3.4, 0, Math.PI * 2)
+                                        ctx.fill()
+                                        ctx.lineCap = "round"
+                                        for (let i = 0; i < 8; ++i) {
+                                            const a = i * Math.PI / 4
+                                            ctx.beginPath()
+                                            ctx.moveTo(8 + Math.cos(a) * 5.4, 8 + Math.sin(a) * 5.4)
+                                            ctx.lineTo(8 + Math.cos(a) * 7.2, 8 + Math.sin(a) * 7.2)
+                                            ctx.stroke()
+                                        }
                                     }
+                                }
+                                Text {
+                                    anchors.left: parent.left
+                                    anchors.leftMargin: 38
+                                    anchors.verticalCenter: parent.verticalCenter
+                                    text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
+                                    color: "#FFFFFF"
+                                    font.family: Theme.fontFamily
+                                    font.pixelSize: 12
+                                    font.weight: Font.DemiBold
+                                }
+                            }
+                            MouseArea {
+                                id: brightArea
+                                anchors.fill: parent
+                                hoverEnabled: true
+                                enabled: backend.brightness >= 0
+                                cursorShape: Qt.PointingHandCursor
+                                onPressed: function(mouse) { updateBright(mouse.x) }
+                                onPositionChanged: function(mouse) { if (pressed) updateBright(mouse.x) }
+                                function updateBright(x) {
+                                    const v = Math.round(Math.max(0, Math.min(1, x / brightTrack.width)) * 100)
+                                    backend.setBrightness(v)
                                 }
                             }
                             Text {
-                                id: brightPctText
                                 anchors.right: parent.right
+                                anchors.rightMargin: 10
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 34
-                                horizontalAlignment: Text.AlignRight
-                                text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
+                                visible: backend.brightness < 0
+                                text: "N/A"
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
                                 font.pixelSize: 12
-                                font.weight: Font.DemiBold
                             }
                         }
                     }
