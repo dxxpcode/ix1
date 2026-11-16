@@ -77,7 +77,8 @@ Item {
         y: sel.height + 6
         width: Math.max(sel.width, 180)
         padding: 5
-        implicitHeight: list.contentHeight + 10
+        margins: 8
+        implicitHeight: Math.min(list.contentHeight, 320) + 10
 
         enter: Transition {
             NumberAnimation { property: "opacity"; from: 0; to: 1; duration: 120 }
@@ -101,8 +102,12 @@ Item {
 
         contentItem: ListView {
             id: list
-            implicitHeight: contentHeight
-            interactive: false
+            implicitHeight: Math.min(contentHeight, 320)
+            clip: true
+            interactive: contentHeight > height
+            boundsBehavior: Flickable.StopAtBounds
+            currentIndex: sel.currentIndex
+            Component.onCompleted: positionViewAtIndex(Math.max(0, sel.currentIndex), ListView.Contain)
             model: sel.options
             delegate: Rectangle {
                 width: ListView.view.width
