@@ -544,10 +544,15 @@ void ShellBackend::refreshWifi()
                     { QStringLiteral("secure"), secure },
                     { QStringLiteral("inUse"), inUse },
                 };
-                if (!dedup.contains(name)
-                    || dedup.value(name).value(QStringLiteral("signal")).toInt() < sig) {
-                    dedup.insert(name, entry);
+                if (dedup.contains(name)) {
+                    const QVariantMap prev = dedup.value(name);
+                    if (prev.value(QStringLiteral("signal")).toInt() >= sig) {
+                        entry = prev;
+                    }
+                    entry[QStringLiteral("inUse")] =
+                        inUse || prev.value(QStringLiteral("inUse")).toBool();
                 }
+                dedup.insert(name, entry);
             }
             networks.clear();
             networks.reserve(dedup.size());
