@@ -91,10 +91,13 @@ Item {
         anchors.margins: -10
         enabled: root.available
         cursorShape: Qt.PointingHandCursor
-        onPressed: function(mouse) { apply(mouse.x) }
-        onPositionChanged: function(mouse) { if (pressed) apply(mouse.x) }
-        function apply(x) {
-            const f = Math.max(0, Math.min(1, x / trackZone.width))
+        onPressed: function(mouse) { apply(mouse.x, mouse.y) }
+        onPositionChanged: function(mouse) { if (pressed) apply(mouse.x, mouse.y) }
+        // The MouseArea is 10px wider than the track on each side, so
+        // map the pointer into the track's coordinate system.
+        function apply(x, y) {
+            const p = mapToItem(trackZone, x, y)
+            const f = Math.max(0, Math.min(1, p.x / trackZone.width))
             root.moved(Math.round(root.min + f * (root.max - root.min)))
         }
     }
