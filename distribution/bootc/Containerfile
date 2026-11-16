@@ -144,6 +144,7 @@ RUN chmod 755 /usr/libexec/ix1-update
 # as a KWin dependency and its greeter aborts in this image, so disable its
 # automatic locking (idle/resume) — the ix1 lock surface is the only one.
 COPY distribution/bootc/files/etc/xdg/kscreenlockerrc /etc/xdg/kscreenlockerrc
+COPY distribution/bootc/files/etc/xdg/kwinrc /etc/xdg/kwinrc
 # The deployment root is an overlay (composefs) on bootc; remounting it per
 # fstab fails and leaves every boot 'degraded'. The initrd already mounts it
 # read-only, so the remount is a no-op — tolerate the failure.
