@@ -348,7 +348,7 @@ void SettingsBackend::setBrightness(int percent)
         QStringLiteral("/org/freedesktop/login1/session/auto"),
         QStringLiteral("org.freedesktop.login1.Session"),
         QStringLiteral("SetBrightness"));
-    msg << QStringLiteral("backlight") << devs.constFirst() << raw;
+    msg << QStringLiteral("backlight") << devs.constFirst() << quint32(raw);
     QDBusConnection::systemBus().asyncCall(msg);
     if (m_brightness != percent) {
         m_brightness = percent;
