@@ -570,14 +570,18 @@ void ShellBackend::refreshWifi()
     }
 }
 
-void ShellBackend::connectWifi(const QString &ssid)
+void ShellBackend::connectWifi(const QString &ssid, const QString &password)
 {
-    if (ssid.isEmpty() || ssid == m_wifiSsid) {
+    if (ssid.isEmpty() || (ssid == m_wifiSsid && password.isEmpty())) {
         return;
     }
-    QProcess::startDetached(QStringLiteral("nmcli"),
-                            { QStringLiteral("dev"), QStringLiteral("wifi"),
-                              QStringLiteral("connect"), ssid });
+    QStringList args{ QStringLiteral("dev"), QStringLiteral("wifi"),
+                      QStringLiteral("connect"), ssid };
+    if (!password.isEmpty()) {
+        // Saved profiles work without a password; a fresh secured AP needs one.
+        args << QStringLiteral("password") << password;
+    }
+    QProcess::startDetached(QStringLiteral("nmcli"), args);
     QTimer::singleShot(2500, this, &ShellBackend::refreshWifi);
 }
 
@@ -610,6 +614,7 @@ void ShellBackend::refreshBrightness()
     if (max <= 0) {
         return;
     }
+    m_brightnessMax = max;
     const int pct = qBound(0, qRound(cur * 100.0 / max), 100);
     if (pct != m_brightness) {
         m_brightness = pct;
@@ -623,14 +628,16 @@ void ShellBackend::setBrightness(int percent)
         return;
     }
     const int pct = qBound(1, percent, 100);
-    // logind lets the session owner set its own backlight without root.
+    // logind's SetBrightness takes a RAW brightness value, not a percent —
+    // scale against the device's max (its owner may set its own backlight).
+    const quint32 raw = static_cast<quint32>(qBound(1, qRound(pct * m_brightnessMax / 100.0),
+                                                    m_brightnessMax));
     QDBusMessage msg = QDBusMessage::createMethodCall(
         QStringLiteral("org.freedesktop.login1"),
         QStringLiteral("/org/freedesktop/login1/session/auto"),
         QStringLiteral("org.freedesktop.login1.Session"),
         QStringLiteral("SetBrightness"));
-    msg << QStringLiteral("backlight") << m_brightnessDevice
-        << static_cast<quint32>(pct);
+    msg << QStringLiteral("backlight") << m_brightnessDevice << raw;
     QDBusConnection::systemBus().asyncCall(msg);
     if (pct != m_brightness) {
         m_brightness = pct;

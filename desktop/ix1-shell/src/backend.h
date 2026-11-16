@@ -94,7 +94,7 @@ public:
     Q_INVOKABLE void launchExec(const QString &exec);
     Q_INVOKABLE void setVolume(int percent);
     Q_INVOKABLE void toggleWifi();
-    Q_INVOKABLE void connectWifi(const QString &ssid);
+    Q_INVOKABLE void connectWifi(const QString &ssid, const QString &password = QString());
     Q_INVOKABLE void toggleTheme();
     Q_INVOKABLE void setDnd(bool on);
     Q_INVOKABLE void setBrightness(int percent);
@@ -167,6 +167,7 @@ private:
     QVariantList m_wifiNetworks;
     int m_batteryPct = -1;
     int m_brightness = -1;
+    int m_brightnessMax = 0;
     QString m_brightnessDevice;
     bool m_dnd = false;
     QString m_activeApp;
