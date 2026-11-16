@@ -56,6 +56,7 @@ SettingsBackend::SettingsBackend(QObject *parent)
         m_batteryPct = 82;
         m_wallpaper = QStringLiteral("/usr/share/ix1/wallpapers/aurora.png");
         m_batteryStatus = QStringLiteral("Discharging");
+        m_batteryMinutes = 222;
         m_displays = {
             QVariantMap{ { QStringLiteral("name"), QStringLiteral("eDP-1") },
                          { QStringLiteral("current"), QStringLiteral("2560x1600@120") },
@@ -306,9 +307,32 @@ void SettingsBackend::refreshPower()
             QFile sf(ps.filePath(b + QStringLiteral("/status")));
             const QString status = sf.open(QIODevice::ReadOnly)
                 ? QString::fromUtf8(sf.readAll()).trimmed() : QString();
-            if ((pct >= 0 && pct != m_batteryPct) || status != m_batteryStatus) {
+            // Time estimate from energy_* (µWh/µW) or charge_* (µAh/µA).
+            auto readNum = [&](const char *name) -> double {
+                QFile f(ps.filePath(b + QLatin1Char('/') + QLatin1String(name)));
+                return f.open(QIODevice::ReadOnly)
+                    ? QString::fromUtf8(f.readAll()).trimmed().toDouble() : -1.0;
+            };
+            double now = readNum("energy_now"), full = readNum("energy_full"),
+                   rate = readNum("power_now");
+            if (now < 0 || rate < 0) {
+                now = readNum("charge_now");
+                full = readNum("charge_full");
+                rate = readNum("current_now");
+            }
+            int minutes = -1;
+            if (rate > 0 && now >= 0) {
+                if (status == QLatin1String("Discharging")) {
+                    minutes = qRound(now / rate * 60.0);
+                } else if (status == QLatin1String("Charging") && full > now) {
+                    minutes = qRound((full - now) / rate * 60.0);
+                }
+            }
+            if ((pct >= 0 && pct != m_batteryPct) || status != m_batteryStatus
+                || minutes != m_batteryMinutes) {
                 m_batteryPct = pct;
                 m_batteryStatus = status;
+                m_batteryMinutes = minutes;
                 emit batteryPctChanged();
             }
             break;

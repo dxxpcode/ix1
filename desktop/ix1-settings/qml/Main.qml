@@ -36,9 +36,17 @@ Window {
             color: Theme.bgBase
 
             StackLayout {
+                id: stack
                 anchors.fill: parent
                 anchors.margins: 28
                 currentIndex: root.currentPage
+                onCurrentIndexChanged: pageIn.restart()
+
+                ParallelAnimation {
+                    id: pageIn
+                    NumberAnimation { target: stack; property: "opacity"; from: 0.4; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: stack; property: "anchors.topMargin"; from: 34; to: 28; duration: 220; easing.type: Easing.OutCubic }
+                }
 
                 PersonalizationPage {}
                 DisplayPage {}

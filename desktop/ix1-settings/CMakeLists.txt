@@ -36,10 +36,14 @@ qt_add_qml_module(ix1-settings
         qml/ui/IxSlider.qml
         qml/ui/NavIcon.qml
         qml/ui/Sidebar.qml
+        qml/ui/SunGlyph.qml
         qml/SoundPage.qml
         qml/NetworkPage.qml
         qml/UpdatesPage.qml
         qml/AboutPage.qml
+    RESOURCES
+        qml/assets/logo-dark.png
+        qml/assets/logo-light.png
 )
 
 install(TARGETS ix1-settings RUNTIME DESTINATION bin)

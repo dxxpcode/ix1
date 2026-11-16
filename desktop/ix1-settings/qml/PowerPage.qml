@@ -98,6 +98,30 @@ Flickable {
                     font.pixelSize: 13
                 }
             }
+
+            Column {
+                visible: backend.batteryMinutes > 0
+                anchors.right: parent.right
+                anchors.rightMargin: 24
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+                Text {
+                    anchors.right: parent.right
+                    text: Math.floor(backend.batteryMinutes / 60) + " h "
+                        + (backend.batteryMinutes % 60) + " min"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 17
+                    font.weight: Font.Medium
+                }
+                Text {
+                    anchors.right: parent.right
+                    text: page.charging ? "until full" : "remaining"
+                    color: Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 12
+                }
+            }
         }
 
         SectionLabel { text: "Screen" }
@@ -109,13 +133,15 @@ Flickable {
                 divider: false
                 Row {
                     visible: backend.brightness >= 0
-                    spacing: 12
+                    spacing: 10
+                    SunGlyph { size: 13; anchors.verticalCenter: parent.verticalCenter }
                     IxSlider {
                         width: 260
                         anchors.verticalCenter: parent.verticalCenter
                         value: Math.max(0, backend.brightness)
                         onMoved: (v) => backend.setBrightness(Math.round(v))
                     }
+                    SunGlyph { size: 17; anchors.verticalCenter: parent.verticalCenter }
                     Text {
                         width: 38
                         anchors.verticalCenter: parent.verticalCenter

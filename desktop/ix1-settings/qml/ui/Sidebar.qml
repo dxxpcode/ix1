@@ -74,25 +74,35 @@ Rectangle {
                 height: 38
                 radius: 11
                 gradient: Gradient {
-                    GradientStop { position: 0.0; color: "#3B6FE0" }
-                    GradientStop { position: 1.0; color: "#1A2F6B" }
+                    GradientStop { position: 0.0; color: "#26365E" }
+                    GradientStop { position: 1.0; color: "#0E1426" }
                 }
                 border.width: 1
-                border.color: Qt.rgba(1, 1, 1, 0.18)
-                Text {
+                border.color: Qt.rgba(0.75, 0.85, 1, 0.22)
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.topMargin: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 16
+                    height: 1
+                    color: Qt.rgba(0.8, 0.88, 1, 0.35)
+                }
+                Image {
                     anchors.centerIn: parent
-                    text: "ix1"
-                    color: "#FFFFFF"
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
+                    width: 22
+                    height: 20
+                    source: Qt.resolvedUrl("../assets/logo-dark.png")
+                    sourceSize.width: 64
+                    fillMode: Image.PreserveAspectFit
+                    smooth: true
+                    mipmap: true
                 }
             }
             Column {
                 anchors.left: mark.right
                 anchors.leftMargin: 10
                 anchors.right: parent.right
-                anchors.rightMargin: 10
+                anchors.rightMargin: 26
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: 2
                 Text {
@@ -112,6 +122,15 @@ Rectangle {
                     font.pixelSize: 11
                     elide: Text.ElideRight
                 }
+            }
+            Text {
+                anchors.right: parent.right
+                anchors.rightMargin: 12
+                anchors.verticalCenter: parent.verticalCenter
+                text: "›"
+                color: Theme.textSecondary
+                font.pixelSize: 18
+                opacity: deviceHover.containsMouse ? 1 : 0.6
             }
             MouseArea {
                 id: deviceHover

@@ -36,6 +36,8 @@ class SettingsBackend : public QObject
     Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
     // power_supply status: Charging / Discharging / Full / Not charging.
     Q_PROPERTY(QString batteryStatus READ batteryStatus NOTIFY batteryPctChanged)
+    // Minutes to empty (discharging) or full (charging); -1 = unknown.
+    Q_PROPERTY(int batteryMinutes READ batteryMinutes NOTIFY batteryPctChanged)
     // Minutes; 0 = never.
     Q_PROPERTY(int idleLockMinutes READ idleLockMinutes NOTIFY idleLockChanged)
     Q_PROPERTY(int idleSuspendMinutes READ idleSuspendMinutes NOTIFY idleSuspendChanged)
@@ -85,6 +87,7 @@ public:
     int brightness() const { return m_brightness; }
     int batteryPct() const { return m_batteryPct; }
     QString batteryStatus() const { return m_batteryStatus; }
+    int batteryMinutes() const { return m_batteryMinutes; }
     int idleLockMinutes() const { return m_idleLockMin; }
     int idleSuspendMinutes() const { return m_idleSuspendMin; }
     Q_INVOKABLE void setIdleLockMinutes(int minutes);
@@ -144,6 +147,7 @@ private:
     int m_brightness = -1;
     int m_batteryPct = -1;
     QString m_batteryStatus;
+    int m_batteryMinutes = -1;
     int m_idleLockMin = 5;
     int m_idleSuspendMin = 0;
     class QProcess *m_updateProc = nullptr;

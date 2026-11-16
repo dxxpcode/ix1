@@ -51,6 +51,7 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: 18
         anchors.right: parent.right
+        anchors.rightMargin: 1
         height: 1
         color: Theme.hairline
     }
