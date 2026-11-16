@@ -1,5 +1,6 @@
 import QtQuick
 import QtQuick.Window
+import Qt5Compat.GraphicalEffects
 import org.kde.layershell as LayerShellQt
 import Ix1Shell 1.0
 
@@ -11,6 +12,13 @@ Window {
     // Whether the Wi-Fi network list is expanded under its tile. The
     // IX1_SHOW_NET demo env opens it for renders.
     property bool wifiExpanded: typeof demoNet !== "undefined" && demoNet
+
+    // Soft accent wash for tiles in their active state — reads as a lit
+    // control rather than a colored icon on a gray card.
+    readonly property color accentWash: Theme.dark
+        ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.22)
+        : Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.12)
+    readonly property color accentLine: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.45)
 
     LayerShellQt.Window.layer: LayerShellQt.Window.LayerOverlay
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorTop
@@ -43,6 +51,19 @@ Window {
             onClicked: backend.closeQuickSettings()
         }
 
+        // Soft shadow behind the card — real depth against the wallpaper.
+        DropShadow {
+            anchors.fill: card
+            source: card
+            z: -1
+            radius: 24
+            samples: 33
+            spread: 0.15
+            verticalOffset: 12
+            horizontalOffset: 0
+            color: Qt.rgba(0, 0, 0, Theme.dark ? 0.5 : 0.28)
+        }
+
         Rectangle {
             id: card
             anchors.top: parent.top
@@ -57,8 +78,24 @@ Window {
             border.width: 1
             clip: true
 
-            Component.onCompleted: enterAnim.restart()
-            onVisibleChanged: { if (visible) enterAnim.restart() }
+            // Lit inner top edge — the elevated-card language.
+            Rectangle {
+                anchors.top: parent.top
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.leftMargin: Theme.radius
+                anchors.rightMargin: Theme.radius
+                height: 1
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, Theme.dark ? 0.14 : 0.7) }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
+
+            Component.onCompleted: { enterAnim.restart(); enterStagger.restart() }
+            onVisibleChanged: { if (visible) { enterAnim.restart(); enterStagger.restart() } }
 
             ParallelAnimation {
                 id: enterAnim
@@ -79,6 +116,25 @@ Window {
                 }
             }
 
+            // Sections fade in staggered — the card arrives in beats,
+            // not as one flat plate.
+            SequentialAnimation {
+                id: enterStagger
+                ParallelAnimation {
+                    NumberAnimation { target: tileGrid; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: netCard; property: "opacity"; from: 0; to: 1; duration: 180 }
+                }
+                PauseAnimation { duration: 45 }
+                NumberAnimation { target: sliderCard; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                PauseAnimation { duration: 45 }
+                ParallelAnimation {
+                    NumberAnimation { target: footRow; property: "opacity"; from: 0; to: 1; duration: 180 }
+                    NumberAnimation { target: powerRow; property: "opacity"; from: 0; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                }
+                PauseAnimation { duration: 30 }
+                NumberAnimation { target: statusStrip; property: "opacity"; from: 0; to: 1; duration: 160 }
+            }
+
             MouseArea { anchors.fill: parent; onClicked: {} }
 
             Column {
@@ -89,16 +145,10 @@ Window {
                 anchors.margins: 12
                 spacing: 10
 
-                Text {
-                    text: "Control Center"
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 14
-                    font.weight: Font.DemiBold
-                }
-
                 // ---- Toggle tiles --------------------------------------------------
                 Grid {
+                    id: tileGrid
+                    opacity: 0
                     width: parent.width
                     columns: 2
                     columnSpacing: 8
@@ -111,11 +161,15 @@ Window {
                         width: (parent.width - 8) / 2
                         height: 56
                         radius: Theme.radiusSmall
-                        color: backend.wifiEnabled ? Theme.glassHover : Theme.surface2
+                        color: wifiArea.containsMouse
+                            ? (backend.wifiEnabled ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.dark ? 0.30 : 0.18) : Theme.surface3)
+                            : (backend.wifiEnabled ? root.accentWash : Theme.surface2)
                         border.color: backend.qsSection === "wifi"
-                            ? Theme.accent : Theme.hairline
+                            ? Theme.accent
+                            : (backend.wifiEnabled ? root.accentLine : Theme.hairline)
                         border.width: 1
 
+                        Behavior on color { ColorAnimation { duration: 180 } }
                         Behavior on border.color { ColorAnimation { duration: 350 } }
 
                         Rectangle {
@@ -202,6 +256,7 @@ Window {
                         }
 
                         MouseArea {
+                            id: wifiArea
                             anchors.fill: parent
                             anchors.rightMargin: 28
                             hoverEnabled: true
@@ -224,9 +279,13 @@ Window {
                         width: (parent.width - 8) / 2
                         height: 56
                         radius: Theme.radiusSmall
-                        color: backend.dnd ? Theme.glassHover : Theme.surface2
-                        border.color: Theme.hairline
+                        color: dndArea.containsMouse
+                            ? (backend.dnd ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.dark ? 0.30 : 0.18) : Theme.surface3)
+                            : (backend.dnd ? root.accentWash : Theme.surface2)
+                        border.color: backend.dnd ? root.accentLine : Theme.hairline
                         border.width: 1
+
+                        Behavior on color { ColorAnimation { duration: 180 } }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -287,6 +346,7 @@ Window {
                         }
 
                         MouseArea {
+                            id: dndArea
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -299,9 +359,11 @@ Window {
                         width: (parent.width - 8) / 2
                         height: 56
                         radius: Theme.radiusSmall
-                        color: Theme.surface2
+                        color: appArea.containsMouse ? Theme.surface3 : Theme.surface2
                         border.color: Theme.hairline
                         border.width: 1
+
+                        Behavior on color { ColorAnimation { duration: 180 } }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -358,6 +420,7 @@ Window {
                         }
 
                         MouseArea {
+                            id: appArea
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -370,9 +433,11 @@ Window {
                         width: (parent.width - 8) / 2
                         height: 56
                         radius: Theme.radiusSmall
-                        color: Theme.surface2
+                        color: setArea.containsMouse ? Theme.surface3 : Theme.surface2
                         border.color: Theme.hairline
                         border.width: 1
+
+                        Behavior on color { ColorAnimation { duration: 180 } }
 
                         Rectangle {
                             anchors.left: parent.left
@@ -433,6 +498,7 @@ Window {
                         }
 
                         MouseArea {
+                            id: setArea
                             anchors.fill: parent
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
@@ -446,6 +512,8 @@ Window {
 
                 // ---- Wi-Fi network list ------------------------------------------
                 Rectangle {
+                    id: netCard
+                    opacity: 0
                     width: parent.width
                     height: root.wifiExpanded ? netCol.implicitHeight + 20 : 0
                     radius: Theme.radiusSmall
@@ -679,6 +747,8 @@ Window {
 
                 // ---- Sliders -----------------------------------------------------
                 Rectangle {
+                    id: sliderCard
+                    opacity: 0
                     width: parent.width
                     height: sliderCol.implicitHeight + 20
                     radius: Theme.radiusSmall
@@ -707,10 +777,15 @@ Window {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 16
                                 height: 14
+                                // The glyph tints accent while the user is
+                                // dragging the slider.
+                                property bool engaged: volArea.pressed
+                                onEngagedChanged: requestPaint()
                                 onPaint: {
                                     const ctx = getContext("2d")
                                     ctx.reset()
-                                    ctx.fillStyle = Theme.textSecondary
+                                    const glyphColor = engaged ? Theme.accent : Theme.textSecondary
+                                    ctx.fillStyle = glyphColor
                                     ctx.beginPath()
                                     ctx.moveTo(1, 5)
                                     ctx.lineTo(4, 5)
@@ -720,7 +795,7 @@ Window {
                                     ctx.lineTo(1, 9)
                                     ctx.closePath()
                                     ctx.fill()
-                                    ctx.strokeStyle = Theme.textSecondary
+                                    ctx.strokeStyle = glyphColor
                                     ctx.lineWidth = 1.2
                                     ctx.lineCap = "round"
                                     if (backend.volume > 0) {
@@ -752,28 +827,41 @@ Window {
                                     id: volTrack
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width
-                                    height: 4
-                                    radius: 2
+                                    height: 6
+                                    radius: 3
                                     color: Theme.surface3
 
                                     Rectangle {
+                                        id: volFill
                                         width: volTrack.width * Math.max(0, backend.volume) / 150
                                         height: parent.height
-                                        radius: 2
+                                        radius: 3
                                         color: Theme.accent
+
+                                        // Brighter leading edge — the fill
+                                        // reads as light, not paint.
+                                        Rectangle {
+                                            anchors.right: parent.right
+                                            width: 3
+                                            height: parent.height
+                                            radius: 1.5
+                                            color: Qt.rgba(1, 1, 1, 0.5)
+                                            visible: volFill.width > 8
+                                        }
                                     }
                                 }
                                 Rectangle {
-                                    x: volTrack.width * Math.max(0, backend.volume) / 150 - 7
+                                    x: volTrack.width * Math.max(0, backend.volume) / 150 - 8
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 14
-                                    height: 14
-                                    radius: 7
+                                    width: 16
+                                    height: 16
+                                    radius: 8
                                     color: Theme.surface1
-                                    border.color: Theme.hairline
+                                    border.color: volArea.pressed ? Theme.accent : Theme.hairline
                                     border.width: 1
                                 }
                                 MouseArea {
+                                    id: volArea
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onPressed: function(mouse) { updateVol(mouse.x) }
@@ -793,7 +881,8 @@ Window {
                                 text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
                             }
                         }
 
@@ -809,11 +898,14 @@ Window {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 16
                                 height: 16
+                                property bool engaged: brightArea.pressed
+                                onEngagedChanged: requestPaint()
                                 onPaint: {
                                     const ctx = getContext("2d")
                                     ctx.reset()
-                                    ctx.strokeStyle = Theme.textSecondary
-                                    ctx.fillStyle = Theme.textSecondary
+                                    const glyphColor = engaged ? Theme.accent : Theme.textSecondary
+                                    ctx.strokeStyle = glyphColor
+                                    ctx.fillStyle = glyphColor
                                     ctx.lineWidth = 1.3
                                     ctx.beginPath()
                                     ctx.arc(8, 8, 3.4, 0, Math.PI * 2)
@@ -842,28 +934,39 @@ Window {
                                     id: brightTrack
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: parent.width
-                                    height: 4
-                                    radius: 2
+                                    height: 6
+                                    radius: 3
                                     color: Theme.surface3
 
                                     Rectangle {
+                                        id: brightFill
                                         width: brightTrack.width * Math.max(0, backend.brightness) / 100
                                         height: parent.height
-                                        radius: 2
+                                        radius: 3
                                         color: Theme.accent
+
+                                        Rectangle {
+                                            anchors.right: parent.right
+                                            width: 3
+                                            height: parent.height
+                                            radius: 1.5
+                                            color: Qt.rgba(1, 1, 1, 0.5)
+                                            visible: brightFill.width > 8
+                                        }
                                     }
                                 }
                                 Rectangle {
-                                    x: brightTrack.width * Math.max(0, backend.brightness) / 100 - 7
+                                    x: brightTrack.width * Math.max(0, backend.brightness) / 100 - 8
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 14
-                                    height: 14
-                                    radius: 7
+                                    width: 16
+                                    height: 16
+                                    radius: 8
                                     color: Theme.surface1
-                                    border.color: Theme.hairline
+                                    border.color: brightArea.pressed ? Theme.accent : Theme.hairline
                                     border.width: 1
                                 }
                                 MouseArea {
+                                    id: brightArea
                                     anchors.fill: parent
                                     hoverEnabled: true
                                     onPressed: function(mouse) { updateBright(mouse.x) }
@@ -883,7 +986,8 @@ Window {
                                 text: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
                                 color: Theme.textSecondary
                                 font.family: Theme.fontFamily
-                                font.pixelSize: 11
+                                font.pixelSize: 12
+                                font.weight: Font.DemiBold
                             }
                         }
                     }
@@ -891,6 +995,8 @@ Window {
 
                 // ---- Test notification (dev/verification aid) -------------------
                 Item {
+                    id: footRow
+                    opacity: 0
                     width: parent.width
                     height: 34
 
@@ -929,53 +1035,128 @@ Window {
                     }
                 }
 
-                Rectangle {
+                // ---- Power: drawn glyphs, one slim strip -------------------------
+                Row {
+                    id: powerRow
+                    opacity: 0
                     width: parent.width
-                    height: 1
-                    color: Theme.hairline
-                }
-
-                // ---- Power -------------------------------------------------------
-                Grid {
-                    width: parent.width
-                    columns: 2
-                    columnSpacing: 8
-                    rowSpacing: 8
+                    height: 34
+                    spacing: 0
 
                     Repeater {
-                        model: [
-                            { label: "Lock", action: "lock" },
-                            { label: "Suspend", action: "suspend" },
-                            { label: "Restart", action: "reboot" },
-                            { label: "Power Off", action: "poweroff" }
-                        ]
-                        delegate: Rectangle {
-                            required property var modelData
-                            width: (parent.width - 8) / 2
+                        model: ["lock", "suspend", "reboot", "poweroff"]
+                        delegate: Item {
+                            required property string modelData
+                            width: parent.width / 4
                             height: 34
-                            radius: Theme.radiusSmall
-                            color: powerArea.containsMouse ? Theme.surface3 : Theme.surface2
 
-                            Text {
+                            Rectangle {
                                 anchors.centerIn: parent
-                                text: modelData.label
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                width: 30
+                                height: 30
+                                radius: 8
+                                color: powerArea.containsMouse ? Theme.surface3 : "transparent"
+
+                                Behavior on color { ColorAnimation { duration: 120 } }
                             }
+
+                            Canvas {
+                                anchors.centerIn: parent
+                                width: 16
+                                height: 16
+                                property string action: parent.modelData
+                                property bool hot: powerArea.containsMouse
+                                onHotChanged: requestPaint()
+                                onPaint: {
+                                    const ctx = getContext("2d")
+                                    ctx.reset()
+                                    ctx.strokeStyle = hot ? Theme.textPrimary : Theme.textSecondary
+                                    ctx.fillStyle = ctx.strokeStyle
+                                    ctx.lineWidth = 1.4
+                                    ctx.lineCap = "round"
+                                    ctx.lineJoin = "round"
+                                    if (action === "lock") {
+                                        // shackle + body
+                                        ctx.beginPath()
+                                        ctx.arc(8, 6.5, 3.2, Math.PI, 0)
+                                        ctx.stroke()
+                                        ctx.beginPath()
+                                        ctx.rect(4, 6.5, 8, 7)
+                                        ctx.fill()
+                                    } else if (action === "suspend") {
+                                        // crescent
+                                        ctx.beginPath()
+                                        ctx.arc(8, 8, 5.4, 0, Math.PI * 2)
+                                        ctx.fill()
+                                        ctx.globalCompositeOperation = "destination-out"
+                                        ctx.beginPath()
+                                        ctx.arc(11, 5.5, 4.6, 0, Math.PI * 2)
+                                        ctx.fill()
+                                    } else if (action === "reboot") {
+                                        // circular arrow
+                                        ctx.beginPath()
+                                        ctx.arc(8, 8, 5, -Math.PI * 0.3, Math.PI * 1.35)
+                                        ctx.stroke()
+                                        ctx.beginPath()
+                                        ctx.moveTo(11.6, 2.4)
+                                        ctx.lineTo(13.4, 4.6)
+                                        ctx.lineTo(10.7, 5.2)
+                                        ctx.closePath()
+                                        ctx.fill()
+                                    } else {
+                                        // power: broken ring + stem
+                                        ctx.beginPath()
+                                        ctx.arc(8, 9, 4.8, -Math.PI * 0.38, Math.PI * 1.38)
+                                        ctx.stroke()
+                                        ctx.beginPath()
+                                        ctx.moveTo(8, 2.5)
+                                        ctx.lineTo(8, 7.5)
+                                        ctx.stroke()
+                                    }
+                                }
+                            }
+
                             MouseArea {
                                 id: powerArea
                                 anchors.fill: parent
                                 hoverEnabled: true
+                                cursorShape: Qt.PointingHandCursor
                                 onClicked: {
-                                    if (modelData.action === "lock") {
+                                    if (modelData === "lock") {
                                         backend.lock()
                                     } else {
-                                        backend.powerAction(modelData.action)
+                                        backend.powerAction(modelData)
                                     }
                                 }
                             }
                         }
+                    }
+                }
+
+                // ---- Status strip: quiet system facts ----------------------------
+                Item {
+                    id: statusStrip
+                    opacity: 0
+                    width: parent.width
+                    height: 18
+
+                    Text {
+                        anchors.left: parent.left
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: backend.userName
+                            + (backend.batteryPct >= 0 ? "  ·  " + backend.batteryPct + "%" : "")
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                    }
+                    Text {
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: "ix1"
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 10
+                        opacity: 0.7
                     }
                 }
             }
