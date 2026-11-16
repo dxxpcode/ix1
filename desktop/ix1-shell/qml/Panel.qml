@@ -15,8 +15,11 @@ Window {
         | LayerShellQt.Window.AnchorRight
     height: 32
 
-    readonly property color unlit: Theme.dark ? "#3A3D46" : "#C7CCD6"
-    readonly property color lit: Theme.textSecondary
+    // Status glyphs: one ink colour; inactive tiers are the same ink, faded.
+    readonly property color lit: Theme.dark ? Qt.rgba(0.93, 0.95, 0.98, 0.9)
+                                            : Qt.rgba(0.09, 0.11, 0.15, 0.82)
+    readonly property color unlit: Qt.rgba(lit.r, lit.g, lit.b, lit.a * 0.3)
+    readonly property color dim: Qt.rgba(lit.r, lit.g, lit.b, lit.a * 0.5)
     property bool volOpen: false
 
     // The inline volume pill closes whenever Quick Settings opens.
@@ -168,25 +171,25 @@ Window {
             Canvas {
                 id: wifiGlyph
                 anchors.centerIn: parent
-                width: 16
-                height: 12
+                width: 18
+                height: 13
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
-                    ctx.lineWidth = 1.5
+                    ctx.lineWidth = 1.9
                     ctx.lineCap = "round"
                     const cx = width / 2
-                    const cy = height * 0.80
+                    const cy = 11.6
                     const sig = backend.wifiEnabled ? backend.wifiSignal : -1
                     for (let i = 0; i < 3; ++i) {
                         ctx.strokeStyle = sig > 25 * (i + 1) ? root.lit : root.unlit
                         ctx.beginPath()
-                        ctx.arc(cx, cy, width * (0.20 + i * 0.16), -Math.PI * 0.78, -Math.PI * 0.22)
+                        ctx.arc(cx, cy, 3.7 + i * 3.1, -Math.PI * 0.75, -Math.PI * 0.25)
                         ctx.stroke()
                     }
-                    ctx.fillStyle = backend.wifiEnabled && sig >= 0 ? root.lit : root.unlit
+                    ctx.fillStyle = sig >= 0 ? root.lit : root.unlit
                     ctx.beginPath()
-                    ctx.arc(cx, cy, ctx.lineWidth * 0.62, 0, Math.PI * 2)
+                    ctx.arc(cx, cy, 1.4, 0, Math.PI * 2)
                     ctx.fill()
                 }
             }
@@ -223,31 +226,36 @@ Window {
             Canvas {
                 id: volGlyph
                 anchors.left: parent.left
-                anchors.leftMargin: 5
+                anchors.leftMargin: 4
                 anchors.verticalCenter: parent.verticalCenter
-                width: 16
-                height: 12
+                width: 18
+                height: 13
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
                     const v = backend.volume
+                    // Speaker: rounded cabinet + flared cone in one shape.
                     ctx.fillStyle = root.lit
+                    ctx.strokeStyle = root.lit
+                    ctx.lineWidth = 1.2
+                    ctx.lineJoin = "round"
                     ctx.beginPath()
-                    ctx.moveTo(1, 4.5)
-                    ctx.lineTo(4, 4.5)
-                    ctx.lineTo(7.5, 1.5)
-                    ctx.lineTo(7.5, 10.5)
-                    ctx.lineTo(4, 7.5)
-                    ctx.lineTo(1, 7.5)
+                    ctx.moveTo(1.4, 4.4)
+                    ctx.lineTo(4.2, 4.4)
+                    ctx.lineTo(7.6, 1.6)
+                    ctx.lineTo(7.6, 11.4)
+                    ctx.lineTo(4.2, 8.6)
+                    ctx.lineTo(1.4, 8.6)
                     ctx.closePath()
                     ctx.fill()
-                    const waves = v <= 0 ? 0 : (v < 70 ? 1 : 2)
-                    ctx.strokeStyle = root.lit
-                    ctx.lineWidth = 1.4
+                    ctx.stroke()
+                    // Three waves; the ones above the current level stay faded.
+                    ctx.lineWidth = 1.5
                     ctx.lineCap = "round"
-                    for (let i = 0; i < waves; ++i) {
+                    for (let i = 0; i < 3; ++i) {
+                        ctx.strokeStyle = v > i * 33 ? root.lit : root.unlit
                         ctx.beginPath()
-                        ctx.arc(7.5, 6, 2.6 + i * 2.3, -Math.PI / 3.4, Math.PI / 3.4)
+                        ctx.arc(8.2, 6.5, 2.8 + i * 2.6, -Math.PI / 4, Math.PI / 4)
                         ctx.stroke()
                     }
                 }
@@ -342,7 +350,7 @@ Window {
         Text {
             visible: !root.volOpen
             text: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-            color: Theme.textSecondary
+            color: root.lit
             font.family: Theme.fontFamily
             font.pixelSize: 12
             anchors.verticalCenter: parent.verticalCenter
@@ -361,30 +369,36 @@ Window {
             Canvas {
                 id: batGlyph
                 anchors.centerIn: parent
-                width: 20
+                width: 24
                 height: 12
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
-                    ctx.strokeStyle = root.lit
-                    ctx.lineWidth = 1.3
-                    // Shell: rounded 15×8 cell + nub.
-                    ctx.beginPath()
-                    const r = 2, x = 1, y = 2, w = 15, h = 8
-                    ctx.moveTo(x + r, y)
-                    ctx.arcTo(x + w, y, x + w, y + h, r)
-                    ctx.arcTo(x + w, y + h, x, y + h, r)
-                    ctx.arcTo(x, y + h, x, y, r)
-                    ctx.arcTo(x, y, x + w, y, r)
+                    const rr = function (x, y, w, h, r) {
+                        ctx.beginPath()
+                        ctx.moveTo(x + r, y)
+                        ctx.arcTo(x + w, y, x + w, y + h, r)
+                        ctx.arcTo(x + w, y + h, x, y + h, r)
+                        ctx.arcTo(x, y + h, x, y, r)
+                        ctx.arcTo(x, y, x + w, y, r)
+                        ctx.closePath()
+                    }
+                    // Shell and nub in a softer ink so the charge reads first.
+                    ctx.strokeStyle = root.dim
+                    ctx.lineWidth = 1.1
+                    rr(1, 1.05, 19.5, 9.9, 3.1)
                     ctx.stroke()
-                    ctx.fillStyle = root.lit
+                    ctx.fillStyle = root.dim
                     ctx.beginPath()
-                    ctx.rect(x + w + 0.5, y + 2.5, 2, 3)
+                    ctx.moveTo(21.5, 4.1)
+                    ctx.quadraticCurveTo(23, 4.4, 23, 6)
+                    ctx.quadraticCurveTo(23, 7.6, 21.5, 7.9)
+                    ctx.closePath()
                     ctx.fill()
-                    // Level fill.
+                    // Charge: inset pill, red at 20% and below.
                     const pct = Math.max(0, Math.min(100, backend.batteryPct)) / 100
-                    ctx.beginPath()
-                    ctx.rect(x + 1.6, y + 1.6, (w - 3.2) * pct, h - 3.2)
+                    ctx.fillStyle = pct <= 0.2 ? "#FF5A5F" : root.lit
+                    rr(3, 3, Math.max(2.6, 15.5 * pct), 6, 1.6)
                     ctx.fill()
                 }
                 Connections {
@@ -411,25 +425,29 @@ Window {
 
             Canvas {
                 anchors.centerIn: parent
-                width: 14
+                width: 16
                 height: 12
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
                     ctx.strokeStyle = root.lit
-                    ctx.fillStyle = root.lit
-                    ctx.lineWidth = 1.4
+                    ctx.lineWidth = 1.5
                     ctx.lineCap = "round"
-                    const rows = [2.5, 6, 9.5]
-                    const knobs = [9, 5, 11]
-                    for (let i = 0; i < 3; ++i) {
+                    // Two tracks, each broken around a ring knob.
+                    const rows = [3.2, 8.8]
+                    const knobs = [10.4, 6.0]
+                    const kr = 2.2
+                    for (let i = 0; i < 2; ++i) {
+                        const y = rows[i], k = knobs[i]
                         ctx.beginPath()
-                        ctx.moveTo(1, rows[i])
-                        ctx.lineTo(13, rows[i])
+                        ctx.moveTo(1.2, y)
+                        ctx.lineTo(k - kr - 1.0, y)
+                        ctx.moveTo(k + kr + 1.0, y)
+                        ctx.lineTo(14.8, y)
                         ctx.stroke()
                         ctx.beginPath()
-                        ctx.arc(knobs[i], rows[i], 1.6, 0, Math.PI * 2)
-                        ctx.fill()
+                        ctx.arc(k, y, kr, 0, Math.PI * 2)
+                        ctx.stroke()
                     }
                 }
             }
