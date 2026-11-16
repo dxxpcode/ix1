@@ -27,7 +27,6 @@
 
 namespace {
 
-constexpr int kIdleLockMs = 5 * 60 * 1000;
 
 // nmcli -t separates fields with ':' and escapes a literal ':' as '\\:'.
 QStringList splitNmcliRow(const QString &row)
@@ -292,12 +291,14 @@ ShellBackend::ShellBackend(QObject *parent)
     // ix1's LockScreen is the only lock surface — so idle and suspend
     // locking are the shell's job. KIdleTime talks to KWin's idle
     // protocol; logind announces suspend on the system bus.
-    auto *idle = KIdleTime::instance();
-    m_idleTimeoutId = idle->addIdleTimeout(kIdleLockMs);
-    connect(idle, &KIdleTime::timeoutReached, this,
+    armIdleTimeouts();
+    connect(KIdleTime::instance(), &KIdleTime::timeoutReached, this,
             [this](int id, int) {
                 if (id == m_idleTimeoutId) {
                     setLocked(true);
+                } else if (id == m_suspendTimeoutId) {
+                    QProcess::startDetached(QStringLiteral("systemctl"),
+                                            { QStringLiteral("suspend") });
                 }
             });
     QDBusConnection::systemBus().connect(
@@ -356,6 +357,30 @@ void ShellBackend::loadTheme()
             }
             continue;
         }
+        if (line.startsWith(QLatin1String("wallpaper="))) {
+            const QString value = line.mid(10).trimmed();
+            if (value != m_wallpaper) {
+                m_wallpaper = value;
+                emit wallpaperChanged();
+            }
+            continue;
+        }
+        if (line.startsWith(QLatin1String("idleLock="))) {
+            const int v = line.mid(9).trimmed().toInt();
+            if (v >= 0 && v != m_idleLockMin) {
+                m_idleLockMin = v;
+                armIdleTimeouts();
+            }
+            continue;
+        }
+        if (line.startsWith(QLatin1String("idleSuspend="))) {
+            const int v = line.mid(12).trimmed().toInt();
+            if (v >= 0 && v != m_idleSuspendMin) {
+                m_idleSuspendMin = v;
+                armIdleTimeouts();
+            }
+            continue;
+        }
         if (!line.startsWith(QLatin1String("theme="))) {
             continue;
         }
@@ -379,6 +404,44 @@ void ShellBackend::writeSettings()
     out << "theme=" << m_theme << '\n';
     out << "dnd=" << (m_dnd ? "true" : "false") << '\n';
     out << "dockPinned=" << m_pinned.join(QLatin1Char(',')) << '\n';
+    // ix1-settings owns wallpaper=/idleLock=/idleSuspend=; keep any other
+    // keys (and every unknown line) intact.
+    QStringList keep;
+    QFile rf(path);
+    if (rf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QTextStream in(&rf);
+        while (!in.atEnd()) {
+            const QString line = in.readLine().trimmed();
+            if (line.isEmpty() || line.startsWith(QLatin1String("theme="))
+                || line.startsWith(QLatin1String("dnd="))
+                || line.startsWith(QLatin1String("dockPinned="))) {
+                continue;
+            }
+            keep << line;
+        }
+    }
+    for (const QString &line : std::as_const(keep)) {
+        out << line << '\n';
+    }
+}
+
+void ShellBackend::armIdleTimeouts()
+{
+    auto *idle = KIdleTime::instance();
+    if (m_idleTimeoutId >= 0) {
+        idle->removeIdleTimeout(m_idleTimeoutId);
+        m_idleTimeoutId = -1;
+    }
+    if (m_suspendTimeoutId >= 0) {
+        idle->removeIdleTimeout(m_suspendTimeoutId);
+        m_suspendTimeoutId = -1;
+    }
+    if (m_idleLockMin > 0) {
+        m_idleTimeoutId = idle->addIdleTimeout(m_idleLockMin * 60 * 1000);
+    }
+    if (m_idleSuspendMin > 0) {
+        m_suspendTimeoutId = idle->addIdleTimeout(m_idleSuspendMin * 60 * 1000);
+    }
 }
 
 void ShellBackend::toggleTheme()

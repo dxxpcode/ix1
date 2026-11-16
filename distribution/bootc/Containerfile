@@ -75,7 +75,7 @@ RUN dnf -y install \
 
 # ---- M5 essential applications ------------------------------------------------
 RUN dnf -y install \
-        konsole dolphin kate plasma-systemmonitor firefox \
+        konsole dolphin kate plasma-systemmonitor firefox kscreen \
         && dnf clean all
 
 # Keep kernel packages under kernel-install control (matches Fedora bootc guidance).
@@ -118,6 +118,10 @@ COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop
 
 # ix1 window chrome: Aurorae SVG theme (selected in /etc/xdg/kwinrc).
 COPY distribution/bootc/files/usr/share/aurorae /usr/share/aurorae
+
+# Shipped wallpapers; user picks live in ~/.local/share/ix1/wallpapers. The
+# selection is persisted as wallpaper= in ~/.config/ix1/settings.conf.
+COPY distribution/bootc/files/usr/share/ix1/wallpapers /usr/share/ix1/wallpapers
 
 # ---- M7: signed updates and recovery ----------------------------------------
 # Containers policy: pulls of the ix1 image from the update registry must

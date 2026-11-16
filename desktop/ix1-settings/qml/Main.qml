@@ -17,7 +17,7 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
-    property int currentPage: 0
+    property int currentPage: demoPage
 
     RowLayout {
         anchors.fill: parent
@@ -44,11 +44,13 @@ Window {
 
                 Repeater {
                     model: [
-                        { name: "Appearance", glyph: "◐", tint: "#3563E9" },
-                        { name: "Sound",      glyph: "♪", tint: "#E9A23B" },
-                        { name: "Network",    glyph: "⌁", tint: "#30A46C" },
-                        { name: "Updates",    glyph: "⟳", tint: "#8B5CF6" },
-                        { name: "About",      glyph: "ⓘ", tint: "#64748B" }
+                        { name: "Personalization", glyph: "◐", tint: "#3563E9" },
+                        { name: "Display",         glyph: "▣", tint: "#0EA5A5" },
+                        { name: "Power",           glyph: "⚡", tint: "#E9A23B" },
+                        { name: "Sound",           glyph: "♪", tint: "#E9A23B" },
+                        { name: "Network",         glyph: "⌁", tint: "#30A46C" },
+                        { name: "Updates",         glyph: "⟳", tint: "#8B5CF6" },
+                        { name: "About",           glyph: "ⓘ", tint: "#64748B" }
                     ]
                     delegate: Rectangle {
                         Layout.fillWidth: true
@@ -113,7 +115,9 @@ Window {
                 anchors.margins: 22
                 currentIndex: root.currentPage
 
-                AppearancePage {}
+                PersonalizationPage {}
+                DisplayPage {}
+                PowerPage {}
                 SoundPage {}
                 NetworkPage {}
                 UpdatesPage {}

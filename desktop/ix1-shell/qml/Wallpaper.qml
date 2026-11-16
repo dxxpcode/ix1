@@ -31,9 +31,13 @@ Window {
 
     Image {
         anchors.fill: parent
-        source: Qt.resolvedUrl(Theme.dark
-            ? "assets/wallpaper-graphite.png"
-            : "assets/wallpaper-porcelain.png")
+        // A wallpaper= pick from ix1-settings wins; the theme pair is the
+        // fallback for a fresh install.
+        source: backend.wallpaper.length > 0
+            ? ("file://" + backend.wallpaper)
+            : Qt.resolvedUrl(Theme.dark
+                ? "assets/wallpaper-graphite.png"
+                : "assets/wallpaper-porcelain.png")
         fillMode: Image.PreserveAspectCrop
         smooth: true
         asynchronous: true

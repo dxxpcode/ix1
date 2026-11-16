@@ -72,6 +72,9 @@ class ShellBackend : public QObject
     Q_PROPERTY(QString qsSection READ qsSection NOTIFY qsSectionChanged)
     Q_PROPERTY(bool calendarOpen READ calendarOpen NOTIFY calendarOpenChanged)
     Q_PROPERTY(bool locked READ locked NOTIFY lockedChanged)
+    // Empty = theme default; otherwise an absolute path under
+    // /usr/share/ix1/wallpapers or the user's data dir.
+    Q_PROPERTY(QString wallpaper READ wallpaper NOTIFY wallpaperChanged)
 
 public:
     explicit ShellBackend(QObject *parent = nullptr);
@@ -97,6 +100,7 @@ public:
     QString qsSection() const { return m_qsSection; }
     bool calendarOpen() const { return m_calOpen; }
     bool locked() const { return m_locked; }
+    QString wallpaper() const { return m_wallpaper; }
 
     Q_INVOKABLE void launchApp(const QString &desktopFile);
     Q_INVOKABLE void launchExec(const QString &exec);
@@ -136,6 +140,7 @@ signals:
     void wifiSsidChanged();
     void wifiNetworksChanged();
     void batteryPctChanged();
+    void wallpaperChanged();
     void brightnessChanged();
     void dndChanged();
     void bluetoothEnabledChanged();
@@ -171,6 +176,7 @@ private:
     void loadTheme();
     void writeSettings();
     void rebuildDock();
+    void armIdleTimeouts();
 
     AppModel m_apps;
     NotificationServer *m_notifications = nullptr;
@@ -207,5 +213,11 @@ private:
     bool m_calOpen = false;
     bool m_locked = false;
     int m_idleTimeoutId = -1;
+    int m_suspendTimeoutId = -1;
+    // idleLock=/idleSuspend= minutes (idleLock=0 locks never, idleSuspend=0
+    // suspends never); written by ix1-settings.
+    int m_idleLockMin = 5;
+    int m_idleSuspendMin = 0;
+    QString m_wallpaper;
     QTimer *m_pollTimer = nullptr;
 };
