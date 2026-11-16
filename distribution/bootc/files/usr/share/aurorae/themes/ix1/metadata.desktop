@@ -1,0 +1,13 @@
+[Desktop Entry]
+Name=ix1
+Comment=ix1 window decoration — frosted titlebar, traffic lights, rounded corners
+Type=Service
+X-KDE-ServiceTypes=KWin/Decoration
+X-KDE-PluginInfo-Author=dxxpcode
+X-KDE-PluginInfo-Email=nextdeveloper@mail.com
+X-KDE-PluginInfo-Name=ix1
+X-KDE-PluginInfo-Version=1.0
+X-KDE-PluginInfo-Category=Window Decoration
+X-KDE-PluginInfo-License=MIT
+X-KDE-PluginInfo-EnabledByDefault=true
+X-KDE-PluginInfo-blur=true

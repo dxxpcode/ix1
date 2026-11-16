@@ -7,3 +7,12 @@ blurEnabled=true
 [Effect-Blur]
 BlurStrength=6
 NoiseStrength=0
+
+# ix1 window chrome: custom Aurorae SVG theme — frosted 34px titlebar,
+# traffic lights left, borderless, centered title, rounded corners.
+[org.kde.kdecoration2]
+library=org.kde.kwin.aurorae
+theme=__aurorae__svg__ix1
+ButtonsOnLeft=XIA
+ButtonsOnRight=
+BorderSize=None

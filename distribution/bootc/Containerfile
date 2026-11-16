@@ -116,6 +116,9 @@ COPY distribution/bootc/files/usr/share/applications/ix1-settings.desktop \
 COPY distribution/bootc/files/usr/share/applications/ix1-software-center.desktop \
      /usr/share/applications/ix1-software-center.desktop
 
+# ix1 window chrome: Aurorae SVG theme (selected in /etc/xdg/kwinrc).
+COPY distribution/bootc/files/usr/share/aurorae /usr/share/aurorae
+
 # ---- M7: signed updates and recovery ----------------------------------------
 # Containers policy: pulls of the ix1 image from the update registry must
 # carry a valid ix1 sigstore signature (verified against the baked-in public
