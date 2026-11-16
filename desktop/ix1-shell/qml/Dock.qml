@@ -75,8 +75,8 @@ Window {
         // Translucent navy glass (sampled from the concept): the wallpaper
         // shows through, lighter at the top, with a lit bottom rim.
         gradient: Gradient {
-            GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.17, 0.26, 0.44, 0.40) : Qt.rgba(1, 1, 1, 0.58) }
-            GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.07, 0.12, 0.22, 0.52) : Qt.rgba(0.94, 0.96, 1, 0.50) }
+            GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.17, 0.26, 0.44, 0.40) : Qt.rgba(0.93, 0.96, 1, 0.40) }
+            GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.07, 0.12, 0.22, 0.52) : Qt.rgba(0.84, 0.89, 0.98, 0.36) }
         }
         border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.17) : Qt.rgba(1, 1, 1, 0.75)
         border.width: 1
