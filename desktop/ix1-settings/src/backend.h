@@ -3,6 +3,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantList>
 
 // Settings backend: appearance (persisted to ~/.config/ix1/settings.conf,
 // shared with ix1-shell), sound via WirePlumber (wpctl), network via
@@ -25,6 +26,21 @@ class SettingsBackend : public QObject
     Q_PROPERTY(QString updateStatus READ updateStatus NOTIFY updateStatusChanged)
     Q_PROPERTY(bool updateBusy READ updateBusy NOTIFY updateBusyChanged)
     Q_PROPERTY(int flatpakUpdateCount READ flatpakUpdateCount NOTIFY flatpakUpdateCountChanged)
+    // Wallpaper pick: absolute path, empty = theme default.
+    Q_PROPERTY(QString wallpaper READ wallpaper NOTIFY wallpaperChanged)
+    // Each entry: name, path.
+    Q_PROPERTY(QVariantList wallpapers READ wallpapers NOTIFY wallpapersChanged)
+    // Each entry: name, current (mode string), modes (strings), scale.
+    Q_PROPERTY(QVariantList displays READ displays NOTIFY displaysChanged)
+    Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
+    Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
+    // power_supply status: Charging / Discharging / Full / Not charging.
+    Q_PROPERTY(QString batteryStatus READ batteryStatus NOTIFY batteryPctChanged)
+    // Minutes to empty (discharging) or full (charging); -1 = unknown.
+    Q_PROPERTY(int batteryMinutes READ batteryMinutes NOTIFY batteryPctChanged)
+    // Minutes; 0 = never.
+    Q_PROPERTY(int idleLockMinutes READ idleLockMinutes NOTIFY idleLockChanged)
+    Q_PROPERTY(int idleSuspendMinutes READ idleSuspendMinutes NOTIFY idleSuspendChanged)
 
 public:
     explicit SettingsBackend(QObject *parent = nullptr);
@@ -64,6 +80,23 @@ public:
     Q_INVOKABLE void updateFlatpakApps();
     Q_INVOKABLE void openSoftwareCenter();
 
+    QString wallpaper() const { return m_wallpaper; }
+    Q_INVOKABLE void setWallpaper(const QString &path);
+    QVariantList wallpapers() const { return m_wallpapers; }
+    QVariantList displays() const { return m_displays; }
+    int brightness() const { return m_brightness; }
+    int batteryPct() const { return m_batteryPct; }
+    QString batteryStatus() const { return m_batteryStatus; }
+    int batteryMinutes() const { return m_batteryMinutes; }
+    int idleLockMinutes() const { return m_idleLockMin; }
+    int idleSuspendMinutes() const { return m_idleSuspendMin; }
+    Q_INVOKABLE void setIdleLockMinutes(int minutes);
+    Q_INVOKABLE void setIdleSuspendMinutes(int minutes);
+    Q_INVOKABLE void setBrightness(int percent);
+    Q_INVOKABLE void setDisplayMode(const QString &name, const QString &mode);
+    Q_INVOKABLE void setDisplayScale(const QString &name, double scale);
+    Q_INVOKABLE void refreshDisplays();
+
 signals:
     void themeChanged();
     void volumeChanged();
@@ -74,6 +107,13 @@ signals:
     void updateStatusChanged();
     void updateBusyChanged();
     void flatpakUpdateCountChanged();
+    void wallpaperChanged();
+    void wallpapersChanged();
+    void displaysChanged();
+    void brightnessChanged();
+    void batteryPctChanged();
+    void idleLockChanged();
+    void idleSuspendChanged();
 
 private:
     static QString configDir();
@@ -81,6 +121,8 @@ private:
     void saveConfig() const;
     void refreshVolume();
     void refreshWifi();
+    void refreshWallpapers();
+    void refreshPower();
     void setUpdateStatus(const QString &status);
     void setUpdateBusy(bool busy);
     void startUpdateOp(const QStringList &program, int kind);
@@ -99,6 +141,15 @@ private:
     QString m_updateStatus;
     bool m_updateBusy = false;
     int m_flatpakUpdateCount = -1;
+    QString m_wallpaper;
+    QVariantList m_wallpapers;
+    QVariantList m_displays;
+    int m_brightness = -1;
+    int m_batteryPct = -1;
+    QString m_batteryStatus;
+    int m_batteryMinutes = -1;
+    int m_idleLockMin = 5;
+    int m_idleSuspendMin = 0;
     class QProcess *m_updateProc = nullptr;
     int m_updateOpKind = 0;
 };

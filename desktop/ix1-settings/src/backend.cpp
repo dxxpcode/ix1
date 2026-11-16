@@ -1,14 +1,19 @@
 #include "backend.h"
 
+#include <QDBusConnection>
+#include <QDBusMessage>
+#include <QDBusPendingCall>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QJsonArray>
 #include <QProcess>
 #include <QStandardPaths>
 #include <QTimer>
 #include <QTextStream>
 #include <sys/utsname.h>
+#include <QFileInfo>
 #include <unistd.h>
 
 namespace {
@@ -45,6 +50,27 @@ SettingsBackend::SettingsBackend(QObject *parent)
             }
         }
     }
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        m_hostName = QStringLiteral("ix1-laptop");
+        m_brightness = 68;
+        m_batteryPct = 82;
+        m_wallpaper = QStringLiteral("/usr/share/ix1/wallpapers/aurora.png");
+        m_batteryStatus = QStringLiteral("Discharging");
+        m_batteryMinutes = 222;
+        m_displays = {
+            QVariantMap{ { QStringLiteral("name"), QStringLiteral("eDP-1") },
+                         { QStringLiteral("current"), QStringLiteral("2560x1600@120") },
+                         { QStringLiteral("modes"), QStringList{ QStringLiteral("2560x1600@120"),
+                               QStringLiteral("2560x1600@60"), QStringLiteral("1920x1200@120"),
+                               QStringLiteral("1920x1200@60"), QStringLiteral("1680x1050@60"),
+                               QStringLiteral("1440x900@60"), QStringLiteral("1280x800@60") } },
+                         { QStringLiteral("scale"), 1.5 } },
+        };
+        emit displaysChanged();
+        emit brightnessChanged();
+        emit batteryPctChanged();
+        emit wallpaperChanged();
+    }
     refresh();
 }
 
@@ -58,7 +84,8 @@ QString SettingsBackend::configDir()
 
 void SettingsBackend::loadConfig()
 {
-    // Parse "key=value" lines; theme is the only persisted key.
+    // Parse "key=value" lines. This app owns theme=/wallpaper=/idleLock=/
+    // idleSuspend=; the shell owns dnd=/dockPinned=.
     QFile f(configDir() + QStringLiteral("/settings.conf"));
     if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&f);
@@ -69,6 +96,18 @@ void SettingsBackend::loadConfig()
                 if (value == QLatin1String("porcelain") || value == QLatin1String("graphite")) {
                     m_theme = value;
                 }
+            } else if (line.startsWith(QLatin1String("wallpaper="))) {
+                m_wallpaper = line.mid(10).trimmed();
+            } else if (line.startsWith(QLatin1String("idleLock="))) {
+                const int v = line.mid(9).trimmed().toInt();
+                if (v >= 0) {
+                    m_idleLockMin = v;
+                }
+            } else if (line.startsWith(QLatin1String("idleSuspend="))) {
+                const int v = line.mid(12).trimmed().toInt();
+                if (v >= 0) {
+                    m_idleSuspendMin = v;
+                }
             }
         }
     }
@@ -77,10 +116,12 @@ void SettingsBackend::loadConfig()
 void SettingsBackend::saveConfig() const
 {
     // settings.conf is shared — the shell persists keys like dnd= there.
-    // Rewrite only the theme= line, preserving everything else.
+    // Rewrite only this app's lines, preserving everything else.
     const QString path = configDir() + QStringLiteral("/settings.conf");
+    const QStringList owned = { QStringLiteral("theme"), QStringLiteral("wallpaper"),
+                                QStringLiteral("idleLock"), QStringLiteral("idleSuspend") };
     QStringList lines;
-    bool wroteTheme = false;
+    bool wrote = false;
     QFile f(path);
     if (f.open(QIODevice::ReadOnly | QIODevice::Text)) {
         QTextStream in(&f);
@@ -89,18 +130,260 @@ void SettingsBackend::saveConfig() const
             if (line.isEmpty()) {
                 continue;
             }
-            if (line.startsWith(QLatin1String("theme="))) {
-                lines << QStringLiteral("theme=%1").arg(m_theme);
-                wroteTheme = true;
-            } else {
+            bool ownedLine = false;
+            for (const QString &key : owned) {
+                if (line.startsWith(key + QLatin1String("="))) {
+                    if (!wrote) {
+                        lines << QStringLiteral("theme=%1").arg(m_theme)
+                              << QStringLiteral("wallpaper=%1").arg(m_wallpaper)
+                              << QStringLiteral("idleLock=%1").arg(m_idleLockMin)
+                              << QStringLiteral("idleSuspend=%1").arg(m_idleSuspendMin);
+                        wrote = true;
+                    }
+                    ownedLine = true;
+                    break;
+                }
+            }
+            if (!ownedLine) {
                 lines << line;
             }
         }
     }
-    if (!wroteTheme) {
+    if (!wrote) {
+        lines.prepend(QStringLiteral("idleSuspend=%1").arg(m_idleSuspendMin));
+        lines.prepend(QStringLiteral("idleLock=%1").arg(m_idleLockMin));
+        if (!m_wallpaper.isEmpty()) {
+            lines.prepend(QStringLiteral("wallpaper=%1").arg(m_wallpaper));
+        }
         lines.prepend(QStringLiteral("theme=%1").arg(m_theme));
     }
     writeFile(path, lines.join(QLatin1Char('\n')) + QLatin1Char('\n'));
+}
+
+// ---- Wallpaper -------------------------------------------------------------
+
+void SettingsBackend::refreshWallpapers()
+{
+    // Shipped set first, then the user's own drops in
+    // ~/.local/share/ix1/wallpapers (GenericDataLocation, not this app's
+    // AppDataLocation, which would be .../ix1/ix1-settings).
+    const QStringList dirs = {
+        QStringLiteral("/usr/share/ix1/wallpapers"),
+        QStandardPaths::writableLocation(QStandardPaths::GenericDataLocation)
+            + QStringLiteral("/ix1/wallpapers"),
+    };
+
+    QVariantList list;
+    QStringList seen;
+    for (const QString &dirPath : dirs) {
+        const QDir dir(dirPath);
+        if (!dir.exists()) {
+            continue;
+        }
+        const auto files = dir.entryInfoList({ QStringLiteral("*.png"), QStringLiteral("*.jpg"),
+                                               QStringLiteral("*.jpeg") },
+                                             QDir::Files, QDir::Name);
+        for (const QFileInfo &fi : files) {
+            const QString path = fi.canonicalFilePath();
+            if (seen.contains(path)) {
+                continue;
+            }
+            seen << path;
+            list << QVariantMap{
+                { QStringLiteral("name"), fi.completeBaseName() },
+                { QStringLiteral("path"), path },
+            };
+        }
+    }
+    m_wallpapers = list;
+    emit wallpapersChanged();
+}
+
+void SettingsBackend::setWallpaper(const QString &path)
+{
+    if (path == m_wallpaper) {
+        return;
+    }
+    m_wallpaper = path;
+    saveConfig();
+    emit wallpaperChanged();
+}
+
+// ---- Display ---------------------------------------------------------------
+// kscreen-doctor -j prints the outputs' JSON; mode ids and names come from it,
+// applies are `kscreen-doctor output.<name>.<verb>.<value>`.
+
+void SettingsBackend::refreshDisplays()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    QProcess p;
+    p.start(QStringLiteral("kscreen-doctor"), { QStringLiteral("-j") });
+    QVariantList list;
+    if (p.waitForFinished(5000) && p.exitCode() == 0) {
+        const QJsonDocument doc = QJsonDocument::fromJson(p.readAllStandardOutput());
+        const QJsonArray outs = doc.object().value(QStringLiteral("outputs")).toArray();
+        for (const QJsonValue &v : outs) {
+            const QJsonObject out = v.toObject();
+            const QString name = out.value(QStringLiteral("name")).toString();
+            const int currentId = out.value(QStringLiteral("currentModeId")).toVariant().toInt();
+            QStringList modes;
+            QString current;
+            const QJsonArray modeArr = out.value(QStringLiteral("modes")).toArray();
+            for (const QJsonValue &mv : modeArr) {
+                const QJsonObject mode = mv.toObject();
+                const QString label = mode.value(QStringLiteral("name")).toString();
+                if (!label.isEmpty()) {
+                    modes << label;
+                    if (mode.value(QStringLiteral("id")).toVariant().toInt() == currentId) {
+                        current = label;
+                    }
+                }
+            }
+            if (name.isEmpty() || modes.isEmpty()) {
+                continue;
+            }
+            list << QVariantMap{
+                { QStringLiteral("name"), name },
+                { QStringLiteral("current"), current },
+                { QStringLiteral("modes"), modes },
+                { QStringLiteral("scale"), out.value(QStringLiteral("scale")).toDouble(1.0) },
+            };
+        }
+    }
+    if (list != m_displays) {
+        m_displays = list;
+        emit displaysChanged();
+    }
+}
+
+void SettingsBackend::setDisplayMode(const QString &name, const QString &mode)
+{
+    QProcess::startDetached(QStringLiteral("kscreen-doctor"),
+                            { QStringLiteral("output.%1.mode.%2").arg(name, mode) });
+    QTimer::singleShot(800, this, &SettingsBackend::refreshDisplays);
+}
+
+void SettingsBackend::setDisplayScale(const QString &name, double scale)
+{
+    QProcess::startDetached(QStringLiteral("kscreen-doctor"),
+                            { QStringLiteral("output.%1.scale.%2").arg(name).arg(scale) });
+    QTimer::singleShot(800, this, &SettingsBackend::refreshDisplays);
+}
+
+// ---- Power -----------------------------------------------------------------
+
+void SettingsBackend::refreshPower()
+{
+    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        return;
+    }
+    const QDir dir(QStringLiteral("/sys/class/backlight"));
+    const QStringList devs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    if (!devs.isEmpty()) {
+        const QString dev = devs.constFirst();
+        QFile bf(dir.filePath(dev + QStringLiteral("/brightness")));
+        QFile mf(dir.filePath(dev + QStringLiteral("/max_brightness")));
+        if (bf.open(QIODevice::ReadOnly) && mf.open(QIODevice::ReadOnly)) {
+            const int cur = QString::fromUtf8(bf.readAll()).trimmed().toInt();
+            const int max = QString::fromUtf8(mf.readAll()).trimmed().toInt();
+            if (max > 0) {
+                const int pct = qBound(0, qRound(cur * 100.0 / max), 100);
+                if (pct != m_brightness) {
+                    m_brightness = pct;
+                    emit brightnessChanged();
+                }
+            }
+        }
+    }
+
+    const QDir ps(QStringLiteral("/sys/class/power_supply"));
+    const QStringList bats = ps.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    for (const QString &b : bats) {
+        QFile cf(ps.filePath(b + QStringLiteral("/capacity")));
+        if (cf.open(QIODevice::ReadOnly)) {
+            const int pct = QString::fromUtf8(cf.readAll()).trimmed().toInt();
+            QFile sf(ps.filePath(b + QStringLiteral("/status")));
+            const QString status = sf.open(QIODevice::ReadOnly)
+                ? QString::fromUtf8(sf.readAll()).trimmed() : QString();
+            // Time estimate from energy_* (µWh/µW) or charge_* (µAh/µA).
+            auto readNum = [&](const char *name) -> double {
+                QFile f(ps.filePath(b + QLatin1Char('/') + QLatin1String(name)));
+                return f.open(QIODevice::ReadOnly)
+                    ? QString::fromUtf8(f.readAll()).trimmed().toDouble() : -1.0;
+            };
+            double now = readNum("energy_now"), full = readNum("energy_full"),
+                   rate = readNum("power_now");
+            if (now < 0 || rate < 0) {
+                now = readNum("charge_now");
+                full = readNum("charge_full");
+                rate = readNum("current_now");
+            }
+            int minutes = -1;
+            if (rate > 0 && now >= 0) {
+                if (status == QLatin1String("Discharging")) {
+                    minutes = qRound(now / rate * 60.0);
+                } else if (status == QLatin1String("Charging") && full > now) {
+                    minutes = qRound((full - now) / rate * 60.0);
+                }
+            }
+            if ((pct >= 0 && pct != m_batteryPct) || status != m_batteryStatus
+                || minutes != m_batteryMinutes) {
+                m_batteryPct = pct;
+                m_batteryStatus = status;
+                m_batteryMinutes = minutes;
+                emit batteryPctChanged();
+            }
+            break;
+        }
+    }
+}
+
+void SettingsBackend::setBrightness(int percent)
+{
+    const QDir dir(QStringLiteral("/sys/class/backlight"));
+    const QStringList devs = dir.entryList(QDir::Dirs | QDir::NoDotAndDotDot);
+    if (devs.isEmpty()) {
+        return;
+    }
+    QFile mf(dir.filePath(devs.constFirst() + QStringLiteral("/max_brightness")));
+    if (!mf.open(QIODevice::ReadOnly)) {
+        return;
+    }
+    const int max = QString::fromUtf8(mf.readAll()).trimmed().toInt();
+    const int raw = qBound(0, qRound(qBound(0, percent, 100) * max / 100.0), max);
+    QDBusMessage msg = QDBusMessage::createMethodCall(
+        QStringLiteral("org.freedesktop.login1"),
+        QStringLiteral("/org/freedesktop/login1/session/auto"),
+        QStringLiteral("org.freedesktop.login1.Session"),
+        QStringLiteral("SetBrightness"));
+    msg << QStringLiteral("backlight") << devs.constFirst() << quint32(raw);
+    QDBusConnection::systemBus().asyncCall(msg);
+    if (m_brightness != percent) {
+        m_brightness = percent;
+        emit brightnessChanged();
+    }
+}
+
+void SettingsBackend::setIdleLockMinutes(int minutes)
+{
+    if (minutes < 0 || minutes == m_idleLockMin) {
+        return;
+    }
+    m_idleLockMin = minutes;
+    saveConfig();
+    emit idleLockChanged();
+}
+
+void SettingsBackend::setIdleSuspendMinutes(int minutes)
+{
+    if (minutes < 0 || minutes == m_idleSuspendMin) {
+        return;
+    }
+    m_idleSuspendMin = minutes;
+    saveConfig();
+    emit idleSuspendChanged();
 }
 
 void SettingsBackend::setTheme(const QString &theme)
@@ -220,6 +503,9 @@ void SettingsBackend::refresh()
 {
     refreshVolume();
     refreshWifi();
+    refreshWallpapers();
+    refreshDisplays();
+    refreshPower();
 }
 
 void SettingsBackend::setUpdateStatus(const QString &status)

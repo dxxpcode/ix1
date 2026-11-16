@@ -5,8 +5,8 @@ import Ix1Settings 1.0
 
 Window {
     id: root
-    width: 780
-    height: 500
+    width: 960
+    height: 720
     visible: true
     title: "ix1 Settings"
     color: Theme.bgBase
@@ -17,90 +17,17 @@ Window {
         function onThemeChanged() { Theme.mode = backend.theme }
     }
 
-    property int currentPage: 0
+    property int currentPage: demoPage
 
     RowLayout {
         anchors.fill: parent
         spacing: 0
 
-        Rectangle {
-            Layout.preferredWidth: 190
+        Sidebar {
+            Layout.preferredWidth: 228
             Layout.fillHeight: true
-            color: Theme.surface1
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 6
-
-                Text {
-                    text: "ix1 Settings"
-                    color: Theme.textPrimary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 16
-                    font.weight: Font.DemiBold
-                    bottomPadding: 12
-                }
-
-                Repeater {
-                    model: [
-                        { name: "Appearance", glyph: "◐", tint: "#3563E9" },
-                        { name: "Sound",      glyph: "♪", tint: "#E9A23B" },
-                        { name: "Network",    glyph: "⌁", tint: "#30A46C" },
-                        { name: "Updates",    glyph: "⟳", tint: "#8B5CF6" },
-                        { name: "About",      glyph: "ⓘ", tint: "#64748B" }
-                    ]
-                    delegate: Rectangle {
-                        Layout.fillWidth: true
-                        height: 32
-                        radius: 8
-                        color: index === root.currentPage ? Theme.surface3 : "transparent"
-
-                        Row {
-                            anchors.left: parent.left
-                            anchors.leftMargin: 10
-                            anchors.verticalCenter: parent.verticalCenter
-                            spacing: 10
-
-                            Rectangle {
-                                width: 20
-                                height: 20
-                                radius: 6
-                                color: modelData.tint
-                                anchors.verticalCenter: parent.verticalCenter
-
-                                Text {
-                                    anchors.centerIn: parent
-                                    text: modelData.glyph
-                                    color: "#FFFFFF"
-                                    font.pixelSize: 12
-                                }
-                            }
-                            Text {
-                                text: modelData.name
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                                anchors.verticalCenter: parent.verticalCenter
-                            }
-                        }
-                        MouseArea {
-                            anchors.fill: parent
-                            cursorShape: Qt.PointingHandCursor
-                            onClicked: root.currentPage = index
-                        }
-                    }
-                }
-
-                Item { Layout.fillHeight: true }
-
-                Text {
-                    text: "Graphite / Porcelain"
-                    color: Theme.textSecondary
-                    font.family: Theme.fontFamily
-                    font.pixelSize: 11
-                }
-            }
+            currentPage: root.currentPage
+            onNavigate: (page) => root.currentPage = page
         }
 
         Rectangle {
@@ -109,11 +36,21 @@ Window {
             color: Theme.bgBase
 
             StackLayout {
+                id: stack
                 anchors.fill: parent
-                anchors.margins: 22
+                anchors.margins: 28
                 currentIndex: root.currentPage
+                onCurrentIndexChanged: pageIn.restart()
 
-                AppearancePage {}
+                ParallelAnimation {
+                    id: pageIn
+                    NumberAnimation { target: stack; property: "opacity"; from: 0.4; to: 1; duration: 180; easing.type: Easing.OutCubic }
+                    NumberAnimation { target: stack; property: "anchors.topMargin"; from: 34; to: 28; duration: 220; easing.type: Easing.OutCubic }
+                }
+
+                PersonalizationPage {}
+                DisplayPage {}
+                PowerPage {}
                 SoundPage {}
                 NetworkPage {}
                 UpdatesPage {}
