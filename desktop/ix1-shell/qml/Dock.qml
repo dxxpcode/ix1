@@ -13,9 +13,9 @@ Window {
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorBottom
         | LayerShellQt.Window.AnchorLeft
         | LayerShellQt.Window.AnchorRight
-    // 44px headroom for the tooltip / pin menu, the dock, 55px of floor
+    // 50px headroom for the tooltip / pin menu, the dock, 55px of floor
     // for the reflection.
-    height: 175
+    height: 181
     // Anchors size the window under the layer shell; set it explicitly so
     // offscreen (headless render) grabs show the dock too.
     width: 1920
@@ -318,32 +318,112 @@ Window {
         }
     }
 
-    // App-name tooltip above the hovered icon.
-    Rectangle {
+    // App-name tooltip above the hovered icon: a small glass label in the
+    // dock's palette, with a soft shadow and a notch pointing at the icon.
+    Item {
         id: tip
         property bool shown: false
         property Item cell: null
         readonly property bool active: shown && cell !== null && root.menuCell === null
+        readonly property color fillTop: Theme.dark
+            ? Qt.rgba(0.15, 0.20, 0.32, 0.92) : Qt.rgba(1, 1, 1, 0.94)
+        readonly property color fillBottom: Theme.dark
+            ? Qt.rgba(0.09, 0.12, 0.21, 0.94) : Qt.rgba(0.95, 0.97, 1, 0.96)
+        readonly property color rim: Theme.dark
+            ? Qt.rgba(0.75, 0.85, 1, 0.16) : Qt.rgba(0.05, 0.08, 0.16, 0.10)
+        readonly property real notchX: cell
+            ? Math.max(14, Math.min(width - 14, root.cellCenterX(cell) - x)) : width / 2
+
         visible: opacity > 0
         opacity: active ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 120 } }
-        width: tipText.implicitWidth + 24
-        height: 26
-        radius: 13
+        scale: active ? 1 : 0.94
+        transformOrigin: Item.Bottom
+        Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+        Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutBack; easing.overshoot: 1.2 } }
+        width: tipText.implicitWidth + 28
+        height: 30
         x: cell ? root.clampToDock(root.cellCenterX(cell) - width / 2, width) : 0
-        y: dock.y - height - 8 + (active ? 0 : 3)
-        Behavior on y { NumberAnimation { duration: 120; easing.type: Easing.OutCubic } }
-        color: Theme.dark ? Qt.rgba(0.08, 0.09, 0.12, 0.94) : Qt.rgba(1, 1, 1, 0.96)
-        border.color: Theme.hairline
-        border.width: 1
+        y: dock.y - height - 14
+
+        // Soft drop shadow (stacked, so it also renders on the software scenegraph).
+        Repeater {
+            model: 5
+            Rectangle {
+                required property int index
+                anchors.fill: label
+                anchors.leftMargin: -(index + 1)
+                anchors.rightMargin: -(index + 1)
+                anchors.topMargin: 2
+                anchors.bottomMargin: -(index + 1) * 1.6
+                radius: label.radius + index + 1
+                color: Qt.rgba(0, 0, 0.05, Theme.dark ? 0.07 : 0.022)
+            }
+        }
+
+        Rectangle {
+            id: label
+            anchors.fill: parent
+            radius: 10
+            gradient: Gradient {
+                GradientStop { position: 0.0; color: tip.fillTop }
+                GradientStop { position: 1.0; color: tip.fillBottom }
+            }
+            border.color: tip.rim
+            border.width: 1
+
+            // Lit top edge.
+            Rectangle {
+                anchors.top: parent.top
+                anchors.topMargin: 1
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 2 * parent.radius
+                height: 1
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop {
+                        position: 0.5
+                        color: Theme.dark ? Qt.rgba(0.8, 0.88, 1, 0.28) : Qt.rgba(1, 1, 1, 1)
+                    }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
+        }
+
+        // Notch pointing down at the icon; its fill overlaps the label's
+        // bottom border so the two read as one shape.
+        Shape {
+            x: tip.notchX - 6
+            y: tip.height - 1.5
+            width: 12
+            height: 7
+            preferredRendererType: Shape.CurveRenderer
+            ShapePath {
+                fillColor: tip.fillBottom
+                strokeColor: tip.rim
+                strokeWidth: 1
+                startX: 0; startY: 0
+                PathLine { x: 6; y: 6 }
+                PathLine { x: 12; y: 0 }
+            }
+            ShapePath {
+                fillColor: "transparent"
+                strokeColor: tip.fillBottom
+                strokeWidth: 2
+                startX: 1; startY: 0.5
+                PathLine { x: 11; y: 0.5 }
+            }
+        }
 
         Text {
             id: tipText
-            anchors.centerIn: parent
+            anchors.centerIn: label
+            anchors.verticalCenterOffset: -0.5
             text: tip.cell ? tip.cell.label : ""
-            color: Theme.textPrimary
+            color: Theme.dark ? Qt.rgba(0.94, 0.96, 1, 1) : Qt.rgba(0.07, 0.09, 0.14, 1)
             font.family: Theme.fontFamily
-            font.pixelSize: 12
+            font.pixelSize: 13
+            font.letterSpacing: 0.1
         }
     }
 
