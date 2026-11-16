@@ -4,17 +4,22 @@ import Qt5Compat.GraphicalEffects
 import org.kde.layershell as LayerShellQt
 import Ix1Shell 1.0
 
-// Control Center — a floating card anchored under the top bar: header,
-// 2x2 control tiles, knob sliders, output-device dropdown, labeled power
-// circles, More Settings footer. Lucide icons throughout.
+// Control Center — a floating card under the top bar: header, 2x2 toggle
+// tiles, volume/brightness panes, output device, power row, More Settings.
 Window {
     id: root
     visible: backend.quickSettingsOpen
     color: "transparent"
 
-    // Which tile's expansion is open: "wifi" | "appearance" | "" — the
-    // IX1_SHOW_NET demo env opens wifi for renders.
-    property string expandedTile: (typeof demoNet !== "undefined" && demoNet) ? "wifi" : ""
+    // Which expander is open: "wifi" | "appearance" | "". IX1_SHOW_NET
+    // opens the Wi-Fi list for renders.
+    property string expanded: (typeof demoNet !== "undefined" && demoNet) ? "wifi" : ""
+
+    function toggleExpanded(name) { expanded = expanded === name ? "" : name }
+    function openSettings() {
+        backend.launchApp("/usr/share/applications/ix1-settings.desktop")
+        backend.closeQuickSettings()
+    }
 
     LayerShellQt.Window.layer: LayerShellQt.Window.LayerOverlay
     LayerShellQt.Window.anchors: LayerShellQt.Window.AnchorTop
@@ -40,404 +45,313 @@ Window {
     Item {
         anchors.fill: parent
 
-        // Frosted backdrop — blurred wallpaper + scrim.
-        Image {
-            id: frostedWallpaper
-            anchors.fill: parent
-            source: Theme.dark ? "assets/wallpaper-graphite.png"
-                               : "assets/wallpaper-porcelain.png"
-            visible: false
-        }
-        FastBlur {
-            anchors.fill: parent
-            source: frostedWallpaper
-            radius: 48
-            opacity: 0
-            NumberAnimation on opacity { to: 1; duration: 260; running: true }
-        }
-        Rectangle {
-            anchors.fill: parent
-            color: Theme.dark ? Qt.rgba(0, 0, 0, 0.18) : Qt.rgba(1, 1, 1, 0.22)
-        }
-
         // Click outside the card dismisses.
         MouseArea {
             anchors.fill: parent
             onClicked: backend.closeQuickSettings()
         }
 
-        DropShadow {
-            anchors.fill: card
-            source: card
-            z: -1
-            radius: 26
-            samples: 33
-            verticalOffset: 10
-            color: Qt.rgba(0, 0, 0, Theme.dark ? 0.5 : 0.28)
-        }
-
-        // Notch pointing up at the panel tray.
-        Canvas {
-            id: notch
-            anchors.bottom: card.top
-            anchors.right: card.right
-            anchors.rightMargin: 148
-            width: 22
-            height: 10
-            onPaint: {
-                const ctx = getContext("2d")
-                ctx.reset()
-                ctx.fillStyle = Theme.glass
-                ctx.beginPath()
-                ctx.moveTo(0, height)
-                ctx.lineTo(width / 2, 0)
-                ctx.lineTo(width, height)
-                ctx.closePath()
-                ctx.fill()
-            }
-            Connections {
-                target: Theme
-                function onModeChanged() { notch.requestPaint() }
-            }
-        }
-
-        Rectangle {
-            id: card
+        Item {
+            id: shell
             anchors.top: parent.top
-            anchors.topMargin: 44
+            anchors.topMargin: 42
             anchors.right: parent.right
-            anchors.rightMargin: 12
-            width: 392
-            height: Math.min(flick.contentHeight + 32, parent.height - 60)
-            radius: 18
-            color: Theme.glass
-            clip: true
+            anchors.rightMargin: 10
+            width: 400
+            height: Math.min(content.implicitHeight, parent.height - 60)
+            opacity: 0
 
-            // Lit inner top edge.
-            Rectangle {
-                anchors.top: parent.top
-                anchors.left: parent.left
-                anchors.right: parent.right
-                anchors.leftMargin: Theme.radius
-                anchors.rightMargin: Theme.radius
-                height: 1
-                gradient: Gradient {
-                    orientation: Gradient.Horizontal
-                    GradientStop { position: 0.0; color: "transparent" }
-                    GradientStop { position: 0.5; color: Qt.rgba(1, 1, 1, Theme.dark ? 0.16 : 0.7) }
-                    GradientStop { position: 1.0; color: "transparent" }
-                }
-            }
-
-            Component.onCompleted: { enterAnim.restart(); enterStagger.restart() }
-
+            Component.onCompleted: enter.restart()
             ParallelAnimation {
-                id: enterAnim
-                NumberAnimation { target: card; property: "opacity"; from: 0; to: 1; duration: 150 }
-                NumberAnimation { target: card; property: "anchors.topMargin"; from: 54; to: 44; duration: 200; easing.type: Easing.OutCubic }
+                id: enter
+                NumberAnimation { target: shell; property: "opacity"; from: 0; to: 1; duration: 160 }
+                NumberAnimation { target: shell; property: "anchors.topMargin"; from: 48; to: 42; duration: 200; easing.type: Easing.OutCubic }
             }
-            SequentialAnimation {
-                id: enterStagger
-                ParallelAnimation {
-                    NumberAnimation { target: headerRow; property: "opacity"; from: 0; to: 1; duration: 160 }
-                    NumberAnimation { target: tileGrid; property: "opacity"; from: 0; to: 1; duration: 160 }
+
+            DropShadow {
+                anchors.fill: card
+                source: card
+                radius: 28
+                samples: 41
+                verticalOffset: 12
+                color: Qt.rgba(0, 0, 0, CcStyle.dark ? 0.45 : 0.16)
+            }
+
+            Rectangle {
+                id: card
+                anchors.fill: parent
+                radius: CcStyle.radiusCard
+                color: CcStyle.card
+                border.width: 1
+                border.color: CcStyle.cardBorder
+            }
+
+            // Notch pointing up at the panel tray; covers the card's top border.
+            Canvas {
+                id: notch
+                anchors.bottom: card.top
+                anchors.bottomMargin: -1
+                anchors.right: card.right
+                anchors.rightMargin: 29
+                width: 26
+                height: 10
+                onPaint: {
+                    const ctx = getContext("2d")
+                    ctx.reset()
+                    ctx.fillStyle = CcStyle.card
+                    ctx.beginPath()
+                    ctx.moveTo(0, height)
+                    ctx.lineTo(width / 2 - 2, 1.2)
+                    ctx.quadraticCurveTo(width / 2, 0, width / 2 + 2, 1.2)
+                    ctx.lineTo(width, height)
+                    ctx.closePath()
+                    ctx.fill()
+                    ctx.strokeStyle = CcStyle.cardBorder
+                    ctx.lineWidth = 1
+                    ctx.beginPath()
+                    ctx.moveTo(0, height - 0.5)
+                    ctx.lineTo(width / 2 - 2, 1.2)
+                    ctx.quadraticCurveTo(width / 2, 0, width / 2 + 2, 1.2)
+                    ctx.lineTo(width, height - 0.5)
+                    ctx.stroke()
                 }
-                PauseAnimation { duration: 45 }
-                ParallelAnimation {
-                    NumberAnimation { target: sliderCol; property: "opacity"; from: 0; to: 1; duration: 180 }
-                    NumberAnimation { target: outputCol; property: "opacity"; from: 0; to: 1; duration: 180 }
-                }
-                PauseAnimation { duration: 45 }
-                ParallelAnimation {
-                    NumberAnimation { target: powerRow; property: "opacity"; from: 0; to: 1; duration: 180 }
-                    NumberAnimation { target: moreRow; property: "opacity"; from: 0; to: 1; duration: 160 }
+                Connections {
+                    target: Theme
+                    function onModeChanged() { notch.requestPaint() }
                 }
             }
 
             Flickable {
-                id: flick
                 anchors.fill: parent
-                anchors.margins: 16
-                contentHeight: col.childrenRect.height
+                contentHeight: content.implicitHeight
+                interactive: contentHeight > height
                 clip: true
-                flickableDirection: Flickable.VerticalFlick
+                boundsBehavior: Flickable.StopAtBounds
 
                 Column {
-                    id: col
-                    width: parent.width
-                    spacing: 14
+                    id: content
+                    x: 16
+                    width: parent.width - 32
+                    topPadding: 21
 
-                    // ---- Header -------------------------------------------
+                    // ---- Header --------------------------------------------
                     Item {
-                        id: headerRow
-                        opacity: 0
                         width: parent.width
-                        height: 46
+                        height: 45
 
                         Image {
                             id: logo
-                            anchors.left: parent.left
+                            x: 8
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 42
-                            height: 42
-                            source: Theme.dark ? "assets/logo-dark.png" : "assets/logo-light.png"
+                            width: 38
+                            height: 38
+                            source: CcStyle.dark ? "assets/logo-dark.png" : "assets/logo-light.png"
+                            sourceSize: Qt.size(152, 152)
                             fillMode: Image.PreserveAspectFit
+                            smooth: true
                         }
                         Column {
-                            anchors.left: logo.right
-                            anchors.leftMargin: 12
+                            x: 65
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: 1
+                            spacing: 0
                             Text {
                                 text: "Control Center"
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 18
-                                font.weight: Font.DemiBold
+                                color: CcStyle.text
+                                font.family: CcStyle.font
+                                font.pixelSize: 17
+                                font.weight: Font.Medium
                             }
                             Text {
                                 text: "Quick settings and controls"
-                                color: Theme.textSecondary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 12
+                                color: CcStyle.textMuted
+                                font.family: CcStyle.font
+                                font.pixelSize: 13
                             }
                         }
-                        GlyphButton {
+                        CcCircleButton {
                             anchors.right: parent.right
                             anchors.verticalCenter: parent.verticalCenter
-                            width: 40
-                            height: 40
-                            glyph: "settings"
-                            onClicked: {
-                                backend.launchApp("/usr/share/applications/ix1-settings.desktop")
-                                backend.closeQuickSettings()
-                            }
+                            diameter: 45
+                            icon: "gear"
+                            iconSize: 26
+                            onClicked: root.openSettings()
                         }
                     }
 
-                    // ---- Toggle tiles --------------------------------------
+                    Item { width: 1; height: 19 }
+
+                    // ---- Tiles ---------------------------------------------
                     Grid {
-                        id: tileGrid
-                        opacity: 0
+                        id: tiles
                         width: parent.width
                         columns: 2
-                        rowSpacing: 10
-                        columnSpacing: 10
+                        columnSpacing: 11
+                        rowSpacing: 13
+                        readonly property real cell: (width - columnSpacing) / 2
 
-                        SheetTile {
-                            width: (tileGrid.width - 10) / 2
-                            height: 76
-                            glyph: "wifi"
+                        CcTile {
+                            width: tiles.cell
+                            icon: "wifi"
+                            iconSize: 42
+                            iconWeight: 2.3
                             title: "Wi-Fi"
                             subtitle: !backend.wifiEnabled ? "Off"
                                       : (backend.wifiSsid ? "Connected" : "On")
                             active: backend.wifiEnabled
                             flashing: backend.qsSection === "wifi"
-                            expanded: root.expandedTile === "wifi"
                             onToggled: backend.toggleWifi()
-                            onChevronClicked: root.expandedTile =
-                                root.expandedTile === "wifi" ? "" : "wifi"
+                            onChevronClicked: root.toggleExpanded("wifi")
                         }
-                        SheetTile {
-                            width: (tileGrid.width - 10) / 2
-                            height: 76
-                            glyph: "bluetooth"
+                        CcTile {
+                            width: tiles.cell
+                            icon: "bluetooth"
                             title: "Bluetooth"
                             subtitle: backend.bluetoothEnabled ? "On" : "Off"
-                            active: backend.bluetoothEnabled
-                            chevron: false
+                            active: false
                             onToggled: backend.toggleBluetooth()
+                            onChevronClicked: root.openSettings()
                         }
-                        SheetTile {
-                            width: (tileGrid.width - 10) / 2
-                            height: 76
-                            glyph: "moon"
+                        CcTile {
+                            width: tiles.cell
+                            icon: "moon"
                             title: "Focus"
                             subtitle: backend.dnd ? "On" : "Off"
                             active: backend.dnd
-                            chevron: false
                             onToggled: backend.setDnd(!backend.dnd)
+                            onChevronClicked: root.openSettings()
                         }
-                        SheetTile {
-                            width: (tileGrid.width - 10) / 2
-                            height: 76
-                            glyph: "sun-medium"
+                        CcTile {
+                            width: tiles.cell
+                            icon: "sun"
                             title: "Appearance"
                             subtitle: backend.theme === "graphite" ? "Dark" : "Light"
-                            expanded: root.expandedTile === "appearance"
                             onToggled: backend.toggleTheme()
-                            onChevronClicked: root.expandedTile =
-                                root.expandedTile === "appearance" ? "" : "appearance"
+                            onChevronClicked: root.toggleExpanded("appearance")
                         }
                     }
 
-                    // ---- Wi-Fi networks (expands under the grid) -----------
-                    SheetSection {
+                    // ---- Wi-Fi networks ------------------------------------
+                    Item {
                         width: parent.width
-                        label: ""
-                        height: root.expandedTile === "wifi" ? implicitHeight : 0
-                        clip: true
-                        visible: root.expandedTile === "wifi" || height > 0
-                        Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+                        height: wifiList.height > 0 ? wifiList.height + 13 : 0
+                        CcExpander {
+                            id: wifiList
+                            y: 13
+                            open: root.expanded === "wifi"
 
-                        ListView {
-                            width: parent.width
-                            height: Math.min(contentHeight, 180)
-                            model: backend.wifiNetworks
-                            interactive: contentHeight > height
-                            clip: true
-                            spacing: 2
-
-                            delegate: SwitchRow {
-                                required property var modelData
-                                width: ListView.view.width
-                                label: modelData.ssid
-                                glyph: "wifi"
-                                glyphStrength: modelData.signal
-                                trailing: modelData.inUse ? "pill"
-                                        : (modelData.secure ? "lock" : "")
-                                needsPassword: modelData.secure && !modelData.inUse
-                                onActivated: backend.connectWifi(modelData.ssid, "")
-                                onJoined: function(pw) { backend.connectWifi(modelData.ssid, pw) }
-                            }
-                        }
-                        Text {
-                            visible: backend.wifiNetworks.length === 0
-                            text: backend.wifiEnabled ? "No networks found" : "Wi-Fi is off"
-                            color: Theme.textSecondary
-                            font.family: Theme.fontFamily
-                            font.pixelSize: 11
-                            topPadding: 4
-                            bottomPadding: 4
-                        }
-                    }
-
-                    // ---- Appearance expander --------------------------------
-                    SheetSection {
-                        width: parent.width
-                        height: root.expandedTile === "appearance" ? implicitHeight : 0
-                        clip: true
-                        visible: root.expandedTile === "appearance" || height > 0
-                        Behavior on height { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
-
-                        SegmentedControl {
-                            width: parent.width
-                            height: 30
-                            model: ["Graphite", "Porcelain"]
-                            currentIndex: backend.theme === "graphite" ? 0 : 1
-                            onActivated: function(i) {
-                                if ((i === 0) !== (backend.theme === "graphite")) {
-                                    backend.toggleTheme()
+                            Repeater {
+                                model: backend.wifiNetworks
+                                delegate: CcListRow {
+                                    required property var modelData
+                                    width: parent.width
+                                    icon: "wifi"
+                                    iconOpacity: modelData.inUse ? 1 : 0.4 + 0.6 * modelData.signal / 100
+                                    label: modelData.ssid
+                                    trailing: modelData.inUse ? "connected"
+                                            : (modelData.secure ? "lock" : "")
+                                    needsPassword: modelData.secure && !modelData.inUse
+                                    onActivated: backend.connectWifi(modelData.ssid, "")
+                                    onJoined: function(pw) { backend.connectWifi(modelData.ssid, pw) }
                                 }
                             }
-                        }
-                    }
-
-                    // ---- Sliders -------------------------------------------
-                    Column {
-                        id: sliderCol
-                        opacity: 0
-                        width: parent.width
-                        spacing: 10
-
-                        KnobSlider {
-                            width: parent.width
-                            height: 52
-                            glyph: "volume-2"
-                            min: 0
-                            max: 150
-                            value: backend.volume
-                            available: backend.volume >= 0
-                            readout: backend.volume >= 0 ? Math.round(backend.volume) + "%" : "—"
-                            onMoved: function(v) { backend.setVolume(v) }
-                        }
-                        KnobSlider {
-                            width: parent.width
-                            height: 52
-                            glyph: "sun"
-                            min: 0
-                            max: 100
-                            value: backend.brightness
-                            available: backend.brightness >= 0
-                            readout: backend.brightness >= 0 ? Math.round(backend.brightness) + "%" : "N/A"
-                            onMoved: function(v) { backend.setBrightness(v) }
-                        }
-                    }
-
-                    // ---- Output device --------------------------------------
-                    Column {
-                        id: outputCol
-                        opacity: 0
-                        width: parent.width
-                        spacing: 8
-
-                        Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: Theme.hairline
-                        }
-                        Row {
-                            height: 24
-                            spacing: 8
-                            Glyph {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 15
-                                height: 15
-                                name: "headphones"
-                                color: Theme.textSecondary
-                            }
                             Text {
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "Output Device"
-                                color: Theme.textSecondary
-                                font.family: Theme.fontFamily
+                                visible: backend.wifiNetworks.length === 0
+                                x: 10
+                                height: 38
+                                verticalAlignment: Text.AlignVCenter
+                                text: backend.wifiEnabled ? "No networks found" : "Wi-Fi is off"
+                                color: CcStyle.textMuted
+                                font.family: CcStyle.font
                                 font.pixelSize: 12
                             }
                         }
-                        DropdownPill {
-                            width: parent.width
-                            glyph: "lock"
-                            text: {
-                                for (const d of backend.outputDevices) {
-                                    if (d.active) return d.name
-                                }
-                                return backend.outputDevices.length
-                                        ? backend.outputDevices[0].name : "Speakers"
-                            }
-                            model: backend.outputDevices
-                            onSelected: function(item) { backend.setOutputDevice(item.id) }
-                        }
                     }
 
-                    // ---- Power ----------------------------------------------
-                    Column {
+                    // ---- Appearance ----------------------------------------
+                    Item {
                         width: parent.width
-                        spacing: 6
-
-                        Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: Theme.hairline
-                        }
-                        Row {
-                            id: powerRow
-                            opacity: 0
-                            width: parent.width
-                            height: 84
-                            topPadding: 8
+                        height: themeList.height > 0 ? themeList.height + 13 : 0
+                        CcExpander {
+                            id: themeList
+                            y: 13
+                            open: root.expanded === "appearance"
 
                             Repeater {
                                 model: [
-                                    { "glyph": "lock", "label": "Lock", "action": "lock" },
-                                    { "glyph": "moon", "label": "Suspend", "action": "suspend" },
-                                    { "glyph": "refresh-cw", "label": "Restart", "action": "reboot" },
-                                    { "glyph": "power", "label": "Power Off", "action": "poweroff" },
+                                    { "id": "graphite", "label": "Dark", "icon": "moon" },
+                                    { "id": "porcelain", "label": "Light", "icon": "sun" },
                                 ]
-                                delegate: PowerCircle {
+                                delegate: CcListRow {
                                     required property var modelData
-                                    width: parent.width / 4
-                                    height: 84
-                                    glyph: modelData.glyph
+                                    width: parent.width
+                                    icon: modelData.icon
+                                    label: modelData.label
+                                    trailing: backend.theme === modelData.id ? "check" : ""
+                                    onActivated: {
+                                        if (backend.theme !== modelData.id) {
+                                            backend.toggleTheme()
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    Item { width: 1; height: 14 }
+
+                    // ---- Sliders -------------------------------------------
+                    CcSlider {
+                        width: parent.width
+                        icon: backend.volume === 0 ? "volume-off" : "volume"
+                        min: 0
+                        max: 150
+                        value: backend.volume
+                        available: backend.volume >= 0
+                        onMoved: function(v) { backend.setVolume(v) }
+                    }
+                    Item { width: 1; height: 8 }
+                    CcSlider {
+                        width: parent.width
+                        icon: "brightness"
+                        min: 0
+                        max: 100
+                        value: backend.brightness
+                        available: backend.brightness >= 0
+                        onMoved: function(v) { backend.setBrightness(v) }
+                    }
+
+                    Item { width: 1; height: 14 }
+                    Rectangle { width: parent.width; height: 1; color: CcStyle.divider }
+                    Item { width: 1; height: 15 }
+
+                    // ---- Output device -------------------------------------
+                    CcDevicePicker {
+                        width: parent.width
+                        model: backend.outputDevices
+                        onSelected: function(item) { backend.setOutputDevice(item.id) }
+                    }
+
+                    Item { width: 1; height: 19 }
+
+                    // ---- Power ---------------------------------------------
+                    Row {
+                        width: parent.width
+                        Repeater {
+                            model: [
+                                { "icon": "lock-fill", "label": "Lock", "action": "lock" },
+                                { "icon": "moon", "label": "Suspend", "action": "suspend" },
+                                { "icon": "restart", "label": "Restart", "action": "reboot" },
+                                { "icon": "power", "label": "Power Off", "action": "poweroff" },
+                            ]
+                            delegate: Item {
+                                required property var modelData
+                                width: parent.width / 4
+                                height: power.implicitHeight
+                                CcCircleButton {
+                                    id: power
+                                    anchors.horizontalCenter: parent.horizontalCenter
+                                    width: parent.width
+                                    icon: modelData.icon
                                     label: modelData.label
                                     onClicked: {
                                         if (modelData.action === "lock") {
@@ -451,58 +365,53 @@ Window {
                         }
                     }
 
-                    // ---- More Settings --------------------------------------
-                    Column {
+                    Item { width: 1; height: 13 }
+                    Rectangle { width: parent.width; height: 1; color: CcStyle.divider }
+
+                    // ---- More Settings -------------------------------------
+                    Item {
                         width: parent.width
-                        spacing: 0
+                        height: 49
 
                         Rectangle {
-                            width: parent.width
-                            height: 1
-                            color: Theme.hairline
+                            anchors.fill: parent
+                            anchors.topMargin: 4
+                            anchors.bottomMargin: 4
+                            radius: 10
+                            color: moreArea.containsMouse ? CcStyle.rowHover : "transparent"
                         }
-                        Item {
-                            id: moreRow
-                            opacity: 0
-                            width: parent.width
-                            height: 44
-
-                            Glyph {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 17
-                                height: 17
-                                name: "sliders-horizontal"
-                                color: Theme.textSecondary
-                            }
-                            Text {
-                                anchors.left: parent.left
-                                anchors.leftMargin: 40
-                                anchors.verticalCenter: parent.verticalCenter
-                                text: "More Settings"
-                                color: Theme.textPrimary
-                                font.family: Theme.fontFamily
-                                font.pixelSize: 13
-                            }
-                            Glyph {
-                                anchors.right: parent.right
-                                anchors.rightMargin: 10
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 15
-                                height: 15
-                                name: "chevron-right"
-                                color: Theme.textSecondary
-                            }
-                            MouseArea {
-                                anchors.fill: parent
-                                hoverEnabled: true
-                                cursorShape: Qt.PointingHandCursor
-                                onClicked: {
-                                    backend.launchApp("/usr/share/applications/ix1-settings.desktop")
-                                    backend.closeQuickSettings()
-                                }
-                            }
+                        CcIcon {
+                            x: 10
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 21
+                            height: 21
+                            name: "sliders"
+                            weight: 1.7
+                            color: CcStyle.text
+                        }
+                        Text {
+                            x: 46
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: "More Settings"
+                            color: CcStyle.text
+                            font.family: CcStyle.font
+                            font.pixelSize: 12
+                        }
+                        CcIcon {
+                            anchors.right: parent.right
+                            anchors.rightMargin: 6
+                            anchors.verticalCenter: parent.verticalCenter
+                            width: 17
+                            height: 17
+                            name: "chevron-right"
+                            color: CcStyle.text
+                        }
+                        MouseArea {
+                            id: moreArea
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
+                            onClicked: root.openSettings()
                         }
                     }
                 }
