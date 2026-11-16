@@ -20,6 +20,9 @@ int main(int argc, char *argv[])
     engine.rootContext()->setContextProperty(
         QStringLiteral("demoPage"),
         qEnvironmentVariable("IX1_PAGE").toInt());
+    // Headless-render flag: opens the first select's popover.
+    engine.rootContext()->setContextProperty(
+        QStringLiteral("demoPopup"), qEnvironmentVariableIsSet("IX1_SHOW_POPUP"));
     QObject::connect(&engine, &QQmlApplicationEngine::objectCreationFailed,
                      &app, []() { QCoreApplication::exit(2); }, Qt::QueuedConnection);
     engine.addImportPath(QStringLiteral("qrc:/"));

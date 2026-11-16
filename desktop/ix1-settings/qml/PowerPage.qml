@@ -1,133 +1,154 @@
 import QtQuick
 import QtQuick.Layouts
-import QtQuick.Controls
 import Ix1Settings 1.0
 
-Item {
+Flickable {
+    id: page
+    contentHeight: body.implicitHeight
+    boundsBehavior: Flickable.StopAtBounds
+    clip: true
+
+    readonly property bool charging: backend.batteryStatus === "Charging"
+    readonly property bool full: backend.batteryStatus === "Full"
+    readonly property bool low: backend.batteryPct >= 0 && backend.batteryPct <= 20 && !charging
+    readonly property var lockMins: [0, 1, 2, 5, 10, 15, 30]
+    readonly property var suspendMins: [0, 10, 20, 30, 45, 60]
+    function minutesLabel(m) { return m === 0 ? "Never" : m === 1 ? "1 minute" : m + " minutes" }
+
     ColumnLayout {
-        anchors.fill: parent
-        spacing: 16
+        id: body
+        width: page.width
+        spacing: 14
 
-        Text {
-            text: "Power"
-            color: Theme.textPrimary
-            font.family: Theme.fontFamily
-            font.pixelSize: 20
-            font.weight: Font.DemiBold
+        PageHeader {
+            title: "Power"
+            subtitle: "Battery, brightness and what happens when you step away."
         }
 
-        Text {
-            text: "Brightness — " + (backend.brightness < 0 ? "n/a" : backend.brightness + "%")
-            color: Theme.textSecondary
-            font.family: Theme.fontFamily
-            font.pixelSize: 13
-        }
-
+        // Battery readout.
         Rectangle {
-            Layout.fillWidth: true
-            height: 44
-            radius: Theme.radius
-            color: Theme.surface1
-            border.color: Theme.hairline
-            border.width: 1
-
-            RowLayout {
-                anchors.fill: parent
-                anchors.leftMargin: 14
-                anchors.rightMargin: 14
-                spacing: 12
-
-                Text { text: "☀"; color: Theme.textSecondary; font.pixelSize: 15 }
-                Slider {
-                    Layout.fillWidth: true
-                    from: 0
-                    to: 100
-                    value: backend.brightness < 0 ? 0 : backend.brightness
-                    onMoved: backend.setBrightness(Math.round(value))
-                }
-                Text { text: "☀"; color: Theme.textSecondary; font.pixelSize: 17 }
-            }
-        }
-
-        Text {
-            text: "Idle"
-            color: Theme.textSecondary
-            font.family: Theme.fontFamily
-            font.pixelSize: 13
-        }
-
-        Rectangle {
-            Layout.fillWidth: true
-            height: 100
-            radius: Theme.radius
-            color: Theme.surface1
-            border.color: Theme.hairline
-            border.width: 1
-
-            ColumnLayout {
-                anchors.fill: parent
-                anchors.margins: 14
-                spacing: 10
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-                    Text {
-                        text: "Lock screen after"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                        Layout.fillWidth: true
-                    }
-                    ComboBox {
-                        Layout.preferredWidth: 160
-                        model: ["Never", "1 minute", "2 minutes", "5 minutes",
-                                "10 minutes", "15 minutes", "30 minutes"]
-                        property var mins: [0, 1, 2, 5, 10, 15, 30]
-                        Component.onCompleted: currentIndex = mins.indexOf(backend.idleLockMinutes)
-                        onActivated: backend.setIdleLockMinutes(mins[currentIndex])
-                    }
-                }
-
-                RowLayout {
-                    Layout.fillWidth: true
-                    spacing: 10
-                    Text {
-                        text: "Suspend after"
-                        color: Theme.textPrimary
-                        font.family: Theme.fontFamily
-                        font.pixelSize: 13
-                        Layout.fillWidth: true
-                    }
-                    ComboBox {
-                        Layout.preferredWidth: 160
-                        model: ["Never", "10 minutes", "20 minutes", "30 minutes",
-                                "45 minutes", "60 minutes"]
-                        property var mins: [0, 10, 20, 30, 45, 60]
-                        Component.onCompleted: currentIndex = mins.indexOf(backend.idleSuspendMinutes)
-                        onActivated: backend.setIdleSuspendMinutes(mins[currentIndex])
-                    }
-                }
-            }
-        }
-
-        Text {
             visible: backend.batteryPct >= 0
-            text: "Battery — " + backend.batteryPct + "%"
-            color: Theme.textSecondary
-            font.family: Theme.fontFamily
-            font.pixelSize: 13
-        }
-
-        Text {
-            text: "Brightness applies through logind. Lock and suspend timers are handled by the shell's idle watcher."
-            color: Theme.textSecondary
-            font.family: Theme.fontFamily
-            font.pixelSize: 12
             Layout.fillWidth: true
-            wrapMode: Text.Wrap
+            Layout.preferredHeight: 112
+            radius: 14
+            color: Theme.surface1
+            border.width: 1
+            border.color: Theme.hairline
+
+            Item {
+                id: cell
+                anchors.left: parent.left
+                anchors.leftMargin: 28
+                anchors.verticalCenter: parent.verticalCenter
+                width: 76
+                height: 36
+                Rectangle {
+                    id: shell
+                    width: 70
+                    height: 36
+                    radius: 9
+                    color: "transparent"
+                    border.width: 2
+                    border.color: Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.35)
+                    Rectangle {
+                        x: 4
+                        y: 4
+                        height: parent.height - 8
+                        width: Math.max(6, (parent.width - 8) * backend.batteryPct / 100)
+                        radius: 5
+                        gradient: Gradient {
+                            orientation: Gradient.Horizontal
+                            GradientStop { position: 0.0; color: page.low ? "#E5484D" : page.charging ? "#2FB463" : Qt.darker(Theme.accent, 1.2) }
+                            GradientStop { position: 1.0; color: page.low ? "#FF6B6F" : page.charging ? "#46D17E" : Theme.accent }
+                        }
+                    }
+                }
+                Rectangle {
+                    anchors.left: shell.right
+                    anchors.leftMargin: 2
+                    anchors.verticalCenter: shell.verticalCenter
+                    width: 4
+                    height: 12
+                    radius: 2
+                    color: Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.35)
+                }
+            }
+
+            Column {
+                anchors.left: cell.right
+                anchors.leftMargin: 24
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: 2
+                Text {
+                    text: backend.batteryPct + "%"
+                    color: Theme.textPrimary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 30
+                    font.weight: Font.Medium
+                }
+                Text {
+                    text: page.charging ? "Charging" : page.full ? "Fully charged"
+                        : page.low ? "Low battery — plug in soon" : "On battery"
+                    color: page.low ? "#E5484D" : Theme.textSecondary
+                    font.family: Theme.fontFamily
+                    font.pixelSize: 13
+                }
+            }
         }
 
-        Item { Layout.fillHeight: true }
+        SectionLabel { text: "Screen" }
+
+        SettingsGroup {
+            SettingsRow {
+                title: "Brightness"
+                hint: backend.brightness < 0 ? "No adjustable backlight on this display" : ""
+                divider: false
+                Row {
+                    visible: backend.brightness >= 0
+                    spacing: 12
+                    IxSlider {
+                        width: 260
+                        anchors.verticalCenter: parent.verticalCenter
+                        value: Math.max(0, backend.brightness)
+                        onMoved: (v) => backend.setBrightness(Math.round(v))
+                    }
+                    Text {
+                        width: 38
+                        anchors.verticalCenter: parent.verticalCenter
+                        horizontalAlignment: Text.AlignRight
+                        text: Math.max(0, backend.brightness) + "%"
+                        color: Theme.textSecondary
+                        font.family: Theme.fontFamily
+                        font.pixelSize: 13
+                    }
+                }
+            }
+        }
+
+        SectionLabel { text: "When idle" }
+
+        SettingsGroup {
+            SettingsRow {
+                title: "Lock screen"
+                hint: "After this long without input"
+                IxSelect {
+                    buttonWidth: 150
+                    options: page.lockMins.map(page.minutesLabel)
+                    currentIndex: page.lockMins.indexOf(backend.idleLockMinutes)
+                    onActivated: (i) => backend.setIdleLockMinutes(page.lockMins[i])
+                }
+            }
+            SettingsRow {
+                title: "Suspend"
+                hint: "Sleep to save power; you'll unlock on wake"
+                divider: false
+                IxSelect {
+                    buttonWidth: 150
+                    options: page.suspendMins.map(page.minutesLabel)
+                    currentIndex: page.suspendMins.indexOf(backend.idleSuspendMinutes)
+                    onActivated: (i) => backend.setIdleSuspendMinutes(page.suspendMins[i])
+                }
+            }
+        }
     }
 }

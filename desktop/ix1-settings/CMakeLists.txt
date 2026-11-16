@@ -27,6 +27,15 @@ qt_add_qml_module(ix1-settings
         qml/PersonalizationPage.qml
         qml/DisplayPage.qml
         qml/PowerPage.qml
+        qml/ui/PageHeader.qml
+        qml/ui/SectionLabel.qml
+        qml/ui/SettingsGroup.qml
+        qml/ui/SettingsRow.qml
+        qml/ui/IxSegmented.qml
+        qml/ui/IxSelect.qml
+        qml/ui/IxSlider.qml
+        qml/ui/NavIcon.qml
+        qml/ui/Sidebar.qml
         qml/SoundPage.qml
         qml/NetworkPage.qml
         qml/UpdatesPage.qml

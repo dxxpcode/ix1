@@ -51,32 +51,20 @@ SettingsBackend::SettingsBackend(QObject *parent)
         }
     }
     if (qEnvironmentVariableIsSet("IX1_DEMO")) {
+        m_hostName = QStringLiteral("ix1-laptop");
         m_brightness = 68;
         m_batteryPct = 82;
-        m_wallpapers = {
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("graphite") },
-                         { QStringLiteral("path"), QStringLiteral("demo:graphite") } },
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("aurora") },
-                         { QStringLiteral("path"), QStringLiteral("demo:aurora") } },
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("dusk") },
-                         { QStringLiteral("path"), QStringLiteral("demo:dusk") } },
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("wave") },
-                         { QStringLiteral("path"), QStringLiteral("demo:wave") } },
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("morning") },
-                         { QStringLiteral("path"), QStringLiteral("demo:morning") } },
-            QVariantMap{ { QStringLiteral("name"), QStringLiteral("porcelain") },
-                         { QStringLiteral("path"), QStringLiteral("demo:porcelain") } },
-        };
-        m_wallpaper = QStringLiteral("demo:graphite");
+        m_wallpaper = QStringLiteral("/usr/share/ix1/wallpapers/aurora.png");
+        m_batteryStatus = QStringLiteral("Discharging");
         m_displays = {
             QVariantMap{ { QStringLiteral("name"), QStringLiteral("eDP-1") },
-                         { QStringLiteral("current"), QStringLiteral("1920x1080@60") },
-                         { QStringLiteral("modes"), QStringList{ QStringLiteral("2560x1440@60"),
-                               QStringLiteral("1920x1080@60"), QStringLiteral("1680x1050@60"),
+                         { QStringLiteral("current"), QStringLiteral("2560x1600@120") },
+                         { QStringLiteral("modes"), QStringList{ QStringLiteral("2560x1600@120"),
+                               QStringLiteral("2560x1600@60"), QStringLiteral("1920x1200@120"),
+                               QStringLiteral("1920x1200@60"), QStringLiteral("1680x1050@60"),
                                QStringLiteral("1440x900@60"), QStringLiteral("1280x800@60") } },
-                         { QStringLiteral("scale"), 1.0 } },
+                         { QStringLiteral("scale"), 1.5 } },
         };
-        emit wallpapersChanged();
         emit displaysChanged();
         emit brightnessChanged();
         emit batteryPctChanged();
@@ -175,11 +163,6 @@ void SettingsBackend::saveConfig() const
 
 void SettingsBackend::refreshWallpapers()
 {
-    // IX1_DEMO seeds fixed values for headless renders; real scans would
-    // overwrite them.
-    if (qEnvironmentVariableIsSet("IX1_DEMO")) {
-        return;
-    }
     // Shipped set first, then the user's own drops in
     // ~/.local/share/ix1/wallpapers (GenericDataLocation, not this app's
     // AppDataLocation, which would be .../ix1/ix1-settings).
@@ -320,8 +303,12 @@ void SettingsBackend::refreshPower()
         QFile cf(ps.filePath(b + QStringLiteral("/capacity")));
         if (cf.open(QIODevice::ReadOnly)) {
             const int pct = QString::fromUtf8(cf.readAll()).trimmed().toInt();
-            if (pct >= 0 && pct != m_batteryPct) {
+            QFile sf(ps.filePath(b + QStringLiteral("/status")));
+            const QString status = sf.open(QIODevice::ReadOnly)
+                ? QString::fromUtf8(sf.readAll()).trimmed() : QString();
+            if ((pct >= 0 && pct != m_batteryPct) || status != m_batteryStatus) {
                 m_batteryPct = pct;
+                m_batteryStatus = status;
                 emit batteryPctChanged();
             }
             break;
