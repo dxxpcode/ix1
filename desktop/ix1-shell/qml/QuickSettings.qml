@@ -339,19 +339,22 @@ Window {
                         height: 34
 
                         Repeater {
-                            model: ["lock", "moon", "reboot", "power"]
+                            model: [
+                                { "glyph": "lock", "action": "lock" },
+                                { "glyph": "moon", "action": "suspend" },
+                                { "glyph": "reboot", "action": "reboot" },
+                                { "glyph": "power", "action": "poweroff" },
+                            ]
                             delegate: GlyphButton {
-                                required property string modelData
+                                required property var modelData
                                 width: parent.width / 4
                                 height: 34
-                                glyph: modelData
+                                glyph: modelData.glyph
                                 onClicked: {
-                                    if (modelData === "lock") {
+                                    if (modelData.action === "lock") {
                                         backend.lock()
-                                    } else if (modelData === "moon") {
-                                        backend.powerAction("suspend")
                                     } else {
-                                        backend.powerAction(modelData)
+                                        backend.powerAction(modelData.action)
                                     }
                                 }
                             }
