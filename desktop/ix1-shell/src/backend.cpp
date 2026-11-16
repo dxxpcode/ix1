@@ -569,13 +569,13 @@ QStringList ShellBackend::parseDesktopExec(const QString &exec, const QString &n
     return tokens;
 }
 
-void ShellBackend::launchExec(const QString &exec)
+bool ShellBackend::launchExec(const QString &exec)
 {
     const QStringList tokens = parseDesktopExec(exec, QString());
     if (tokens.isEmpty()) {
-        return;
+        return false;
     }
-    QProcess::startDetached(tokens.constFirst(), tokens.mid(1));
+    return QProcess::startDetached(tokens.constFirst(), tokens.mid(1));
 }
 
 void ShellBackend::launchApp(const QString &desktopFile)
@@ -583,8 +583,9 @@ void ShellBackend::launchApp(const QString &desktopFile)
     for (int i = 0; i < m_apps.rowCount(); ++i) {
         const QModelIndex idx = m_apps.index(i, 0);
         if (m_apps.data(idx, AppModel::DesktopFileRole).toString() == desktopFile) {
-            launchExec(m_apps.data(idx, AppModel::ExecRole).toString());
-            noteLaunched(desktopFile);
+            if (launchExec(m_apps.data(idx, AppModel::ExecRole).toString())) {
+                noteLaunched(desktopFile);
+            }
             return;
         }
     }

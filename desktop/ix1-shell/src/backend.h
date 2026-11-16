@@ -111,7 +111,7 @@ public:
     QVariantList recentApps() const;
 
     Q_INVOKABLE void launchApp(const QString &desktopFile);
-    Q_INVOKABLE void launchExec(const QString &exec);
+    Q_INVOKABLE bool launchExec(const QString &exec);
     Q_INVOKABLE void setPinned(const QString &appId, bool pinned);
     Q_INVOKABLE void setVolume(int percent);
     Q_INVOKABLE void toggleWifi();
