@@ -173,7 +173,7 @@ Window {
                             anchors.verticalCenter: parent.verticalCenter
                             diameter: 45
                             icon: "gear"
-                            iconSize: 26
+                            iconSize: 28
                             onClicked: root.openSettings()
                         }
                     }

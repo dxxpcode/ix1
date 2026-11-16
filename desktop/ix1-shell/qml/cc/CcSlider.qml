@@ -26,10 +26,10 @@ Item {
     }
 
     CcIcon {
-        x: 19
+        x: 16
         anchors.verticalCenter: parent.verticalCenter
-        width: 22
-        height: 22
+        width: 26
+        height: 26
         name: root.icon
         color: CcStyle.text
         opacity: root.available ? 1 : 0.45
@@ -68,7 +68,7 @@ Item {
         Rectangle {
             id: knob
             visible: root.available
-            width: drag.pressed ? 18 : 16
+            width: drag.pressed ? 16 : 14
             height: width
             radius: width / 2
             x: root._f * track.width - width / 2

@@ -71,7 +71,7 @@ Item {
 
     Column {
         anchors.left: parent.left
-        anchors.leftMargin: 67
+        anchors.leftMargin: 63
         anchors.right: parent.right
         anchors.rightMargin: 26
         anchors.verticalCenter: parent.verticalCenter
@@ -81,8 +81,8 @@ Item {
             text: tile.title
             color: tile._fg
             font.family: CcStyle.font
-            font.pixelSize: 14
-            font.weight: Font.Medium
+            font.pixelSize: 15
+            font.weight: Font.DemiBold
             elide: Text.ElideRight
         }
         Text {
@@ -119,6 +119,7 @@ Item {
             width: 16
             height: 16
             name: "chevron-right"
+            weight: 2.2
             color: tile.active ? CcStyle.textOnAccent : CcStyle.textMuted
         }
     }

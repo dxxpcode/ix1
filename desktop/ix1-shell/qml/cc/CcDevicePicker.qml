@@ -81,6 +81,7 @@ Column {
                 width: 15
                 height: 15
                 name: "chevron-down"
+                weight: 1.8
                 color: CcStyle.textMuted
                 rotation: root.open ? 180 : 0
                 Behavior on rotation { NumberAnimation { duration: 150 } }
