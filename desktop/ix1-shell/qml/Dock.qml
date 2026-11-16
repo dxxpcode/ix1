@@ -71,10 +71,28 @@ Window {
         anchors.bottomMargin: 55
         width: dockRow.implicitWidth + 20
         height: dockRow.implicitHeight + 20
-        radius: Theme.radiusLarge
-        color: Theme.glass
-        border.color: Theme.hairline
+        radius: 22
+        // Translucent navy glass (sampled from the concept): the wallpaper
+        // shows through, lighter at the top, with a lit bottom rim.
+        gradient: Gradient {
+            GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.17, 0.26, 0.44, 0.40) : Qt.rgba(1, 1, 1, 0.58) }
+            GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.07, 0.12, 0.22, 0.52) : Qt.rgba(0.94, 0.96, 1, 0.50) }
+        }
+        border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.17) : Qt.rgba(1, 1, 1, 0.75)
         border.width: 1
+
+        Rectangle {
+            anchors.bottom: parent.bottom
+            anchors.horizontalCenter: parent.horizontalCenter
+            width: parent.width - 2 * parent.radius
+            height: 1
+            gradient: Gradient {
+                orientation: Gradient.Horizontal
+                GradientStop { position: 0.0; color: "transparent" }
+                GradientStop { position: 0.5; color: Theme.dark ? Qt.rgba(0.7, 0.8, 1, 0.32) : Qt.rgba(0.05, 0.07, 0.12, 0.10) }
+                GradientStop { position: 1.0; color: "transparent" }
+            }
+        }
 
         HoverHandler { id: dockHover }
 
