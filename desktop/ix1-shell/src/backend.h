@@ -4,6 +4,7 @@
 #include <QFileSystemWatcher>
 #include <QObject>
 #include <QStringList>
+#include <QVariantList>
 
 class NotificationServer;
 class QTimer;
@@ -54,7 +55,11 @@ class ShellBackend : public QObject
     Q_PROPERTY(int volume READ volume NOTIFY volumeChanged)
     Q_PROPERTY(bool wifiEnabled READ wifiEnabled NOTIFY wifiEnabledChanged)
     Q_PROPERTY(int wifiSignal READ wifiSignal NOTIFY wifiSignalChanged)
+    Q_PROPERTY(QString wifiSsid READ wifiSsid NOTIFY wifiSsidChanged)
+    Q_PROPERTY(QVariantList wifiNetworks READ wifiNetworks NOTIFY wifiNetworksChanged)
     Q_PROPERTY(int batteryPct READ batteryPct NOTIFY batteryPctChanged)
+    Q_PROPERTY(int brightness READ brightness NOTIFY brightnessChanged)
+    Q_PROPERTY(bool dnd READ dnd NOTIFY dndChanged)
     Q_PROPERTY(QString activeApp READ activeApp NOTIFY activeAppChanged)
     Q_PROPERTY(QStringList runningApps READ runningApps NOTIFY runningAppsChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
@@ -72,7 +77,11 @@ public:
     int volume() const { return m_volume; }
     bool wifiEnabled() const { return m_wifiEnabled; }
     int wifiSignal() const { return m_wifiSignal; }
+    QString wifiSsid() const { return m_wifiSsid; }
+    QVariantList wifiNetworks() const { return m_wifiNetworks; }
     int batteryPct() const { return m_batteryPct; }
+    int brightness() const { return m_brightness; }
+    bool dnd() const { return m_dnd; }
     QString activeApp() const { return m_activeApp; }
     QStringList runningApps() const { return m_runningApps; }
     bool launcherOpen() const { return m_launcherOpen; }
@@ -85,6 +94,10 @@ public:
     Q_INVOKABLE void launchExec(const QString &exec);
     Q_INVOKABLE void setVolume(int percent);
     Q_INVOKABLE void toggleWifi();
+    Q_INVOKABLE void connectWifi(const QString &ssid);
+    Q_INVOKABLE void toggleTheme();
+    Q_INVOKABLE void setDnd(bool on);
+    Q_INVOKABLE void setBrightness(int percent);
     Q_INVOKABLE void powerAction(const QString &action);
     Q_INVOKABLE void sendTestNotification();
     Q_INVOKABLE void dismissNotification(uint id);
@@ -109,7 +122,11 @@ signals:
     void volumeChanged();
     void wifiEnabledChanged();
     void wifiSignalChanged();
+    void wifiSsidChanged();
+    void wifiNetworksChanged();
     void batteryPctChanged();
+    void brightnessChanged();
+    void dndChanged();
     void activeAppChanged();
     void runningAppsChanged();
     void launcherOpenChanged();
@@ -132,9 +149,11 @@ private:
     void refreshVolume();
     void refreshWifi();
     void refreshBattery();
+    void refreshBrightness();
     QString appNameForId(const QString &appId) const;
     QStringList parseDesktopExec(const QString &exec, const QString &name) const;
     void loadTheme();
+    void writeSettings();
 
     AppModel m_apps;
     NotificationServer *m_notifications = nullptr;
@@ -144,7 +163,12 @@ private:
     int m_volume = -1;
     bool m_wifiEnabled = true;
     int m_wifiSignal = -1;
+    QString m_wifiSsid;
+    QVariantList m_wifiNetworks;
     int m_batteryPct = -1;
+    int m_brightness = -1;
+    QString m_brightnessDevice;
+    bool m_dnd = false;
     QString m_activeApp;
     QStringList m_runningApps;
     bool m_launcherOpen = false;

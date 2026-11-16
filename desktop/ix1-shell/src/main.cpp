@@ -43,6 +43,8 @@ int main(int argc, char *argv[])
         // Headless-render flag: opens the panel's inline volume pill.
         engine->rootContext()->setContextProperty(
             QStringLiteral("demoVol"), qEnvironmentVariableIsSet("IX1_SHOW_VOL"));
+        engine->rootContext()->setContextProperty(
+            QStringLiteral("demoNet"), qEnvironmentVariableIsSet("IX1_SHOW_NET"));
         QObject::connect(engine, &QQmlApplicationEngine::objectCreationFailed,
                          &app, [&engine, &root]() {
                              qWarning().noquote() << "ix1-shell: failed to create"
