@@ -545,44 +545,116 @@ Window {
 
         onSelectedChanged: if (selected) scroller.ensureVisible(tile)
 
+        // Hover: a faint wash only.
         Rectangle {
             anchors.centerIn: parent
             width: parent.width - 10
             height: parent.height - 8
-            radius: 16
-            color: tile.selected ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.09) : Qt.rgba(1, 1, 1, 0.85))
-                 : tileArea.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(1, 1, 1, 0.45))
-                 : "transparent"
-            border.width: tile.selected ? 1 : 0
-            border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.22) : Qt.rgba(0.2, 0.39, 0.91, 0.25)
-            Behavior on color { ColorAnimation { duration: 90 } }
+            radius: 18
+            visible: !tile.selected
+            color: tileArea.containsMouse ? (Theme.dark ? Qt.rgba(1, 1, 1, 0.04) : Qt.rgba(1, 1, 1, 0.40))
+                                          : "transparent"
+        }
+
+        // Selected: a lifted glass tile, lit from above, with the app's own
+        // colour glowing under the icon and a short accent bar.
+        Item {
+            id: plate
+            anchors.centerIn: parent
+            width: parent.width - 10
+            height: parent.height - 8
+            opacity: tile.selected ? 1 : 0
+            scale: tile.selected ? 1 : 0.96
+            Behavior on opacity { NumberAnimation { duration: 140; easing.type: Easing.OutCubic } }
+            Behavior on scale { NumberAnimation { duration: 180; easing.type: Easing.OutCubic } }
+
+            Rectangle {
+                anchors.fill: parent
+                anchors.topMargin: 3
+                anchors.margins: -1
+                radius: 19
+                color: Qt.rgba(0, 0, 0, Theme.dark ? 0.22 : 0.06)
+            }
+            Rectangle {
+                id: plateFill
+                anchors.fill: parent
+                radius: 18
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: Theme.dark ? Qt.rgba(0.62, 0.74, 1, 0.16) : Qt.rgba(1, 1, 1, 0.95) }
+                    GradientStop { position: 1.0; color: Theme.dark ? Qt.rgba(0.45, 0.58, 0.95, 0.07) : Qt.rgba(0.94, 0.96, 1, 0.85) }
+                }
+                border.width: 1
+                border.color: Theme.dark ? Qt.rgba(0.75, 0.85, 1, 0.20) : Qt.rgba(0.2, 0.39, 0.91, 0.16)
+            }
+            Rectangle {
+                anchors.top: parent.top
+                anchors.topMargin: 1
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: parent.width - 28
+                height: 1
+                gradient: Gradient {
+                    orientation: Gradient.Horizontal
+                    GradientStop { position: 0.0; color: "transparent" }
+                    GradientStop { position: 0.5; color: Theme.dark ? Qt.rgba(0.85, 0.92, 1, 0.45) : "#FFFFFF" }
+                    GradientStop { position: 1.0; color: "transparent" }
+                }
+            }
+            Shape {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: 4
+                width: 96
+                height: 80
+                preferredRendererType: Shape.CurveRenderer
+                ShapePath {
+                    strokeColor: "transparent"
+                    fillGradient: RadialGradient {
+                        centerX: 48; centerY: 42; centerRadius: 46
+                        focalX: 48; focalY: 42
+                        GradientStop { position: 0.0; color: Qt.alpha(tileIcon.tint, Theme.dark ? 0.42 : 0.22) }
+                        GradientStop { position: 1.0; color: Qt.alpha(tileIcon.tint, 0) }
+                    }
+                    PathAngleArc { centerX: 48; centerY: 42; radiusX: 46; radiusY: 38; startAngle: 0; sweepAngle: 360 }
+                }
+            }
+            Rectangle {
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: 5
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: 16
+                height: 3
+                radius: 1.5
+                color: Theme.dark ? "#74F8FD" : Theme.accent
+            }
         }
 
         AppIcon {
             id: tileIcon
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: 14
+            anchors.topMargin: tile.selected ? 11 : 14
             width: 56
             height: 56
             desktopFileName: tile.app ? tile.app.desktopFile : ""
             appTitle: tile.app ? tile.app.name : ""
-            scale: tileArea.pressed ? 0.92 : 1
-            Behavior on scale { NumberAnimation { duration: 90 } }
+            scale: tileArea.pressed ? 0.92 : tile.selected ? 1.06 : 1
+            Behavior on scale { NumberAnimation { duration: 160; easing.type: Easing.OutBack } }
+            Behavior on anchors.topMargin { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         }
 
         Text {
             anchors.top: tileIcon.bottom
-            anchors.topMargin: 9
+            anchors.topMargin: tile.selected ? 11 : 9
             anchors.horizontalCenter: parent.horizontalCenter
             width: parent.width - 16
             horizontalAlignment: Text.AlignHCenter
             elide: Text.ElideRight
             text: tile.app ? tile.app.name : ""
             color: tile.selected ? Theme.textPrimary
-                 : Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.82)
+                 : Qt.rgba(Theme.textPrimary.r, Theme.textPrimary.g, Theme.textPrimary.b, 0.78)
             font.family: Theme.fontFamily
             font.pixelSize: 12
+            font.weight: tile.selected ? Font.DemiBold : Font.Normal
+            Behavior on anchors.topMargin { NumberAnimation { duration: 160; easing.type: Easing.OutCubic } }
         }
 
         MouseArea {
