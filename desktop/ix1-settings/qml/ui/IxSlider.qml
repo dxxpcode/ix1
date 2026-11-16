@@ -10,6 +10,16 @@ Item {
     signal moved(real value)
 
     implicitHeight: 28
+    property real step: (to - from) / 20
+    activeFocusOnTab: true
+    function nudge(d) {
+        value = Math.max(from, Math.min(to, value + d))
+        moved(value)
+    }
+    Keys.onLeftPressed: nudge(-step)
+    Keys.onDownPressed: nudge(-step)
+    Keys.onRightPressed: nudge(step)
+    Keys.onUpPressed: nudge(step)
     readonly property real frac: Math.max(0, Math.min(1, (value - from) / (to - from)))
 
     Rectangle {
@@ -51,7 +61,7 @@ Item {
         radius: 9
         color: "#FFFFFF"
         border.width: 1
-        border.color: Qt.rgba(0.05, 0.07, 0.12, 0.14)
+        border.color: slider.activeFocus ? Theme.accent : Qt.rgba(0.05, 0.07, 0.12, 0.14)
         scale: drag.pressed ? 1.1 : 1
         Behavior on scale { NumberAnimation { duration: 100 } }
     }

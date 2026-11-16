@@ -15,7 +15,10 @@ Rectangle {
     radius: 9
     color: Theme.surface2
     border.width: 1
-    border.color: Theme.hairline
+    border.color: activeFocus ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.6) : Theme.hairline
+    activeFocusOnTab: true
+    Keys.onLeftPressed: if (currentIndex > 0) activated(currentIndex - 1)
+    Keys.onRightPressed: if (currentIndex < options.length - 1) activated(currentIndex + 1)
 
     Rectangle {
         visible: seg.currentIndex >= 0

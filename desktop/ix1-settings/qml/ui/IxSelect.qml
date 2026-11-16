@@ -14,6 +14,16 @@ Item {
 
     width: buttonWidth
     height: 32
+    activeFocusOnTab: true
+    Keys.onPressed: (e) => {
+        if (e.key === Qt.Key_Space || e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+            pop.open(); e.accepted = true
+        } else if (e.key === Qt.Key_Down && currentIndex < options.length - 1) {
+            activated(currentIndex + 1); e.accepted = true
+        } else if (e.key === Qt.Key_Up && currentIndex > 0) {
+            activated(currentIndex - 1); e.accepted = true
+        }
+    }
 
     Rectangle {
         id: button
@@ -21,7 +31,7 @@ Item {
         radius: 9
         color: hover.containsMouse || pop.visible ? Theme.surface3 : Theme.surface2
         border.width: 1
-        border.color: pop.visible
+        border.color: pop.visible || sel.activeFocus
             ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.6)
             : Theme.hairline
 
@@ -74,6 +84,9 @@ Item {
 
     Popup {
         id: pop
+        focus: true
+        onOpened: list.forceActiveFocus()
+        onClosed: sel.forceActiveFocus()
         y: sel.height + 6
         width: Math.max(sel.width, 180)
         padding: 5
@@ -107,13 +120,18 @@ Item {
             interactive: contentHeight > height
             boundsBehavior: Flickable.StopAtBounds
             currentIndex: sel.currentIndex
+            keyNavigationEnabled: true
+            Keys.onReturnPressed: { pop.close(); sel.activated(currentIndex) }
+            Keys.onEnterPressed: { pop.close(); sel.activated(currentIndex) }
+            Keys.onSpacePressed: { pop.close(); sel.activated(currentIndex) }
             Component.onCompleted: positionViewAtIndex(Math.max(0, sel.currentIndex), ListView.Contain)
             model: sel.options
             delegate: Rectangle {
                 width: ListView.view.width
                 height: 32
                 radius: 8
-                color: rowHover.containsMouse ? Theme.surface3 : "transparent"
+                color: rowHover.containsMouse || (list.activeFocus && ListView.isCurrentItem && index !== sel.currentIndex)
+                    ? Theme.surface3 : "transparent"
 
                 Rectangle {
                     visible: index === sel.currentIndex
