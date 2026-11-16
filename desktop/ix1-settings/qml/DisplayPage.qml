@@ -13,8 +13,11 @@ Flickable {
     function parseMode(m) {
         const at = m.split("@")
         const wh = at[0].split("x")
-        return { w: parseInt(wh[0]), h: parseInt(wh[1]), hz: at.length > 1 ? Math.round(parseFloat(at[1])) : 0 }
+        return { w: parseInt(wh[0]), h: parseInt(wh[1]),
+                 hz: at.length > 1 ? Math.round(parseFloat(at[1]) * 100) / 100 : 0 }
     }
+    // 60 -> "60 Hz", 59.94 -> "59.94 Hz"
+    function hzLabel(hz) { return (Number.isInteger(hz) ? hz : hz.toFixed(2)) + " Hz" }
 
     ColumnLayout {
         id: body
@@ -159,7 +162,7 @@ Flickable {
                         }
                         Item { width: 1; height: 8 }
                         Text {
-                            text: out.cur.w + " × " + out.cur.h + "  ·  " + out.cur.hz + " Hz"
+                            text: out.cur.w + " × " + out.cur.h + "  ·  " + page.hzLabel(out.cur.hz)
                             color: Theme.textPrimary
                             font.family: Theme.fontFamily
                             font.pixelSize: 14
@@ -191,7 +194,7 @@ Flickable {
                         title: "Refresh rate"
                         IxSegmented {
                             segmentWidth: 72
-                            options: out.rates.map(r => r + " Hz")
+                            options: out.rates.map(page.hzLabel)
                             currentIndex: out.rates.indexOf(out.cur.hz)
                             onActivated: (i) => backend.setDisplayMode(out.output.name,
                                 out.modeFor(out.cur.w + "x" + out.cur.h, out.rates[i]))
