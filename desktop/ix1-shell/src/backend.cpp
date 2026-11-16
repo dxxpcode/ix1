@@ -396,6 +396,24 @@ void ShellBackend::writeSettings()
 {
     const QString path = QStandardPaths::writableLocation(QStandardPaths::GenericConfigLocation)
                          + QStringLiteral("/ix1/settings.conf");
+    // ix1-settings owns wallpaper=/idleLock=/idleSuspend=; keep any other
+    // keys (and every unknown line) intact. Read before truncating.
+    QStringList keep;
+    {
+        QFile rf(path);
+        if (rf.open(QIODevice::ReadOnly | QIODevice::Text)) {
+            QTextStream in(&rf);
+            while (!in.atEnd()) {
+                const QString line = in.readLine().trimmed();
+                if (line.isEmpty() || line.startsWith(QLatin1String("theme="))
+                    || line.startsWith(QLatin1String("dnd="))
+                    || line.startsWith(QLatin1String("dockPinned="))) {
+                    continue;
+                }
+                keep << line;
+            }
+        }
+    }
     QFile file(path);
     if (!file.open(QIODevice::WriteOnly | QIODevice::Truncate | QIODevice::Text)) {
         return;
@@ -404,22 +422,6 @@ void ShellBackend::writeSettings()
     out << "theme=" << m_theme << '\n';
     out << "dnd=" << (m_dnd ? "true" : "false") << '\n';
     out << "dockPinned=" << m_pinned.join(QLatin1Char(',')) << '\n';
-    // ix1-settings owns wallpaper=/idleLock=/idleSuspend=; keep any other
-    // keys (and every unknown line) intact.
-    QStringList keep;
-    QFile rf(path);
-    if (rf.open(QIODevice::ReadOnly | QIODevice::Text)) {
-        QTextStream in(&rf);
-        while (!in.atEnd()) {
-            const QString line = in.readLine().trimmed();
-            if (line.isEmpty() || line.startsWith(QLatin1String("theme="))
-                || line.startsWith(QLatin1String("dnd="))
-                || line.startsWith(QLatin1String("dockPinned="))) {
-                continue;
-            }
-            keep << line;
-        }
-    }
     for (const QString &line : std::as_const(keep)) {
         out << line << '\n';
     }
