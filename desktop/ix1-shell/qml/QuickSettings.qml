@@ -42,6 +42,10 @@ Window {
         onActivated: backend.closeQuickSettings()
     }
 
+    // KWin blurs behind the card; clicks outside it still dismiss.
+    readonly property rect blurRect: Qt.rect(shell.x, shell.y, shell.width, shell.height)
+    readonly property real blurRadius: card.radius
+
     Item {
         anchors.fill: parent
 
@@ -81,9 +85,42 @@ Window {
                 id: card
                 anchors.fill: parent
                 radius: CcStyle.radiusCard
-                color: CcStyle.card
+                gradient: Gradient {
+                    GradientStop { position: 0.0; color: CcStyle.cardGlassTop }
+                    GradientStop { position: 1.0; color: CcStyle.cardGlassBottom }
+                }
                 border.width: 1
-                border.color: CcStyle.cardBorder
+                border.color: CcStyle.cardGlassRim
+
+                // Lit top edge (same as the dock tooltip).
+                Rectangle {
+                    anchors.top: parent.top
+                    anchors.topMargin: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 2 * parent.radius
+                    height: 1
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.5; color: CcStyle.cardGlassEdge }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                }
+
+                // Lit bottom rim.
+                Rectangle {
+                    anchors.bottom: parent.bottom
+                    anchors.bottomMargin: 1
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    width: parent.width - 2 * parent.radius
+                    height: 1
+                    gradient: Gradient {
+                        orientation: Gradient.Horizontal
+                        GradientStop { position: 0.0; color: "transparent" }
+                        GradientStop { position: 0.5; color: CcStyle.cardGlassRimBottom }
+                        GradientStop { position: 1.0; color: "transparent" }
+                    }
+                }
             }
 
             // Notch pointing up at the panel tray; covers the card's top border.
@@ -98,7 +135,7 @@ Window {
                 onPaint: {
                     const ctx = getContext("2d")
                     ctx.reset()
-                    ctx.fillStyle = CcStyle.card
+                    ctx.fillStyle = CcStyle.cardGlassTop
                     ctx.beginPath()
                     ctx.moveTo(0, height)
                     ctx.lineTo(width / 2 - 2, 1.2)
@@ -106,7 +143,7 @@ Window {
                     ctx.lineTo(width, height)
                     ctx.closePath()
                     ctx.fill()
-                    ctx.strokeStyle = CcStyle.cardBorder
+                    ctx.strokeStyle = CcStyle.cardGlassRim
                     ctx.lineWidth = 1
                     ctx.beginPath()
                     ctx.moveTo(0, height - 0.5)

@@ -13,6 +13,18 @@ QtObject {
 
     readonly property color card: dark ? "#121A2B" : "#F4F6FA"
     readonly property color cardBorder: dark ? Qt.rgba(1, 1, 1, 0.13) : Qt.rgba(0.06, 0.09, 0.16, 0.10)
+    // Translucent navy glass (same palette as the dock): wallpaper shows
+    // through, lighter at the top, KWin blurs behind the card.
+    readonly property color cardGlassTop: dark ? Qt.rgba(0.13, 0.19, 0.33, 0.60)
+                                               : Qt.rgba(0.96, 0.98, 1, 0.62)
+    readonly property color cardGlassBottom: dark ? Qt.rgba(0.06, 0.09, 0.17, 0.70)
+                                                  : Qt.rgba(0.90, 0.93, 0.99, 0.55)
+    readonly property color cardGlassRim: dark ? Qt.rgba(0.75, 0.85, 1, 0.15)
+                                               : Qt.rgba(1, 1, 1, 0.80)
+    readonly property color cardGlassEdge: dark ? Qt.rgba(0.8, 0.88, 1, 0.26)
+                                                : Qt.rgba(1, 1, 1, 1)
+    readonly property color cardGlassRimBottom: dark ? Qt.rgba(0.7, 0.8, 1, 0.28)
+                                                     : Qt.rgba(0.05, 0.07, 0.12, 0.12)
     readonly property color surface: dark ? "#232A3B" : "#FFFFFF"
     readonly property color surfaceHover: dark ? "#2A3245" : "#F9FAFC"
     readonly property color surfacePressed: dark ? "#303850" : "#EEF1F6"
