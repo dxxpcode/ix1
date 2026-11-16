@@ -205,6 +205,7 @@ ShellBackend::ShellBackend(QObject *parent)
             this, &ShellBackend::notificationClosed);
 
     m_apps.reload();
+    rebuildDock();
 
     // Session-bus endpoint the KWin focus script calls to report the
     // active window's app id (see kwin/active-window.js).
@@ -256,7 +257,8 @@ ShellBackend::ShellBackend(QObject *parent)
                          { QStringLiteral("inUse"), false } },
         };
         m_activeApp = QStringLiteral("Firefox");
-        m_runningApps = { QStringLiteral("firefox") };
+        m_runningApps = { QStringLiteral("firefox"), QStringLiteral("org.kde.plasma-systemmonitor") };
+        rebuildDock();
         m_bluetoothEnabled = true;
         m_hasBluetooth = true;
         m_outputDevices = {
@@ -346,6 +348,14 @@ void ShellBackend::loadTheme()
             }
             continue;
         }
+        if (line.startsWith(QLatin1String("dockPinned="))) {
+            const QStringList pinned = line.mid(11).split(QLatin1Char(','), Qt::SkipEmptyParts);
+            if (pinned != m_pinned) {
+                m_pinned = pinned;
+                rebuildDock();
+            }
+            continue;
+        }
         if (!line.startsWith(QLatin1String("theme="))) {
             continue;
         }
@@ -368,6 +378,7 @@ void ShellBackend::writeSettings()
     QTextStream out(&file);
     out << "theme=" << m_theme << '\n';
     out << "dnd=" << (m_dnd ? "true" : "false") << '\n';
+    out << "dockPinned=" << m_pinned.join(QLatin1Char(',')) << '\n';
 }
 
 void ShellBackend::toggleTheme()
@@ -729,6 +740,62 @@ void ShellBackend::setRunningApps(const QString &joined)
     if (next != m_runningApps) {
         m_runningApps = next;
         emit runningAppsChanged();
+        rebuildDock();
+    }
+}
+
+void ShellBackend::setPinned(const QString &appId, bool pinned)
+{
+    const qsizetype at = m_pinned.indexOf(appId);
+    if (pinned == (at >= 0)) {
+        return;
+    }
+    if (pinned) {
+        m_pinned.append(appId);
+    } else {
+        m_pinned.removeAt(at);
+    }
+    writeSettings();
+    rebuildDock();
+}
+
+void ShellBackend::rebuildDock()
+{
+    // App ids are desktop-file basenames; KWin reports Wayland app_ids in
+    // the same form, matched case-insensitively.
+    const auto entryFor = [this](const QString &appId, bool pinned) -> QVariantMap {
+        for (int i = 0; i < m_apps.rowCount(); ++i) {
+            const QModelIndex idx = m_apps.index(i, 0);
+            const QString file = m_apps.data(idx, AppModel::DesktopFileRole).toString();
+            const QString id = QFileInfo(file).completeBaseName();
+            if (id.compare(appId, Qt::CaseInsensitive) == 0) {
+                return { { QStringLiteral("name"), m_apps.data(idx, AppModel::NameRole) },
+                         { QStringLiteral("desktopFile"), file },
+                         { QStringLiteral("appId"), id },
+                         { QStringLiteral("pinned"), pinned } };
+            }
+        }
+        return {};
+    };
+    QVariantList next;
+    for (const QString &id : std::as_const(m_pinned)) {
+        const QVariantMap e = entryFor(id, true);
+        if (!e.isEmpty()) {
+            next.append(e);
+        }
+    }
+    for (const QString &id : std::as_const(m_runningApps)) {
+        if (m_pinned.contains(id, Qt::CaseInsensitive)) {
+            continue;
+        }
+        const QVariantMap e = entryFor(id, false);
+        if (!e.isEmpty()) {
+            next.append(e);
+        }
+    }
+    if (next != m_dockApps) {
+        m_dockApps = next;
+        emit dockAppsChanged();
     }
 }
 

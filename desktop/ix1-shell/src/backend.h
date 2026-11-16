@@ -64,6 +64,9 @@ class ShellBackend : public QObject
     Q_PROPERTY(QVariantList outputDevices READ outputDevices NOTIFY outputDevicesChanged)
     Q_PROPERTY(QString activeApp READ activeApp NOTIFY activeAppChanged)
     Q_PROPERTY(QStringList runningApps READ runningApps NOTIFY runningAppsChanged)
+    // Dock contents: pinned apps in order, then open apps that aren't
+    // pinned. Each entry: name, desktopFile, appId, pinned.
+    Q_PROPERTY(QVariantList dockApps READ dockApps NOTIFY dockAppsChanged)
     Q_PROPERTY(bool launcherOpen READ launcherOpen NOTIFY launcherOpenChanged)
     Q_PROPERTY(bool quickSettingsOpen READ quickSettingsOpen NOTIFY quickSettingsOpenChanged)
     Q_PROPERTY(QString qsSection READ qsSection NOTIFY qsSectionChanged)
@@ -88,6 +91,7 @@ public:
     QVariantList outputDevices() const { return m_outputDevices; }
     QString activeApp() const { return m_activeApp; }
     QStringList runningApps() const { return m_runningApps; }
+    QVariantList dockApps() const { return m_dockApps; }
     bool launcherOpen() const { return m_launcherOpen; }
     bool quickSettingsOpen() const { return m_qsOpen; }
     QString qsSection() const { return m_qsSection; }
@@ -96,6 +100,7 @@ public:
 
     Q_INVOKABLE void launchApp(const QString &desktopFile);
     Q_INVOKABLE void launchExec(const QString &exec);
+    Q_INVOKABLE void setPinned(const QString &appId, bool pinned);
     Q_INVOKABLE void setVolume(int percent);
     Q_INVOKABLE void toggleWifi();
     Q_INVOKABLE void connectWifi(const QString &ssid, const QString &password = QString());
@@ -137,6 +142,7 @@ signals:
     void outputDevicesChanged();
     void activeAppChanged();
     void runningAppsChanged();
+    void dockAppsChanged();
     void launcherOpenChanged();
     void quickSettingsOpenChanged();
     void qsSectionChanged();
@@ -164,6 +170,7 @@ private:
     QStringList parseDesktopExec(const QString &exec, const QString &name) const;
     void loadTheme();
     void writeSettings();
+    void rebuildDock();
 
     AppModel m_apps;
     NotificationServer *m_notifications = nullptr;
@@ -185,6 +192,15 @@ private:
     QVariantList m_outputDevices;
     QString m_activeApp;
     QStringList m_runningApps;
+    QStringList m_pinned = {
+        QStringLiteral("firefox"),
+        QStringLiteral("org.kde.dolphin"),
+        QStringLiteral("org.kde.kate"),
+        QStringLiteral("org.kde.konsole"),
+        QStringLiteral("ix1-settings"),
+        QStringLiteral("ix1-software-center"),
+    };
+    QVariantList m_dockApps;
     bool m_launcherOpen = false;
     bool m_qsOpen = false;
     QString m_qsSection;
