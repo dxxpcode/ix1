@@ -229,6 +229,7 @@ ShellBackend::ShellBackend(QObject *parent)
         refreshWifi();
         refreshBattery();
         refreshOutputDevices();
+        refreshBluetooth();
     });
     m_pollTimer->start();
 
@@ -802,7 +803,9 @@ void ShellBackend::refreshOutputDevices()
     const QStringList lines = QString::fromUtf8(p.readAllStandardOutput()).split(QLatin1Char('\n'));
     bool inSinks = false;
     QVariantList devices;
-    const QRegularExpression row(QStringLiteral("^\\s*([*]?)\\s*(\\d+)\\.\\s+(.*)$"));
+    // Unanchored: wpctl status prefixes rows with box-drawing tree
+    // characters (│, ├, ─), so the id column is not at line start.
+    const QRegularExpression row(QStringLiteral("([*]?)\\s*(\\d+)\\.\\s+(\\S.*)$"));
     for (const QString &line : lines) {
         if (line.contains(QLatin1String("Sinks:"))) {
             inSinks = true;
